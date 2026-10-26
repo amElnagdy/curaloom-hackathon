@@ -1,0 +1,316 @@
+{
+  "model": "muse-spark-1.3",
+  "judge": "muse-spark-1.3",
+  "run_at": "2026-10-26T22:32:31.394Z",
+  "item_count": 30,
+  "errors": 0,
+  "cost_usd": 0.3096,
+  "passed": true,
+  "overall": {
+    "score": 0.9667,
+    "bar": 0.8,
+    "passed": true
+  },
+  "categories": [
+    {
+      "model": "muse-spark-1.3",
+      "category": "msa_explanation",
+      "score": 1,
+      "bar": 0.8,
+      "passed": true,
+      "answer_key_errors": 0,
+      "item_scores": [
+        {
+          "id": "msa-01",
+          "category": "msa_explanation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Clear MSA definition with box analogy in four sentences.",
+          "answer": "المتغير (variable) في البرمجة هو مكان محجوز في ذاكرة الحاسوب لتخزين قيمة يمكن تغييرها لاحقا. يمكنك أن تتخيله مثل صندوق عليه اسم تحفظ فيه شيئا، فتستطيع وضع قيمة فيه ثم استبدالها بقيمة أخرى عند الحاجة. لكل متغير اسم يميزه ونوع يحدد نوع البيانات التي يحملها مثل الأرقام أو النصوص. عند كتابة البرنامج نستخدم اسم المتغير للوصول إلى قيمته أو لتعديلها بسهولة."
+        },
+        {
+          "id": "msa-02",
+          "category": "msa_explanation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Answer correctly defines both measures and outlier preference in clear MSA.",
+          "answer": "المتوسط الحسابي (mean) هو مجموع القيم مقسومًا على عددها، بينما الوسيط (median) هو القيمة التي تقع في المنتصف بعد ترتيب البيانات تصاعديًا.\nيتأثر المتوسط الحسابي كثيرًا بالقيم المتطرفة، أي القيم الكبيرة جدًا أو الصغيرة جدًا، أما الوسيط فهو أكثر ثباتًا لأنه يعتمد على الترتيب لا على حجم كل قيمة.\nلذلك نفضّل الوسيط عندما تكون البيانات منحرفة أو تحتوي على قيم شاذة (outliers)، مثل رواتب الموظفين أو أسعار المنازل.\nففي هذه الحالات يعطي الوسيط صورة أوضح عن القيمة النموذجية من المتوسط الحسابي."
+        },
+        {
+          "id": "msa-03",
+          "category": "msa_explanation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Covers waiter analogy and program-to-program request in clear MSA.",
+          "answer": "واجهة برمجة التطبيقات (API) هي مثل نادل في مطعم ينقل طلبك إلى المطبخ ثم يعيد إليك الطعام دون أن تدخل المطبخ بنفسك.\nعندما تستخدم تطبيقا في هاتفك، مثل تطبيق الطقس، فهو يطلب المعلومات من نظام آخر عبر هذه الواجهة.\nهي بذلك وسيلة تواصل منظمة تسمح للبرامج المختلفة أن تتحدث مع بعضها وتتبادل الخدمات.\nفائدتها أنها تسهل العمل وتوفر الوقت، لأن المطور لا يحتاج إلى بناء كل شيء من الصفر."
+        },
+        {
+          "id": "msa-04",
+          "category": "msa_explanation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Correctly explains memorization, noise, and poor generalization in clear MSA.",
+          "answer": "الإفراط في التخصيص (Overfitting) هو عندما يحفظ النموذج أمثلة التدريب بدل أن يتعلم القاعدة العامة منها. يحدث ذلك عندما يكون النموذج معقدا جدا فينتبه إلى الضجيج والتفاصيل الصغيرة غير المهمة. ولهذا يحقق نتيجة ممتازة على البيانات القديمة لكنه يفشل مع البيانات الجديدة. تخيله كطالب يحفظ أجوبة الامتحان دون فهم الدرس فيعجز عن حل أي سؤال جديد."
+        },
+        {
+          "id": "msa-05",
+          "category": "msa_explanation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "The answer covers all reference points in clear MSA.",
+          "answer": "المرجع النسبي (Relative Reference) مثل A1 يتغير تلقائيا عند نسخ الصيغة إلى خلية أخرى، لأنه يعتمد على الموقع النسبي للخلية.\nأما المرجع المطلق (Absolute Reference) مثل $A$1 فيبقى ثابتا ولا يتغير عند النسخ، لأنه يشير دائما إلى الخلية نفسها.\nنستخدم علامة الدولار لتثبيت العمود أو الصف، ويمكن تثبيت أحدهما فقط فيما يسمى المرجع المختلط.\nفإذا أردت ضرب عمود كامل في خلية واحدة ثابتة، يجب أن تستخدم المرجع المطلق لتلك الخلية الثابتة."
+        },
+        {
+          "id": "msa-06",
+          "category": "msa_explanation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Covers all reference points in clear MSA within length limit.",
+          "answer": "نحتاج إلى تنظيف البيانات (data cleaning) قبل تحليلها لأن البيانات الخام غالباً تحتوي على أخطاء وقيم مفقودة وتكرار.\nهذه المشاكل قد تؤدي إلى نتائج مضللة وقرارات خاطئة عند التحليل.\nيساعد التنظيف على توحيد الصيغ وتصحيح الأخطاء، مما يجعل البيانات دقيقة ومتسقة.\nوبذلك نحصل على تحليل موثوق يمكن الاعتماد عليه في اتخاذ القرار."
+        }
+      ]
+    },
+    {
+      "model": "muse-spark-1.3",
+      "category": "egyptian_dialect",
+      "score": 1,
+      "bar": 0.8,
+      "passed": true,
+      "answer_key_errors": 0,
+      "item_scores": [
+        {
+          "id": "egy-01",
+          "category": "egyptian_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Correctly restated the dialect request and gave a clear loop explanation.",
+          "answer": "المقصود: أنا لا أفهم الجزء الخاص بالحلقة التكرارية loop تماما، وأرجو شرحها لي ببطء.\nطبعا، سأشرحها لك بهدوء. الـ loop فكرتها تكرار نفس الأمر عدة مرات بدلا من كتابته يدويا. فمثلا for نستخدمها عندما نعرف عدد التكرار، و while تستمر في التكرار ما دام الشرط متحققا."
+        },
+        {
+          "id": "egy-02",
+          "category": "egyptian_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Restatement matches reference and reply confirms postponement.",
+          "answer": "المقصود: لا يوجد لدي وقت اليوم، فهل يمكن تأجيل الدرس إلى مساء الغد؟\nتمام، لا مشكلة. نؤجل الدرس لبكرة بالليل، وأخبرني بالوقت المناسب لك."
+        },
+        {
+          "id": "egy-03",
+          "category": "egyptian_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Restatement matches reference and reply addresses need clearly.",
+          "answer": "المقصود: أجد هذا الاختبار صعبًا جدًا، وقد شعرت بالارتباك في السؤال الثالث.\nلا تقلق، هذا طبيعي. ما هو نص السؤال الثالث؟ وسأشرحه لك ببساطة."
+        },
+        {
+          "id": "egy-04",
+          "category": "egyptian_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Restatement matches reference and reply answers clearly.",
+          "answer": "المقصود: هل يجب إتمام هذه الدورة كاملة قبل التقديم على وظيفة؟\nلا، ليس شرطا. يمكنك التقديم عندما تتقن المهارات الأساسية ويكون لديك مشروع أو اثنان تعرضهما، وإكمال الكورس سيقوي فرصك لكن لا تنتظره."
+        }
+      ]
+    },
+    {
+      "model": "muse-spark-1.3",
+      "category": "gulf_dialect",
+      "score": 1,
+      "bar": 0.8,
+      "passed": true,
+      "answer_key_errors": 0,
+      "item_scores": [
+        {
+          "id": "gulf-01",
+          "category": "gulf_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Restatement matches reference and reply gives clear weekly-hour guidance.",
+          "answer": "المقصود: يريد تعلم تحليل البيانات رغم ضيق وقته، ويسأل عن عدد ساعات الدراسة الأسبوعية اللازمة.\nتكفي 3 إلى 5 ساعات أسبوعيا للبدء والتقدم بثبات، ويفضل تقسيمها إلى جلسات قصيرة يومية مع تطبيق عملي."
+        },
+        {
+          "id": "gulf-02",
+          "category": "gulf_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Restatement matches reference and reply helpfully addresses the difficulty.",
+          "answer": "المقصود: درس اليوم كان جيدًا، لكن الأمثلة كانت صعبة بعض الشيء.\nسعيد أن الدرس أعجبك! أخبرني أي مثال وجدته صعبًا وسأبسطه لك."
+        },
+        {
+          "id": "gulf-03",
+          "category": "gulf_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Correctly restated Gulf question and gave clear pivot-table instructions.",
+          "answer": "المقصود: كيف أنشئ جدولا محوريا في برنامج إكسل؟\nلإنشاء جدول محوري: حدد بياناتك، ثم من تبويب إدراج اختر PivotTable، وحدد مكانه، ثم اسحب الحقول إلى الصفوف والأعمدة والقيم."
+        },
+        {
+          "id": "gulf-04",
+          "category": "gulf_dialect",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Restatement matches reference and reply addresses the request.",
+          "answer": "المقصود: يرجو عدم إرسال الرسائل إليه في وقت الصباح لأنه يكون في العمل.\nتمام، فهمت. لن نرسل لك في الصباح، وأخبرنا بالوقت المناسب لك."
+        }
+      ]
+    },
+    {
+      "model": "muse-spark-1.3",
+      "category": "term_translation",
+      "score": 0.9375,
+      "bar": 0.85,
+      "passed": true,
+      "answer_key_errors": 0,
+      "item_scores": [
+        {
+          "id": "term-01",
+          "category": "term_translation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Answer matches reference exactly.",
+          "answer": "جدول محوري"
+        },
+        {
+          "id": "term-02",
+          "category": "term_translation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Answer matches the reference exactly.",
+          "answer": "الانحراف المعياري"
+        },
+        {
+          "id": "term-03",
+          "category": "term_translation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Answer exactly matches the standard reference term.",
+          "answer": "جدول محوري"
+        },
+        {
+          "id": "term-04",
+          "category": "term_translation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Answer matches the standard reference term.",
+          "answer": "تعلم الآلة"
+        },
+        {
+          "id": "term-05",
+          "category": "term_translation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Matches reference exactly.",
+          "answer": "تنظيف البيانات"
+        },
+        {
+          "id": "term-06",
+          "category": "term_translation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Answer matches the reference standard term exactly.",
+          "answer": "تحليل الانحدار"
+        },
+        {
+          "id": "term-07",
+          "category": "term_translation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "Answer matches the reference standard term exactly.",
+          "answer": "قاعدة بيانات"
+        },
+        {
+          "id": "term-08",
+          "category": "term_translation",
+          "score": 0.5,
+          "answerKeyError": false,
+          "reason": "Meaning is correct but wording is non-standard literal translation, not the textbook term.",
+          "answer": "التعلم تحت الإشراف"
+        }
+      ]
+    },
+    {
+      "model": "muse-spark-1.3",
+      "category": "diacritics",
+      "score": 0.8333,
+      "bar": 0.8,
+      "passed": true,
+      "answer_key_errors": 0,
+      "item_scores": [
+        {
+          "id": "diac-01",
+          "category": "diacritics",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "All diacritics match the reference with only an allowed case ending added.",
+          "answer": "مُتَغَيِّرٌ"
+        },
+        {
+          "id": "diac-02",
+          "category": "diacritics",
+          "score": 0.5,
+          "answerKeyError": false,
+          "reason": "Initial kha has fatha instead of damma, one diacritic wrong.",
+          "answer": "خَوَارِزْمِيَّةٌ"
+        },
+        {
+          "id": "diac-03",
+          "category": "diacritics",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "All letters have complete correct tashkeel including shaddas and endings.",
+          "answer": "اَلْمُتَوَسِّطُ الْحِسَابِيُّ"
+        }
+      ]
+    },
+    {
+      "model": "muse-spark-1.3",
+      "category": "quiz_generation",
+      "score": 1,
+      "bar": 0.8,
+      "passed": true,
+      "answer_key_errors": 0,
+      "item_scores": [
+        {
+          "id": "quiz-01",
+          "category": "quiz_generation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "All three questions are passage-based with correct unique keys.",
+          "answer": "{\"questions\": [{\"prompt\": \"حسب النص، ما هو تعريف المتوسط الحسابي لمجموعة أعداد؟\", \"options\": [\"مجموعها مقسومًا على عددها\", \"عددها مقسومًا على مجموعها\", \"مجموعها مضروبًا في عددها\", \"الفرق بين أكبر عدد وأصغر عدد\"], \"answer_index\": 0}, {\"prompt\": \"حسب المثال في النص، ما متوسط الأعداد 2 و4 و9؟\", \"options\": [\"3\", \"5\", \"15\", \"7\"], \"answer_index\": 1}, {\"prompt\": \"حسب النص، ماذا يحدث عند إضافة العدد 85 إلى الأعداد 2 و4 و9؟\", \"options\": [\"يبقى المتوسط 5\", \"يصبح المتوسط 15\", \"يصبح المتوسط 25\", \"يصبح المتوسط 85\"], \"answer_index\": 2}]}"
+        },
+        {
+          "id": "quiz-02",
+          "category": "quiz_generation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "All three Arabic questions are passage-based with four options and correct unique keys.",
+          "answer": "{\"questions\": [{\"prompt\": \"ما هو المفتاح الأساسي (primary key) في قاعدة البيانات؟\", \"options\": [\"عمود أو مجموعة أعمدة تميّز كل صف في الجدول تمييزًا فريدًا\", \"عمود يقبل القيم المكررة بين الصفوف\", \"عمود تكون قيمته فارغة دائمًا\", \"مجموعة جداول تميّز قاعدة البيانات\"], \"answer_index\": 0}, {\"prompt\": \"ما حكم تكرار قيمة المفتاح الأساسي بين صفين أو كونها فارغة؟\", \"options\": [\"يجوز التكرار ويجوز أن تكون فارغة\", \"لا يجوز أن تتكرر ولا أن تكون فارغة\", \"يجوز أن تتكرر ولا يجوز أن تكون فارغة\", \"يجوز أن تكون فارغة ويجوز أن تتكرر\"], \"answer_index\": 1}, {\"prompt\": \"كم مفتاحًا أساسيًا يكون للجدول الواحد؟\", \"options\": [\"مفتاحان\", \"واحد فقط\", \"ثلاثة مفاتيح\", \"عدد غير محدود من المفاتيح\"], \"answer_index\": 1}]}"
+        },
+        {
+          "id": "quiz-03",
+          "category": "quiz_generation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "All three questions are answerable from the passage with correct keys.",
+          "answer": "{\"questions\":[{\"prompt\":\"ماذا يحدث للمرجع النسبي مثل A1 عند نسخ الصيغة إلى خلية أخرى؟\",\"options\":[\"يتغير\",\"يبقى ثابتًا\",\"يتم حذفه\",\"يتحول إلى نص\"],\"answer_index\":0},{\"prompt\":\"ماذا يحدث للمرجع المطلق مثل $A$1 عند نسخ الصيغة إلى خلية أخرى؟\",\"options\":[\"يتغير\",\"يبقى ثابتًا\",\"يتم حذفه\",\"يتحول إلى مرجع نسبي\"],\"answer_index\":1},{\"prompt\":\"وفقًا للنص، ما الفرق بين $A1 و A$1؟\",\"options\":[\"$A1 يثبت العمود وحده و A$1 يثبت الصف وحده\",\"$A1 يثبت الصف وحده و A$1 يثبت العمود وحده\",\"$A1 و A$1 كلاهما مرجع نسبي يتغير بالكامل\",\"$A1 و A$1 كلاهما مرجع مطلق يبقى ثابتًا\"],\"answer_index\":0}]}"
+        },
+        {
+          "id": "quiz-04",
+          "category": "quiz_generation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "All three questions are in Arabic with correct unique answer keys from passage.",
+          "answer": "{\"questions\":[{\"prompt\":\"ماذا يعني الرمز 200 عندما يرد خادم الويب على طلب المتصفح؟\",\"options\":[\"أن الطلب نجح\",\"أن الصفحة غير موجودة\",\"أن خطأ حدث داخل الخادم نفسه\",\"أن المتصفح رد برمز حالة\"],\"answer_index\":0},{\"prompt\":\"ماذا يعني الرمز 404 عندما يرد خادم الويب على طلب المتصفح؟\",\"options\":[\"أن الطلب نجح\",\"أن الصفحة غير موجودة\",\"أن خطأ حدث داخل الخادم نفسه\",\"أن الخادم طلب صفحة من المتصفح\"],\"answer_index\":1},{\"prompt\":\"ماذا يعني الرمز 500 عندما يرد خادم الويب على طلب المتصفح؟\",\"options\":[\"أن الطلب نجح\",\"أن الصفحة غير موجودة\",\"أن خطأ حدث داخل الخادم نفسه\",\"أن الصفحة موجودة\"],\"answer_index\":2}]}"
+        },
+        {
+          "id": "quiz-05",
+          "category": "quiz_generation",
+          "score": 1,
+          "answerKeyError": false,
+          "reason": "All three questions are from the passage with correct single keys.",
+          "answer": "{\"questions\":[{\"prompt\":\"ما هي خطوات حساب نسبة التغير حسب النص؟\",\"options\":[\"طرح القيمة القديمة من الجديدة ثم القسمة على القيمة القديمة ثم الضرب في 100\",\"طرح القيمة الجديدة من القديمة ثم القسمة على الجديدة ثم الضرب في 100\",\"جمع القيمة القديمة والجديدة ثم القسمة على القديمة ثم الضرب في 100\",\"قسمة القيمة القديمة على الجديدة ثم الضرب في 100\"],\"answer_index\":0},{\"prompt\":\"إذا ارتفعت المبيعات من 200 إلى 250 فما نسبة التغير؟\",\"options\":[\"25٪\",\"50٪\",\"سالب 25٪\",\"20٪\"],\"answer_index\":0},{\"prompt\":\"إذا انخفضت المبيعات من 200 إلى 150 فما نسبة التغير؟\",\"options\":[\"سالب 25٪\",\"25٪\",\"50٪\",\"سالب 50٪\"],\"answer_index\":0}]}"
+        }
+      ]
+    }
+  ]
+}
