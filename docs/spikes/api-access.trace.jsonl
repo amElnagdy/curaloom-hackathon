@@ -1,0 +1,10 @@
+{"type": "model_call", "at": 1793048623.023229, "model": "muse-spark-1.3", "feature": "chat", "endpoint": "/chat/completions", "ok": true, "http_status": 200, "latency_ms": 6692, "cost_usd": 0.003648}
+{"type": "model_call", "at": 1793048626.88012, "model": "muse-spark-1.3", "feature": "tool_call", "endpoint": "/chat/completions", "ok": true, "http_status": 200, "latency_ms": 3856, "cost_usd": 0.0014967000000000001}
+{"type": "model_call", "at": 1793048630.911036, "model": "muse-spark-1.3", "feature": "tool_call", "endpoint": "/responses", "ok": true, "http_status": 200, "latency_ms": 4030, "cost_usd": 0.00135055}
+{"type": "model_call", "at": 1793048633.6623948, "model": "muse-spark-1.3", "feature": "json_schema", "endpoint": "/chat/completions", "ok": true, "http_status": 200, "latency_ms": 2750, "cost_usd": 0.0016535}
+{"type": "model_call", "at": 1793048640.369202, "model": "muse-spark-1.3", "feature": "json_schema", "endpoint": "/responses", "ok": true, "http_status": 200, "latency_ms": 6706, "cost_usd": 0.0035235}
+{"type": "model_call", "at": 1793048656.004565, "model": "muse-spark-1.3", "feature": "web_search", "endpoint": "/responses", "ok": true, "http_status": 200, "latency_ms": 15634, "cost_usd": 0.08489225}
+{"type": "model_call", "at": 1793048664.461816, "model": "muse-wonder-1.0", "feature": "chat", "endpoint": "/chat/completions", "ok": true, "http_status": 200, "latency_ms": 8456, "cost_usd": 0.007584}
+{"type": "model_call", "at": 1793048670.211197, "model": "muse-voice-transcribe-1.0", "feature": "transcribe", "endpoint": "/asr/transcribe", "ok": true, "http_status": 200, "latency_ms": 4450, "cost_usd": 0.0007999999999999999}
+{"type": "model_call", "at": 1793048678.414295, "model": "muse-image-1.0", "feature": "image", "endpoint": "/images/generations", "ok": true, "http_status": 200, "latency_ms": 8201, "cost_usd": 0.01}
+{"type": "model_call", "at": 1793048680.2402308, "model": "sam-3.1", "feature": "segment", "endpoint": "/responses (stream)", "ok": true, "http_status": 200, "latency_ms": 1822, "cost_usd": 0.0025}

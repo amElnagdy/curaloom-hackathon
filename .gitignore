@@ -5,3 +5,10 @@
 
 # OS
 .DS_Store
+
+# Spike scratch output (generated audio, etc.)
+spikes/*/out/
+
+# Python
+__pycache__/
+.pytest_cache/
