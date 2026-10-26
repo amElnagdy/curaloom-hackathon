@@ -12,3 +12,12 @@ spikes/*/out/
 # Python
 __pycache__/
 .pytest_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Local runtime data (state store, traces)
+data/
