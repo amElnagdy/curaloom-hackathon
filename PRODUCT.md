@@ -58,6 +58,7 @@ Arabic speakers get a course assembled for them from open sources in other langu
 
 - **Voice:** learner-facing text is simple Modern Standard Arabic everywhere, including coach messages. The product understands dialect input (Gulf, Egyptian) but answers in MSA.
 - **Name:** no logo or name is committed yet (see the open decisions above).
+- **Visual register:** the category standard for learning apps, done at full craft, with no novelty styling. The quality bar is Duolingo (clear next steps and progress), Notion (calm reading surface) and Coursera or Khan Academy (course structure). Chosen by Ahmed on 2026-10-28 over three distinctive directions.
 
 ## Evidence on Hand
 
