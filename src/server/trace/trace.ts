@@ -17,11 +17,13 @@ export type TraceEvent = {
   summary_en: string;
   model?: string;
   cost_usd?: number;
+  // Session total so far, on every event that has a cost.
+  total_cost_usd?: number;
   latency_ms?: number;
   payload_ref?: string;
 };
 
-export type TraceInput = Omit<TraceEvent, "id" | "session_id" | "ts" | "sim_ts">;
+export type TraceInput = Omit<TraceEvent, "id" | "session_id" | "ts" | "sim_ts" | "total_cost_usd">;
 
 export type Tracer = {
   emit(event: TraceInput): TraceEvent;
@@ -30,8 +32,12 @@ export type Tracer = {
 
 // `now` is injected. The default reads the system clock: a known exception to ADR-004 until the
 // clock module (#23) exists, which will also fill `sim_ts`.
+// Ids and the cost total continue from the stored trace. One tracer per session per process:
+// two tracers writing the same session would reuse ids.
 export function createTracer(store: Store, sessionId: string, now = () => new Date()): Tracer {
-  let count = store.readTrace(sessionId).length;
+  const existing = store.readTrace<TraceEvent>(sessionId);
+  let count = existing.length;
+  let total = existing.reduce((sum, e) => sum + (e.cost_usd ?? 0), 0);
 
   const emit = (event: TraceInput): TraceEvent => {
     count++;
@@ -42,6 +48,10 @@ export function createTracer(store: Store, sessionId: string, now = () => new Da
       sim_ts: null,
       ...event,
     };
+    if (event.cost_usd !== undefined) {
+      total += event.cost_usd;
+      full.total_cost_usd = total;
+    }
     store.appendTrace(sessionId, full);
     return full;
   };

@@ -6,6 +6,7 @@
       "**",
       "!docs/spikes",
       "!pnpm-lock.yaml",
+      "!demo/fixtures/responses",
       "!evals/**/results-*.json",
       "!evals/**/*.trace.jsonl"
     ]

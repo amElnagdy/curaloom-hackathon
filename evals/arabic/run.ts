@@ -1,11 +1,12 @@
 // Arabic quality eval runner (#8). Usage: pnpm eval:arabic --model muse-wonder-1.0 [--judge M] [--only id,id]
-// Known exception to AGENTS.md until #23 lands: trace lines are stamped with wall time, not the clock.
+// Known exception to ADR-004 until the clock module (#23) lands: the run timestamp, the results
+// filename date and trace lines all read the system clock.
 
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { config } from "../../src/config.ts";
-import { loadModels, type Models } from "../../src/server/providers/models.ts";
+import { loadModels, type Models, parseRole } from "../../src/server/providers/models.ts";
 import {
   createProvider,
   type Provider,
@@ -48,33 +49,32 @@ function trace(event: ProviderTraceEvent) {
   appendFileSync(tracePath, `${JSON.stringify({ ts: new Date().toISOString(), ...event })}\n`);
 }
 
-// The answering and judging models come from the command line, routed as two eval roles.
+// The CLI picks the answering and judging models, so they are routed as two roles added at
+// runtime instead of roles in config/models.yaml. parseRole applies the same checks.
 function evalModels(answer: string, judge: string): Models {
   const models = loadModels();
-  const role = (model: string) => {
-    if (!Object.hasOwn(models.prices, model)) {
-      throw new Error(`No price for "${model}" in config/models.yaml`);
-    }
-    return { provider: "meta" as const, model };
-  };
+  const role = (name: string, model: string) =>
+    parseRole(name, { provider: "meta", model }, models.prices);
   return {
     ...models,
-    roles: { ...models.roles, eval_answer: role(answer), eval_judge: role(judge) },
+    roles: {
+      ...models.roles,
+      eval_answer: role("eval_answer", answer),
+      eval_judge: role("eval_judge", judge),
+    },
   };
 }
 
-const traceFor = (item: Item, step: "answer" | "judge") =>
-  step === "answer"
-    ? {
-        agent: "eval",
-        summary_ar: "إجابة النموذج على بند التقييم",
-        summary_en: `Model answers eval item ${item.id}`,
-      }
-    : {
-        agent: "eval",
-        summary_ar: "تقييم الإجابة وفق المعايير",
-        summary_en: `Judge scores the answer to ${item.id} against the rubric`,
-      };
+const SUMMARIES = {
+  answer: { ar: "إجابة النموذج على بند التقييم", en: "Model answers eval item" },
+  judge: { ar: "تقييم الإجابة وفق المعايير", en: "Judge scores the answer against the rubric:" },
+};
+
+const traceFor = (item: Item, step: "answer" | "judge") => ({
+  agent: "eval",
+  summary_ar: SUMMARIES[step].ar,
+  summary_en: `${SUMMARIES[step].en} ${item.id}`,
+});
 
 function judgeInstructions(item: Item, answer: string): string {
   return [

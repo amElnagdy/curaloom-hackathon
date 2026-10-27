@@ -187,6 +187,7 @@ export const AGENT_OUTPUTS = [
   "Lesson",
   "GlossaryEntry",
   "Quiz",
+  "QuizAttempt",
   "CoachEvent",
 ] as const satisfies readonly ContractName[];
 

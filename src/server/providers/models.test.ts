@@ -43,6 +43,15 @@ describe("parseModels", () => {
     expect(() => parseModels(yaml)).toThrow(/curriculum.*no price for "muse-wonder-2.0"/);
   });
 
+  it("rejects a role key it does not apply, so config never looks applied when it is not", () => {
+    const yaml = YAML.replace(
+      "{provider: meta, model: muse-wonder-1.0}",
+      "{provider: meta, model: muse-wonder-1.0, temperature: 0}",
+    );
+
+    expect(() => parseModels(yaml)).toThrow(/curriculum.*unknown key "temperature"/);
+  });
+
   it("parses the checked-in config/models.yaml", () => {
     const text = readFileSync(join(import.meta.dirname, "../../../config/models.yaml"), "utf8");
 

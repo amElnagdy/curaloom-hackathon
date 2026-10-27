@@ -76,7 +76,7 @@ describe("Meta provider normalization", () => {
     const { p, sent } = provider([{ status: 200, body: spike("json_schema", "/responses") }]);
     const schema = { type: "object", properties: {}, required: [], additionalProperties: false };
 
-    const result = await p.structured<{ hours_per_week: number }>({
+    const result = await p.structured({
       role: "agent_default",
       trace: TRACE,
       input: "عندي خمس ساعات",
@@ -267,6 +267,24 @@ describe("retries, cost and trace", () => {
       /network/,
     );
     expect(sent).toHaveLength(3);
+  });
+
+  it("traces how long a failed attempt took", async () => {
+    let calls = 0;
+    const slowThenOk = (async () => {
+      calls++;
+      if (calls === 1) {
+        await new Promise((r) => setTimeout(r, 30));
+        return Response.json({}, { status: 503 });
+      }
+      return Response.json(ok.body);
+    }) as typeof globalThis.fetch;
+    const { p, events } = provider([], { fetch: slowThenOk });
+
+    await p.structured({ role: "agent_default", trace: TRACE, input: "x", schema });
+
+    expect(events[0]).toMatchObject({ ok: false });
+    expect(events[0]?.latency_ms).toBeGreaterThanOrEqual(25);
   });
 
   it("keeps a running cost total across calls and in each trace event", async () => {

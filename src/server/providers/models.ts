@@ -38,11 +38,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseRole(name: string, raw: unknown, prices: Record<string, Price>): RoleConfig {
+const ROLE_KEYS = ["provider", "model", "reasoning"];
+
+// Exported so a caller that routes a model chosen at runtime (the eval CLI) gets the same checks.
+export function parseRole(name: string, raw: unknown, prices: Record<string, Price>): RoleConfig {
   const fail = (msg: string): never => {
     throw new Error(`config/models.yaml: role ${name}: ${msg}`);
   };
   if (!isRecord(raw)) return fail("must be a mapping");
+  const unknown = Object.keys(raw).find((key) => !ROLE_KEYS.includes(key));
+  if (unknown) fail(`unknown key "${unknown}"; supported: ${ROLE_KEYS.join(", ")}`);
   const { provider, model, reasoning } = raw;
   if (!(PROVIDERS as readonly unknown[]).includes(provider)) fail(`unknown provider "${provider}"`);
   if (typeof model !== "string" || model === "") return fail("missing model");

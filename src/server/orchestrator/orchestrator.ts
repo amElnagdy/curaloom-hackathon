@@ -47,25 +47,28 @@ export function createOrchestrator({ store, makeProvider, now }: OrchestratorOpt
     return tracer;
   };
 
+  // `key` names the step in the session (default: the agent's name). Give an agent that runs more
+  // than once per session a key per run, e.g. "lesson:L2" or "coach:day5".
   async function runStep<I, S extends TSchema>(
     sessionId: string,
     agent: Agent<I, S>,
     input: I,
+    { key = agent.name }: { key?: string } = {},
   ): Promise<Static<S>> {
     const tracer = tracerFor(sessionId);
     const state = store.readDoc<SessionState>(sessionId, SESSION_DOC) ?? { steps: {} };
     const record = (step: StepRecord) => {
-      state.steps[agent.name] = step;
+      state.steps[key] = step;
       store.writeDoc(sessionId, SESSION_DOC, state);
     };
     const emit = (event: Omit<TraceInput, "agent">) => tracer.emit({ agent: agent.name, ...event });
 
-    const done = state.steps[agent.name];
+    const done = state.steps[key];
     if (done?.status === "done") {
       emit({
         kind: "decision",
         summary_ar: "الخطوة مكتملة من قبل؛ استئناف بنتيجتها المحفوظة",
-        summary_en: `Step ${agent.name} already done; resuming with its saved output`,
+        summary_en: `Step ${key} already done; resuming with its saved output`,
         payload_ref: done.output_ref,
       });
       return store.readBlob<Static<S>>(sessionId, done.output_ref);
@@ -73,48 +76,51 @@ export function createOrchestrator({ store, makeProvider, now }: OrchestratorOpt
 
     emit({
       kind: "decision",
-      summary_ar: `بدء خطوة ${agent.name}`,
-      summary_en: `Starting step ${agent.name}`,
+      summary_ar: `بدء خطوة ${key}`,
+      summary_en: `Starting step ${key}`,
     });
     const provider = makeProvider((event) => tracer.fromProvider(event));
-    let feedback: string[] | null = null;
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      let errors: string[];
+    const attempt = async (feedback: string[] | null) => {
       try {
         const output = await agent.run(
           { sessionId, store, provider, trace: emit, feedback },
           input,
         );
-        errors = contractErrors(agent.output, output);
-        if (errors.length === 0) {
-          const ref = store.writeBlob(sessionId, output);
-          emit({
-            kind: "output",
-            summary_ar: `نتيجة ${agent.name} مطابقة للعقد`,
-            summary_en: `${agent.name} output matches its contract`,
-            payload_ref: ref,
-          });
-          record({ status: "done", output_ref: ref });
-          return output as Static<S>;
-        }
+        return { output, errors: contractErrors(agent.output, output) };
       } catch (e) {
-        errors = [e instanceof Error ? e.message : String(e)];
+        return { output: undefined, errors: [e instanceof Error ? e.message : String(e)] };
       }
-      const last = attempt === 2;
+    };
+
+    let result = await attempt(null);
+    if (result.errors.length) {
       emit({
         kind: "error",
-        summary_ar: last
-          ? `فشلت خطوة ${agent.name} بعد إعادة المحاولة`
-          : `نتيجة ${agent.name} غير صالحة؛ إعادة المحاولة مرة واحدة`,
-        summary_en: `${agent.name} attempt ${attempt} failed${last ? "; giving up" : "; retrying once"}: ${errors.join("; ")}`,
+        summary_ar: `نتيجة ${key} غير صالحة؛ إعادة المحاولة مرة واحدة`,
+        summary_en: `${key} attempt 1 failed; retrying once: ${result.errors.join("; ")}`,
       });
-      if (last) {
-        record({ status: "failed", error: errors.join("; ") });
-        throw new StepFailed(`Step ${agent.name} failed: ${errors.join("; ")}`);
-      }
-      feedback = errors;
+      result = await attempt(result.errors);
     }
-    throw new Error("unreachable");
+    if (result.errors.length) {
+      const reason = result.errors.join("; ");
+      emit({
+        kind: "error",
+        summary_ar: `فشلت خطوة ${key} بعد إعادة المحاولة`,
+        summary_en: `${key} attempt 2 failed; giving up: ${reason}`,
+      });
+      record({ status: "failed", error: reason });
+      throw new StepFailed(`Step ${key} failed: ${reason}`);
+    }
+
+    const ref = store.writeBlob(sessionId, result.output);
+    emit({
+      kind: "output",
+      summary_ar: `نتيجة ${key} مطابقة للعقد`,
+      summary_en: `${key} output matches its contract`,
+      payload_ref: ref,
+    });
+    record({ status: "done", output_ref: ref });
+    return result.output as Static<S>;
   }
 
   return { runStep };

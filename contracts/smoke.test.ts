@@ -8,6 +8,8 @@ import { loadModels } from "../src/server/providers/models";
 import { createProvider } from "../src/server/providers/provider";
 import { AGENT_OUTPUTS, CONTRACTS, type ContractName, contractErrors } from "./index";
 
+// RECORD_FIXTURES is a test-only switch set by `pnpm fixtures:record`, not an app setting, so it is
+// read here rather than in src/config.ts.
 const recording = process.env.RECORD_FIXTURES === "1";
 if (recording) process.loadEnvFile(".env");
 
@@ -44,6 +46,11 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], { role: string; input: str
   Quiz: {
     role: "agent_default",
     input: "أنشئ اختبارًا من سؤالين (اختيار من متعدد وإجابة قصيرة) لدرس L1 عن الجدول المحوري.",
+  },
+  QuizAttempt: {
+    role: "agent_default",
+    input:
+      "صحّح محاولة الاختبار q1 لدرس L1 في اليوم 3. السؤال i1 (اختيار من متعدد، الإجابة: تلخيص البيانات بتجميعها) وأجاب المتعلم: «تلخيص البيانات بتجميعها». السؤال i2 (إجابة قصيرة: مثال من العمل) وأجاب: «أجمع المصروفات حسب القسم». حد النجاح 0.8.",
   },
   CoachEvent: {
     role: "agent_default",

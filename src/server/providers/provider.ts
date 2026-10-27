@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Static, TSchema } from "typebox";
 import type { ProviderProfile } from "../../config.ts";
 import {
   type Citation,
@@ -18,6 +19,7 @@ import {
   normalizeImages,
   normalizeResponses,
   normalizeTranscribe,
+  type ResponseFormat,
   responsesRequest,
   segmentRequest,
   type ToolCall,
@@ -26,7 +28,7 @@ import {
 } from "./meta.ts";
 import { costUsd, type Models, type RoleConfig } from "./models.ts";
 
-export type { Citation, FunctionTool, ImageInput, ToolCall };
+export type { Citation, FunctionTool, ImageInput, ResponseFormat, ToolCall };
 
 export type ModelResult<J = unknown> = {
   text: string;
@@ -61,9 +63,10 @@ type TextInput = CallBase & { instructions?: string; input: string | unknown[] }
 
 export type Provider = {
   chat(call: TextInput & { tools?: FunctionTool[] }): Promise<ModelResult<null>>;
-  structured<J>(
-    call: TextInput & { schema: { name: string; schema: object } },
-  ): Promise<ModelResult<J>>;
+  // Pass a contract (ADR-006) and `json` is typed as it; a plain JSON Schema gives `unknown`.
+  structured<S extends object>(
+    call: TextInput & { schema: ResponseFormat<S> },
+  ): Promise<ModelResult<S extends TSchema ? Static<S> : unknown>>;
   webSearch(call: TextInput): Promise<ModelResult<null>>;
   transcribe(
     call: CallBase & { audio: Uint8Array; keywords?: string[] },
@@ -189,10 +192,13 @@ export function createProvider(options: ProviderOptions): Provider {
   // Sends with retries: network errors, timeouts, 429 and 5xx are retried with backoff.
   async function sendWithRetry(
     req: WireRequest,
-    onFailure: (attempt: number, error: string) => void,
+    onFailure: (attempt: number, error: string, latencyMs: number) => void,
   ) {
     for (let attempt = 1; ; attempt++) {
       let error: HttpError;
+      // performance.now() measures a duration, not the time of day, so ADR-004's clock rule
+      // does not apply.
+      const started = performance.now();
       try {
         const res = await send(req);
         if (res.status < 300) return { res, attempt };
@@ -205,7 +211,7 @@ export function createProvider(options: ProviderOptions): Provider {
       } catch (e) {
         error = new HttpError(e instanceof Error ? e.message : String(e), profile !== "replay");
       }
-      onFailure(attempt, error.message);
+      onFailure(attempt, error.message, Math.round(performance.now() - started));
       if (!error.retryable || attempt === MAX_ATTEMPTS) throw error;
       const backoff = 500 * 2 ** (attempt - 1) + Math.random() * 250;
       await sleep(Math.max(backoff, error.retryAfterMs ?? 0));
@@ -233,8 +239,8 @@ export function createProvider(options: ProviderOptions): Provider {
         ...outcome,
       });
 
-    const { res, attempt } = await sendWithRetry(build(role), (attempt, error) =>
-      trace({ attempt, ok: false, latency_ms: 0, cost_usd: 0, error }),
+    const { res, attempt } = await sendWithRetry(build(role), (attempt, error, latency_ms) =>
+      trace({ attempt, ok: false, latency_ms, cost_usd: 0, error }),
     );
     const normalized = normalize(res.body);
     const cost = costUsd(models, role.model, normalized.usage);
@@ -266,15 +272,14 @@ export function createProvider(options: ProviderOptions): Provider {
     };
   }
 
-  const text =
-    (c: TextInput, tools?: unknown[], format?: { name: string; schema: object }) =>
-    (role: RoleConfig) =>
+  const responsesCall =
+    (c: TextInput, tools?: unknown[], format?: ResponseFormat) => (role: RoleConfig) =>
       responsesRequest(role, { instructions: c.instructions, input: c.input, tools, format });
 
   return {
-    chat: (c) => call(c, text(c, c.tools && functionTools(c.tools)), normalizeResponses),
-    structured: (c) => call(c, text(c, undefined, c.schema), normalizeResponses, true),
-    webSearch: (c) => call(c, text(c, [{ type: "web_search" }]), normalizeResponses),
+    chat: (c) => call(c, responsesCall(c, c.tools && functionTools(c.tools)), normalizeResponses),
+    structured: (c) => call(c, responsesCall(c, undefined, c.schema), normalizeResponses, true),
+    webSearch: (c) => call(c, responsesCall(c, [{ type: "web_search" }]), normalizeResponses),
     transcribe: (c) =>
       call(c, (role) => transcribeRequest(role, c.audio, c.keywords), normalizeTranscribe),
     imageEdit: (c) =>

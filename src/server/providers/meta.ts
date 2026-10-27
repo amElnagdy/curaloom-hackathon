@@ -16,6 +16,8 @@ export type ImageInput = { b64: string; mime: string };
 export type FunctionTool = { name: string; description: string; parameters: object };
 export type ToolCall = { id: string; name: string; args: Record<string, unknown> };
 export type Citation = { url: string; title: string; snippet: string };
+// A JSON Schema sent as a strict `json_schema` response format.
+export type ResponseFormat<S extends object = object> = { name: string; schema: S };
 
 export type Normalized = {
   text: string;
@@ -30,7 +32,7 @@ type ResponsesInput = {
   instructions?: string;
   input: string | unknown[];
   tools?: unknown[];
-  format?: { name: string; schema: object };
+  format?: ResponseFormat;
 };
 
 type OutputItem = {

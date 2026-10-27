@@ -125,6 +125,34 @@ describe("orchestrator", () => {
     const ids = restarted.store.readTrace("s_1").map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it("runs the same agent again under a different step key", async () => {
+    const { orchestrator, modelCalls } = setup();
+
+    await orchestrator.runStep("s_1", intake, "عندي خمس ساعات", { key: "intake:1" });
+    await orchestrator.runStep("s_1", intake, "صار عندي ثلاث ساعات", { key: "intake:2" });
+    await orchestrator.runStep("s_1", intake, "صار عندي ثلاث ساعات", { key: "intake:2" });
+
+    expect(modelCalls()).toBe(2);
+  });
+
+  it("keeps a session-wide running cost total in the trace, across restarts", async () => {
+    const first = setup();
+    await first.orchestrator.runStep("s_1", intake, "a", { key: "intake:1" });
+    await first.orchestrator.runStep("s_1", intake, "b", { key: "intake:2" });
+    const restarted = setup(first.root);
+    await restarted.orchestrator.runStep("s_1", intake, "c", { key: "intake:3" });
+
+    const totals = restarted.store
+      .readTrace<TraceEvent>("s_1")
+      .filter((e) => e.kind === "model_call")
+      .map((e) => e.total_cost_usd);
+    expect(totals).toEqual([
+      expect.closeTo(0.0035235, 6),
+      expect.closeTo(2 * 0.0035235, 6),
+      expect.closeTo(3 * 0.0035235, 6),
+    ]);
+  });
 });
 
 describe("guardrail", () => {
