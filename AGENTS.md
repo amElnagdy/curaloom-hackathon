@@ -15,8 +15,8 @@ CI (`.github/workflows/ci.yml`) runs the same checks plus `pnpm build`, with no 
 
 Read `docs/architecture.md` for the component map and layout, and the ADRs in `docs/adr/` that touch your area, before changing code.
 
-- **Config:** read settings only through `src/config.ts`. The product name and demo topic are not final; take them from `config.appName` and `config.demoTopic`. `src/config-guard.test.ts` enforces this.
-- **Models:** call models only through the provider layer (ADR-002), by role. Feature code imports no model SDK.
+- **Config:** read settings only through `src/config.ts`. The product name and demo topic are not final; take them from `config.appName` and `config.demoTopic`. `src/guards.test.ts` enforces this.
+- **Models:** call models only through `createProvider()` in `src/server/providers/` (ADR-002), by a role from `config/models.yaml`. Feature code imports no model SDK and never calls the Meta API itself; `src/guards.test.ts` enforces this. Recorded responses for `replay` live in `demo/fixtures/responses/`.
 - **Time:** take time only from the clock module (ADR-004).
 - **Trace:** every model call and tool call emits a trace event with `summary_ar` and `summary_en`.
 - **Secrets:** keys come from `.env` only. Keep them out of code, fixtures, traces and logs.

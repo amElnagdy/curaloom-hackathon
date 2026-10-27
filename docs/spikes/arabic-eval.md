@@ -95,7 +95,6 @@ Please read each item's answers in the two results files and fill in the last co
 ## Reuse
 
 - **Regression:** re-run `pnpm eval:arabic --model <model>` after any prompt or model change, and compare against the results files.
-- **Planned changes to the runner:**
-  - When the provider layer (#12) lands, the runner should call it by role instead of calling `fetch`. `--model` stays as an override.
-  - When a demo topic is chosen, add a few items for it.
+- **Runner:** since #12 it calls the provider layer, routing `--model` and `--judge` as the roles `eval_answer` and `eval_judge`. Its trace lines are now the provider's trace events. The committed results files predate that change.
+- **Planned:** when a demo topic is chosen, add a few items for it.
 - **Slide:** the results table above is the Technical-depth slide.

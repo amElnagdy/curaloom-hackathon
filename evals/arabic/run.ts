@@ -1,11 +1,16 @@
 // Arabic quality eval runner (#8). Usage: pnpm eval:arabic --model muse-wonder-1.0 [--judge M] [--only id,id]
-// Known exceptions to AGENTS.md until their modules exist: calls /responses with fetch instead of
-// the provider layer (#12), and reads wall time instead of the clock (#23). Move both over then.
+// Known exception to AGENTS.md until #23 lands: trace lines are stamped with wall time, not the clock.
 
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { config } from "../../src/config.ts";
+import { loadModels, type Models } from "../../src/server/providers/models.ts";
+import {
+  createProvider,
+  type Provider,
+  type ProviderTraceEvent,
+} from "../../src/server/providers/provider.ts";
 import {
   type Category,
   type Item,
@@ -17,16 +22,9 @@ import {
   VERDICT_SCHEMA,
 } from "./eval.ts";
 
-const BASE_URL = "https://api.meta.ai/v1";
 const TIMEOUT_MS = 180_000;
 const CONCURRENCY = 4;
 const DIR = import.meta.dirname;
-
-// USD per 1M tokens (input, cached input, output), standard mode.
-const PRICES: Record<string, [number, number, number]> = {
-  "muse-spark-1.3": [1.25, 0.15, 4.25],
-  "muse-wonder-1.0": [4.0, 0.2, 20.0],
-};
 
 const DIALECT_TASK =
   "أنت مساعد تعليمي. وصلتك رسالة من متعلم قد تكون بلهجة عامية. أولًا اكتب سطرًا يبدأ بـ «المقصود:» تعيد فيه صياغة ما يقصده بالفصحى، ثم أجبه باختصار بعربية واضحة.";
@@ -44,88 +42,39 @@ const TASKS: Record<Category, (item: Item) => string> = {
     'أنشئ 3 أسئلة اختيار من متعدد بالعربية من النص التالي فقط. لكل سؤال 4 خيارات وإجابة صحيحة واحدة. أجب بصيغة JSON فقط: {"questions":[{"prompt":"...","options":["...","...","...","..."],"answer_index":0}]}',
 };
 
-type Usage = {
-  input_tokens?: number;
-  output_tokens?: number;
-  input_tokens_details?: { cached_tokens?: number };
-};
-type OutputItem = { type: string; phase?: string; content?: { type: string; text?: string }[] };
-
-function costUsd(model: string, usage: Usage): number {
-  const [input, cached, output] = PRICES[model] ?? [0, 0, 0];
-  const cachedTokens = usage.input_tokens_details?.cached_tokens ?? 0;
-  const fresh = (usage.input_tokens ?? 0) - cachedTokens;
-  return (fresh * input + cachedTokens * cached + (usage.output_tokens ?? 0) * output) / 1_000_000;
-}
-
-// The final answer is the last `message` item without a `phase` (interim ones are "commentary").
-function outputText(output: OutputItem[]): string {
-  const message = output.filter((o) => o.type === "message" && !o.phase).at(-1);
-  return (message?.content ?? []).map((c) => c.text ?? "").join("");
-}
-
 let tracePath = "";
-let totalCost = 0;
 
-async function respond(role: "answer" | "judge", itemId: string, body: Record<string, unknown>) {
-  const model = body.model as string;
-  for (let attempt = 1; ; attempt++) {
-    const started = Date.now();
-    let error: string | undefined;
-    try {
-      const res = await fetch(`${BASE_URL}/responses`, {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${config.modelApiKey}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        const usage: Usage = json.usage ?? {};
-        const cost = costUsd(model, usage);
-        totalCost += cost;
-        trace({
-          role,
-          itemId,
-          model,
-          ok: true,
-          latency_ms: Date.now() - started,
-          usage,
-          cost_usd: cost,
-        });
-        return outputText(json.output ?? []);
-      }
-      error = `HTTP ${res.status}: ${JSON.stringify(json.error ?? json).slice(0, 200)}`;
-    } catch (e) {
-      error = String(e);
+function trace(event: ProviderTraceEvent) {
+  appendFileSync(tracePath, `${JSON.stringify({ ts: new Date().toISOString(), ...event })}\n`);
+}
+
+// The answering and judging models come from the command line, routed as two eval roles.
+function evalModels(answer: string, judge: string): Models {
+  const models = loadModels();
+  const role = (model: string) => {
+    if (!Object.hasOwn(models.prices, model)) {
+      throw new Error(`No price for "${model}" in config/models.yaml`);
     }
-    trace({ role, itemId, model, ok: false, latency_ms: Date.now() - started, error });
-    if (attempt === 2) throw new Error(error);
-    await new Promise((r) => setTimeout(r, 1000 + Math.random() * 1000));
-  }
-}
-
-const SUMMARIES = {
-  answer: { ar: "إجابة النموذج على بند التقييم", en: "Model answers eval item" },
-  judge: { ar: "تقييم الإجابة وفق المعايير", en: "Judge scores the answer against the rubric" },
-};
-
-function trace(event: { role: "answer" | "judge"; itemId: string } & Record<string, unknown>) {
-  const { role, itemId, ...rest } = event;
-  const line = {
-    ts: new Date().toISOString(),
-    kind: "model_call",
-    role,
-    item_id: itemId,
-    summary_ar: SUMMARIES[role].ar,
-    summary_en: `${SUMMARIES[role].en} ${itemId}`,
-    ...rest,
+    return { provider: "meta" as const, model };
   };
-  appendFileSync(tracePath, `${JSON.stringify(line)}\n`);
+  return {
+    ...models,
+    roles: { ...models.roles, eval_answer: role(answer), eval_judge: role(judge) },
+  };
 }
+
+const traceFor = (item: Item, step: "answer" | "judge") =>
+  step === "answer"
+    ? {
+        agent: "eval",
+        summary_ar: "إجابة النموذج على بند التقييم",
+        summary_en: `Model answers eval item ${item.id}`,
+      }
+    : {
+        agent: "eval",
+        summary_ar: "تقييم الإجابة وفق المعايير",
+        summary_en: `Judge scores the answer to ${item.id} against the rubric`,
+      };
 
 function judgeInstructions(item: Item, answer: string): string {
   return [
@@ -140,24 +89,24 @@ function judgeInstructions(item: Item, answer: string): string {
   ].join("\n\n");
 }
 
-async function evaluate(item: Item, model: string, judge: string) {
+async function evaluate(provider: Provider, item: Item) {
   try {
-    const answer = await respond("answer", item.id, {
-      model,
+    const { text: answer } = await provider.chat({
+      role: "eval_answer",
+      trace: traceFor(item, "answer"),
       instructions: TASKS[item.category](item),
       input: item.input.text,
     });
-    const verdictText = await respond("judge", item.id, {
-      model: judge,
+    const verdict = await provider.structured({
+      role: "eval_judge",
+      trace: traceFor(item, "judge"),
       input: judgeInstructions(item, answer),
-      text: {
-        format: { type: "json_schema", name: "verdict", strict: true, schema: VERDICT_SCHEMA },
-      },
+      schema: { name: "verdict", schema: VERDICT_SCHEMA },
     });
     return {
       id: item.id,
       category: item.category,
-      ...parseVerdict(verdictText, item.category),
+      ...parseVerdict(verdict.text, item.category),
       answer,
     };
   } catch (e) {
@@ -200,8 +149,14 @@ async function main() {
     },
   });
   const { model, judge } = values;
-  if (!config.modelApiKey)
-    throw new Error("MODEL_API_KEY is not set; copy config/.env.example to .env");
+  const provider = createProvider({
+    models: evalModels(model, judge),
+    profile: config.providerProfile,
+    apiKey: config.modelApiKey,
+    fixturesDir: join(DIR, "fixtures"),
+    onTrace: trace,
+    timeoutMs: TIMEOUT_MS,
+  });
 
   const only = values.only?.split(",");
   const items = parseItems(readFileSync(join(DIR, "items.jsonl"), "utf8")).filter(
@@ -215,7 +170,7 @@ async function main() {
   writeFileSync(tracePath, "");
 
   console.log(`Evaluating ${items.length} items on ${model} (judge ${judge})`);
-  const results = await mapLimited(items, CONCURRENCY, (item) => evaluate(item, model, judge));
+  const results = await mapLimited(items, CONCURRENCY, (item) => evaluate(provider, item));
   const summary = summarize(results);
   const errors = results.filter((r) => r.reason.startsWith("error:")).length;
 
@@ -228,7 +183,7 @@ async function main() {
         run_at: runAt,
         item_count: items.length,
         errors,
-        cost_usd: round4(totalCost),
+        cost_usd: round4(provider.totalCostUsd()),
         passed: summary.passed,
         overall: summary.overall,
         categories: summary.categories.map((c) => ({ model, ...c })),
@@ -248,7 +203,7 @@ async function main() {
     `  ${overall.passed ? "PASS" : "FAIL"} ${"overall".padEnd(18)} ${overall.score.toFixed(2)} (bar ${overall.bar})`,
   );
   console.log(`Result: ${summary.passed ? "PASS" : "FAIL (a category is below its bar)"}`);
-  console.log(`Cost $${totalCost.toFixed(4)}, ${errors} errors. Wrote ${stem}.json`);
+  console.log(`Cost $${provider.totalCostUsd().toFixed(4)}, ${errors} errors. Wrote ${stem}.json`);
 }
 
 await main();

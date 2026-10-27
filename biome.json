@@ -2,7 +2,13 @@
   "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
-    "includes": ["**", "!docs/spikes", "!evals/**/results-*.json", "!evals/**/*.trace.jsonl"]
+    "includes": [
+      "**",
+      "!docs/spikes",
+      "!pnpm-lock.yaml",
+      "!evals/**/results-*.json",
+      "!evals/**/*.trace.jsonl"
+    ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": { "enabled": true, "rules": { "preset": "recommended" } },
