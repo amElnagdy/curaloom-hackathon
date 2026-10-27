@@ -1,6 +1,6 @@
 # Spike: Meta Model API access from Egypt (#7)
 
-**Decision: GO (technical); policy confirmation pending #10.** Every planned model and feature works from Egypt with a standard-tier key. Whether the Geographic Use Policy permits use from Egypt is not yet confirmed; see [Open item for Ahmed](#open-item-for-ahmed).
+**Decision: GO.** Every planned model and feature works from Egypt with a standard-tier key, and Ahmed confirmed in #10 that the Geographic Use Policy permits it.
 
 ## Question
 
@@ -145,6 +145,9 @@ Responses include `x-ratelimit-limit-requests`, `x-ratelimit-remaining-requests`
 - **#28 (diagram relabel):** SAM output needs a parser for the box and mask tokens, and that work should be in the estimate.
 - **#16 (voice input):** viable, with the caveats above.
 
-## Open item for Ahmed
+## Geographic Use Policy (resolved)
+
+Resolved 2026-10-27: Ahmed confirmed in #10 that use from Egypt is allowed. Original note:
+
 
 I could not read the [Geographic Use Policy](https://dev.meta.ai/legal/geographic-use-policy) because the page renders client-side. Calls that succeed from Egypt show **technical** access, not **policy** approval. Please confirm that Egypt is allowed when you do #10. The spike tried no workaround, such as a VPN, and none was needed.

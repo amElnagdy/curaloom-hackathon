@@ -1,6 +1,6 @@
 # Spike: Arabic quality eval (#8)
 
-**Decision: GO with Spark 1.3 for agent work and Wonder 1.0 for curriculum design (provisional until Ahmed's spot-check).** Both models pass every bar: Spark scores 0.97 overall and Wonder 0.98. Their only shared weak spot is one disputed diacritics item.
+**Decision: GO with Spark 1.3 for agent work and Wonder 1.0 for curriculum design.** Both models pass every bar: Spark scores 0.97 overall and Wonder 0.98, as judged. Ahmed's spot-check (2026-10-27) passed and ruled that the disputed diacritics item is correct, which raises both to 0.98 and 1.00.
 
 ## Question
 
@@ -51,7 +51,7 @@ The two saved runs cost **$0.90** in total, judge calls included, with no failed
 - **`diac-02` (خوارزمية):** both models wrote `خَوَارِزْمِيَّةٌ`, with a fatha on the khā'. The reference is `خُوارِزْمِيَّة`, with a damma.
   - The judge scored it 0.5 for both models ("one diacritic wrong").
   - In the first Wonder run, the judge decided the reference was wrong and set `answer_key_error`. The first runner applied that flag to every category, so the item scored 0 and Wonder's diacritics fell to 0.67. That was a runner bug, which code review caught; the judge was not inconsistent. The runner now ignores the flag outside quiz items, and Wonder was run again.
-  - **Ahmed decides which vowel is correct.** If both are accepted, both models score 1.00 on diacritics.
+  - **Ahmed's ruling (2026-10-27): the fatha is acceptable.** Both models' answers are correct, so diacritics is 1.00 for both, and overall becomes 0.98 for Spark and 1.00 for Wonder. The results files keep the judge's original scores; `items.jsonl` now accepts both vowels, so later runs score this correctly.
 - **`term-08` (apprentissage supervisé), Spark:** answered `التعلم تحت الإشراف`, a literal rendering, and scored 0.5. Wonder gave `التعلم الخاضع للإشراف (Supervised Learning)`.
 
 ### Checks beyond the judge
@@ -76,21 +76,21 @@ Every category is at or above its bar for the chosen model, so no category needs
 
 ## Spot-check for Ahmed (at least 10 items)
 
-Please read each item's answers in the two results files and fill in the last column. Your judgement is final over the judge's.
+Ahmed reviewed these on 2026-10-27; his judgement is final over the judge's.
 
 | Item | What to check | Judge: Spark / Wonder | Ahmed |
 |---|---|---|---|
-| `diac-02` | Is خَوارزمية (fatha) acceptable, or only خُوارزمية (damma)? | 0.5 / 0.5 | |
-| `diac-03` | Full tashkeel on المتوسط الحسابي | 1 / 1 | |
-| `term-04` | تعلم الآلة vs التعلم الآلي for машинное обучение | 1 / 1 | |
-| `term-08` | Is التعلم تحت الإشراف acceptable? | 0.5 / 1 | |
-| `egy-01` | Understood "الحتة بتاعة الـ loop"? | 1 / 1 | |
-| `egy-04` | Reply to the "do I have to finish the whole course" question | 1 / 1 | |
-| `gulf-01` | Hours-per-week answer is sensible for Omar | 1 / 1 | |
-| `gulf-04` | Understood طرش as "send" | 1 / 1 | |
-| `msa-02` | Mean vs median explanation is correct and clear | 1 / 1 | |
-| `msa-04` | Overfitting explanation is correct MSA | 1 / 1 | |
-| `quiz-03` | Questions on `$A1` and `A$1` are unambiguous | 1 / 1 | |
+| `diac-02` | Is خَوارزمية (fatha) acceptable, or only خُوارزمية (damma)? | 0.5 / 0.5 | Fatha acceptable: both correct |
+| `diac-03` | Full tashkeel on المتوسط الحسابي | 1 / 1 | OK |
+| `term-04` | تعلم الآلة vs التعلم الآلي for машинное обучение | 1 / 1 | OK |
+| `term-08` | Is التعلم تحت الإشراف acceptable? | 0.5 / 1 | OK |
+| `egy-01` | Understood "الحتة بتاعة الـ loop"? | 1 / 1 | OK |
+| `egy-04` | Reply to the "do I have to finish the whole course" question | 1 / 1 | OK |
+| `gulf-01` | Hours-per-week answer is sensible for Omar | 1 / 1 | OK |
+| `gulf-04` | Understood طرش as "send" | 1 / 1 | OK |
+| `msa-02` | Mean vs median explanation is correct and clear | 1 / 1 | OK |
+| `msa-04` | Overfitting explanation is correct MSA | 1 / 1 | OK |
+| `quiz-03` | Questions on `$A1` and `A$1` are unambiguous | 1 / 1 | OK |
 
 ## Reuse
 
