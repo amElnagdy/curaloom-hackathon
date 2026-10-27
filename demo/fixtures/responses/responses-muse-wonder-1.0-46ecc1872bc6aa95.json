@@ -1,0 +1,230 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-wonder-1.0",
+      "input": "المتعلم: عمر، 28 سنة، محاسب في الرياض يريد أن يصبح محلل بيانات مبتدئًا، لديه 5 ساعات أسبوعيًا، ويقرأ الإنجليزية. الموضوع: أساسيات جداول البيانات. ضع خطة: طريق من 3 وحدات وأسبوعين ملتزمين بجلسات من 45 دقيقة.",
+      "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "CoursePlan",
+          "schema": {
+            "type": "object",
+            "required": ["id", "road", "committed", "version", "reason"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "road": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["module", "weeks"],
+                  "properties": {
+                    "module": {
+                      "type": "string"
+                    },
+                    "weeks": {
+                      "type": "number"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "committed": {
+                "type": "object",
+                "required": ["start", "weeks", "sessions"],
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "description": "simulated day, e.g. day0"
+                  },
+                  "weeks": {
+                    "type": "integer"
+                  },
+                  "sessions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["id", "day", "minutes", "lesson_id", "resource_ids"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "day": {
+                          "type": "integer"
+                        },
+                        "minutes": {
+                          "type": "integer"
+                        },
+                        "lesson_id": {
+                          "type": "string"
+                        },
+                        "resource_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "version": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-wonder-1.0",
+    "reasoning": {
+      "effort": "max"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "CoursePlan",
+        "schema": {
+          "additionalProperties": false,
+          "required": ["id", "road", "committed", "version", "reason"],
+          "type": "object",
+          "properties": {
+            "committed": {
+              "additionalProperties": false,
+              "properties": {
+                "sessions": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "day": {
+                        "type": "integer"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "lesson_id": {
+                        "type": "string"
+                      },
+                      "minutes": {
+                        "type": "integer"
+                      },
+                      "resource_ids": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": ["id", "day", "minutes", "lesson_id", "resource_ids"],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "start": {
+                  "description": "simulated day, e.g. day0",
+                  "type": "string"
+                },
+                "weeks": {
+                  "type": "integer"
+                }
+              },
+              "required": ["start", "weeks", "sessions"],
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "road": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "module": {
+                    "type": "string"
+                  },
+                  "weeks": {
+                    "type": "number"
+                  }
+                },
+                "required": ["module", "weeks"],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "version": {
+              "type": "integer"
+            }
+          }
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae0faa6803e9849a18e4539",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793129126,
+    "completed_at": 1793129126,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae0faa6803e9849a18e4539:rs_7bbaaf0f-ddbb-4bf3-8265-eb248cf9c082",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_72902902-a9b9-4226-a05c-a13e1a93c1ce",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{ \"committed\":  {\"sessions\":   [{\"day\":  0, \"id\":  \"W1S1\", \"lesson_id\":  \"M1L1\", \"minutes\":  45, \"resource_ids\":  [\"r1\"]}, {\"day\":  1, \"id\":  \"W1S2\", \"lesson_id\":  \"M1L2\", \"minutes\":  45, \"resource_ids\":  [\"r2\"]}, {\"day\":  2, \"id\":  \"W1S3\", \"lesson_id\":  \"M1L3\", \"minutes\":  45, \"resource_ids\":  [\"r3\"]}, {\"day\":  3, \"id\":  \"W1S4\", \"lesson_id\":  \"M1L4\", \"minutes\":  45, \"resource_ids\":  [\"r4\"]}, {\"day\":  5, \"id\":  \"W1S5\", \"lesson_id\":  \"M2L1\", \"minutes\":  45, \"resource_ids\":  [\"r5\"]}, {\"day\":  5, \"id\":  \"W1S6\", \"lesson_id\":  \"M2L3\", \"minutes\":  45, \"resource_ids\":  [\"r6\"]}, {\"day\":  7, \"id\":  \"W2S1\", \"lesson_id\":  \"M2L4\", \"minutes\":  45, \"resource_ids\":  [\"r7\"]}, {\"day\":  8, \"id\":  \"W2S2\", \"lesson_id\":  \"M2L2\", \"minutes\":  45, \"resource_ids\":  [\"r8\"]}, {\"day\":  9, \"id\":  \"W2S3\", \"lesson_id\":  \"M3L1\", \"minutes\":  45, \"resource_ids\":  [\"r9\"]}, {\"day\":  10, \"id\":  \"W2S4\", \"lesson_id\":  \"M3L2\", \"minutes\":  45, \"resource_ids\":  [\"r10\"]}, {\"day\":  12, \"id\":  \"W2S5\", \"lesson_id\":  \"M3L3\", \"minutes\":  45, \"resource_ids\":  [\"r11\"]}, {\"day\":  12, \"id\":  \"W2S6\", \"lesson_id\":  \"M3L4\", \"minutes\":  45, \"resource_ids\":  [\"r12\"]}], \"start\":  \"2026-09-06\", \"weeks\":  2}, \"id\":  \"4742606a0aeb1509f4c\", \"reason\":  \"commit ok\", \"road\":  [{\"module\":  \"M1\", \"weeks\":  1}, {\"module\":  \"M2\", \"weeks\":  1}, {\"module\":  \"M3\", \"weeks\":  1}], \"version\":  1}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
+    "usage": {
+      "input_tokens": 112,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 3201,
+      "output_tokens_details": {
+        "reasoning_tokens": 2540
+      },
+      "total_tokens": 3313
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 25411
+}

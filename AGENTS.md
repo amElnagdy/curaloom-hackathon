@@ -17,6 +17,7 @@ Read `docs/architecture.md` for the component map and layout, and the ADRs in `d
 
 - **Config:** read settings only through `src/config.ts`. The product name and demo topic are not final; take them from `config.appName` and `config.demoTopic`. `src/guards.test.ts` enforces this.
 - **Models:** call models only through `createProvider()` in `src/server/providers/` (ADR-002), by a role from `config/models.yaml`. Feature code imports no model SDK and never calls the Meta API itself; `src/guards.test.ts` enforces this. Recorded responses for `replay` live in `demo/fixtures/responses/`.
+- **Contracts:** entity shapes and types come from `contracts/index.ts` (ADR-006). Pass a contract to `provider.structured` and check model output with `validate()`. After changing an agent-output contract, run `pnpm fixtures:record` (live, about $0.10).
 - **Time:** take time only from the clock module (ADR-004).
 - **Trace:** every model call and tool call emits a trace event with `summary_ar` and `summary_en`.
 - **Secrets:** keys come from `.env` only. Keep them out of code, fixtures, traces and logs.

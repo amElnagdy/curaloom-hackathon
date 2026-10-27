@@ -1,0 +1,165 @@
+{
+  "profile": {
+    "id": "l_omar",
+    "name": "عمر",
+    "locale": "ar",
+    "dialect": "gulf",
+    "goal": "junior data analyst",
+    "topic": "{{topic}}",
+    "hours_per_week": 5,
+    "background": ["accounting", "excel"],
+    "source_langs_ok": ["en"],
+    "diagnostic": {
+      "level": "beginner",
+      "scores": [
+        { "question_id": "q1", "score": 1 },
+        { "question_id": "q2", "score": 0.5 },
+        { "question_id": "q3", "score": 0 }
+      ]
+    },
+    "history_notes": "dropped MOOCs; asked for no morning messages"
+  },
+  "consent": {
+    "learner_id": "l_omar",
+    "channel": "simulated",
+    "granted": true,
+    "granted_sim_day": 0,
+    "quiet_hours": { "start": "22:00", "end": "12:00" },
+    "opted_out": false,
+    "opted_out_sim_day": null
+  },
+  "resources": [
+    {
+      "id": "r1",
+      "url": "https://example.org/open-course/pivot-tables",
+      "title": "Seed resource: summarising data with pivot tables",
+      "lang": "en",
+      "licence": {
+        "spdx": "CC-BY-4.0",
+        "evidence_url": "https://example.org/open-course/licence",
+        "verified": false
+      },
+      "type": "article",
+      "citations": [{ "url": "https://example.org/open-course/pivot-tables" }],
+      "score": 0.8,
+      "why_ar": "مصدر تجريبي للبذرة؛ يبدأ من جداول البيانات التي يعرفها عمر من عمله في المحاسبة."
+    }
+  ],
+  "plans": [
+    {
+      "id": "p1",
+      "road": [
+        { "module": "تلخيص البيانات بالجداول المحورية", "weeks": 1 },
+        { "module": "الإحصاء الوصفي", "weeks": 1 },
+        { "module": "مشروع تحليل صغير", "weeks": 2 }
+      ],
+      "committed": {
+        "start": "day0",
+        "weeks": 2,
+        "sessions": [
+          { "id": "s1", "day": 1, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
+          { "id": "s2", "day": 3, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] }
+        ]
+      },
+      "version": 1,
+      "reason": "initial"
+    }
+  ],
+  "lessons": [
+    {
+      "id": "L1",
+      "title_ar": "الجدول المحوري: تلخيص آلاف الصفوف في دقيقة",
+      "objectives_ar": ["أن تعرف متى تستخدم الجدول المحوري", "أن تلخص المبيعات حسب المنطقة والشهر"],
+      "sections": [
+        {
+          "source_excerpt": {
+            "lang": "en",
+            "text": "A pivot table summarises rows of data by grouping them and applying a calculation such as sum or average.",
+            "resource_id": "r1",
+            "locator": "§1"
+          },
+          "arabic": "الجدول المحوري يلخص صفوف البيانات بتجميعها وتطبيق عملية حسابية عليها مثل المجموع أو المتوسط.",
+          "notes_ar": "فكر فيه كتقرير المحاسبة الشهري الذي كنت تعدّه يدويًا، لكنه يُبنى بسحب الحقول."
+        }
+      ],
+      "glossary_ids": ["g1"]
+    }
+  ],
+  "glossary": [
+    {
+      "id": "g1",
+      "ar": "جدول محوري",
+      "ar_diacritized": "جَدْوَلٌ مِحْوَرِيٌّ",
+      "src": { "lang": "en", "term": "pivot table" },
+      "definition_ar": "جدول يلخص البيانات بتجميعها حسب حقل أو أكثر وحساب قيمة لكل مجموعة.",
+      "example_ar": "استخدمت جدولًا محوريًا لجمع المبيعات حسب المنطقة."
+    }
+  ],
+  "quizzes": [
+    {
+      "id": "q1",
+      "lesson_id": "L1",
+      "items": [
+        {
+          "id": "i1",
+          "type": "mcq",
+          "prompt_ar": "ما الغرض الأساسي من الجدول المحوري؟",
+          "options_ar": [
+            "تلخيص البيانات بتجميعها",
+            "رسم المخططات فقط",
+            "حذف الصفوف المكررة",
+            "تنسيق الخلايا"
+          ],
+          "answer": "تلخيص البيانات بتجميعها",
+          "rubric_ar": "إجابة واحدة صحيحة.",
+          "glossary_ids": ["g1"]
+        },
+        {
+          "id": "i2",
+          "type": "short",
+          "prompt_ar": "اذكر مثالًا من عملك يمكن تلخيصه بجدول محوري.",
+          "options_ar": [],
+          "answer": "مثل جمع المصروفات حسب القسم والشهر.",
+          "rubric_ar": "تُقبل أي حالة فيها تجميع بيانات حسب فئة وحساب مجموع أو متوسط.",
+          "glossary_ids": ["g1"]
+        }
+      ],
+      "pass_threshold": 0.8
+    }
+  ],
+  "attempts": [
+    {
+      "id": "a1",
+      "quiz_id": "q1",
+      "lesson_id": "L1",
+      "sim_day": 1,
+      "answers": [
+        {
+          "item_id": "i1",
+          "response": "تلخيص البيانات بتجميعها",
+          "score": 1,
+          "feedback_ar": "صحيح."
+        },
+        {
+          "item_id": "i2",
+          "response": "تقرير المبيعات",
+          "score": 0.5,
+          "feedback_ar": "فكرة صحيحة؛ حدد ما الذي تجمعه وحسب أي فئة."
+        }
+      ],
+      "score": 0.75,
+      "passed": false
+    }
+  ],
+  "mastery": [{ "lesson_id": "L1", "best_score": 0.75, "passed": false, "attempts": 1 }],
+  "coach_events": [
+    {
+      "id": "c1",
+      "sim_day": 2,
+      "type": "nudge",
+      "channel": "simulated",
+      "message_ar": "مرحبًا عمر، بقي سؤال واحد لتجتاز درس الجدول المحوري. عشر دقائق تكفي اليوم.",
+      "status": "queued"
+    }
+  ]
+}

@@ -15,12 +15,14 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
-    "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts"
+    "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts",
+    "fixtures:record": "RECORD_FIXTURES=1 vitest run contracts/smoke.test.ts"
   },
   "dependencies": {
     "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "typebox": "1.4.3",
     "yaml": "2.9.1"
   },
   "devDependencies": {
