@@ -23,6 +23,7 @@ Read `docs/architecture.md` for the component map and layout, and the ADRs in `d
 - **Language:** learner-facing text is Arabic. Code, identifiers, commits and docs are English.
 - **Tests:** Vitest, next to the code as `*.test.ts`. Test behaviour through the module's public interface.
 - **Decisions:** record a hard-to-reverse choice as a new ADR in `docs/adr/`.
+- **Licence:** the repo has no `LICENSE` file yet. #32 picks one before the public copy; the placeholder default is MIT or Apache-2.0.
 
 ## Agent skills
 

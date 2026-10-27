@@ -21,3 +21,6 @@ next-env.d.ts
 
 # Local runtime data (state store, traces)
 data/
+
+# Partial eval runs (--only)
+evals/**/results-*-partial.*

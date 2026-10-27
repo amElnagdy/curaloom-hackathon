@@ -1,5 +1,6 @@
 // Arabic quality eval runner (#8). Usage: pnpm eval:arabic --model muse-wonder-1.0 [--judge M] [--only id,id]
-// Calls /responses directly; this moves onto the provider layer (#12) once it exists.
+// Known exceptions to AGENTS.md until their modules exist: calls /responses with fetch instead of
+// the provider layer (#12), and reads wall time instead of the clock (#23). Move both over then.
 
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -10,6 +11,8 @@ import {
   type Item,
   parseItems,
   parseVerdict,
+  round4,
+  SOURCE_LANGUAGES,
   summarize,
   VERDICT_SCHEMA,
 } from "./eval.ts";
@@ -25,13 +28,6 @@ const PRICES: Record<string, [number, number, number]> = {
   "muse-wonder-1.0": [4.0, 0.2, 20.0],
 };
 
-const LANG_NAMES: Record<string, string> = {
-  en: "English",
-  ru: "Russian",
-  zh: "Chinese",
-  fr: "French",
-};
-
 const DIALECT_TASK =
   "أنت مساعد تعليمي. وصلتك رسالة من متعلم قد تكون بلهجة عامية. أولًا اكتب سطرًا يبدأ بـ «المقصود:» تعيد فيه صياغة ما يقصده بالفصحى، ثم أجبه باختصار بعربية واضحة.";
 
@@ -41,7 +37,7 @@ const TASKS: Record<Category, (item: Item) => string> = {
   egyptian_dialect: () => DIALECT_TASK,
   gulf_dialect: () => DIALECT_TASK,
   term_translation: (item) =>
-    `Translate this ${LANG_NAMES[item.input.src_lang ?? "en"]} technical term into the standard Arabic term used in textbooks. Reply with the Arabic term only, optionally followed by the English term in parentheses.`,
+    `Translate this ${SOURCE_LANGUAGES[item.input.src_lang ?? "en"]} technical term into the standard Arabic term used in textbooks. Reply with the Arabic term only, optionally followed by the English term in parentheses.`,
   diacritics: () =>
     "اكتب المصطلح العربي التالي مع التشكيل الكامل على كل حرف. أجب بالمصطلح المشكول فقط.",
   quiz_generation: () =>
@@ -112,11 +108,23 @@ async function respond(role: "answer" | "judge", itemId: string, body: Record<st
   }
 }
 
-function trace(event: Record<string, unknown>) {
-  appendFileSync(
-    tracePath,
-    `${JSON.stringify({ ts: new Date().toISOString(), kind: "model_call", ...event })}\n`,
-  );
+const SUMMARIES = {
+  answer: { ar: "إجابة النموذج على بند التقييم", en: "Model answers eval item" },
+  judge: { ar: "تقييم الإجابة وفق المعايير", en: "Judge scores the answer against the rubric" },
+};
+
+function trace(event: { role: "answer" | "judge"; itemId: string } & Record<string, unknown>) {
+  const { role, itemId, ...rest } = event;
+  const line = {
+    ts: new Date().toISOString(),
+    kind: "model_call",
+    role,
+    item_id: itemId,
+    summary_ar: SUMMARIES[role].ar,
+    summary_en: `${SUMMARIES[role].en} ${itemId}`,
+    ...rest,
+  };
+  appendFileSync(tracePath, `${JSON.stringify(line)}\n`);
 }
 
 function judgeInstructions(item: Item, answer: string): string {
@@ -146,13 +154,19 @@ async function evaluate(item: Item, model: string, judge: string) {
         format: { type: "json_schema", name: "verdict", strict: true, schema: VERDICT_SCHEMA },
       },
     });
-    return { id: item.id, category: item.category, ...parseVerdict(verdictText), answer };
+    return {
+      id: item.id,
+      category: item.category,
+      ...parseVerdict(verdictText, item.category),
+      answer,
+    };
   } catch (e) {
     console.warn(`  ${item.id}: ${e}`);
     return {
       id: item.id,
       category: item.category,
       score: 0,
+      judgeScore: null,
       answerKeyError: false,
       reason: `error: ${e}`,
       answer: "",
@@ -194,7 +208,9 @@ async function main() {
     (item) => !only || only.includes(item.id),
   );
   const runAt = new Date().toISOString();
-  const stem = join(DIR, `results-${new Date().toLocaleDateString("en-CA")}-${model}`);
+  // A --only run gets its own file so it never overwrites a full run's results.
+  const suffix = only ? "-partial" : "";
+  const stem = join(DIR, `results-${new Date().toLocaleDateString("en-CA")}-${model}${suffix}`);
   tracePath = `${stem}.trace.jsonl`;
   writeFileSync(tracePath, "");
 
@@ -212,7 +228,7 @@ async function main() {
         run_at: runAt,
         item_count: items.length,
         errors,
-        cost_usd: Math.round(totalCost * 10_000) / 10_000,
+        cost_usd: round4(totalCost),
         passed: summary.passed,
         overall: summary.overall,
         categories: summary.categories.map((c) => ({ model, ...c })),

@@ -37,6 +37,12 @@ describe("parseItems", () => {
     expect(() => parseItems(item({ rubric: "" }))).toThrow(/line 1.*rubric/);
   });
 
+  it("rejects a source language the eval has no name for", () => {
+    expect(() => parseItems(item({ input: { src_lang: "de", text: "Pivot-Tabelle" } }))).toThrow(
+      /line 1.*src_lang de/,
+    );
+  });
+
   it("rejects duplicate ids", () => {
     expect(() => parseItems(`${item()}\n${item()}`)).toThrow(/duplicate id "term-03"/);
   });
@@ -47,24 +53,47 @@ describe("parseVerdict", () => {
     expect(
       parseVerdict(
         '{"score": 0.5, "answer_key_error": false, "reason": "term correct, no diacritics"}',
+        "term_translation",
       ),
-    ).toEqual({ score: 0.5, answerKeyError: false, reason: "term correct, no diacritics" });
+    ).toEqual({
+      score: 0.5,
+      judgeScore: 0.5,
+      answerKeyError: false,
+      reason: "term correct, no diacritics",
+    });
   });
 
-  it("scores zero when the judge finds an answer-key error", () => {
+  it("scores a quiz zero when the judge finds an answer-key error", () => {
     expect(
-      parseVerdict('{"score": 1, "answer_key_error": true, "reason": "Q2 key is wrong"}'),
-    ).toEqual({ score: 0, answerKeyError: true, reason: "Q2 key is wrong" });
+      parseVerdict(
+        '{"score": 1, "answer_key_error": true, "reason": "Q2 key is wrong"}',
+        "quiz_generation",
+      ),
+    ).toEqual({ score: 0, judgeScore: 1, answerKeyError: true, reason: "Q2 key is wrong" });
+  });
+
+  it("ignores the answer-key flag outside quiz generation", () => {
+    expect(
+      parseVerdict(
+        '{"score": 1, "answer_key_error": true, "reason": "reference vowel is wrong"}',
+        "diacritics",
+      ),
+    ).toEqual({
+      score: 1,
+      judgeScore: 1,
+      answerKeyError: false,
+      reason: "reference vowel is wrong",
+    });
   });
 
   it("rejects a score outside 0, 0.5 and 1", () => {
-    expect(() => parseVerdict('{"score": 0.8, "answer_key_error": false, "reason": "ok"}')).toThrow(
-      /score/,
-    );
+    expect(() =>
+      parseVerdict('{"score": 0.8, "answer_key_error": false, "reason": "ok"}', "diacritics"),
+    ).toThrow(/score/);
   });
 
   it("rejects output that is not JSON", () => {
-    expect(() => parseVerdict("Score: 1")).toThrow(/judge/);
+    expect(() => parseVerdict("Score: 1", "diacritics")).toThrow(/judge/);
   });
 });
 
