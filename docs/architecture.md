@@ -73,6 +73,7 @@ flowchart LR
 ```
 src/app/             UI pages and route handlers
 src/server/agents/   one folder per agent
+src/server/orchestrator/
 src/server/providers/
 src/server/coach/    coach, notifier, clock
 src/server/store/

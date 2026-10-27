@@ -1,0 +1,89 @@
+// Session state as JSON files (ADR-003): data/sessions/<id>/<name>.json, trace.jsonl, blobs/.
+// Feature code uses the Store interface, never fs.
+
+import { createHash, randomUUID } from "node:crypto";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, join } from "node:path";
+
+export type Store = {
+  readDoc<T = unknown>(sessionId: string, name: string): T | undefined;
+  writeDoc(sessionId: string, name: string, value: unknown): void;
+  appendTrace(sessionId: string, event: { id: string }): void;
+  // Events in append order; with `after`, only those that follow that event id.
+  readTrace<E extends { id: string } = { id: string }>(sessionId: string, after?: string): E[];
+  writeBlob(sessionId: string, value: unknown): string;
+  readBlob<T = unknown>(sessionId: string, ref: string): T;
+};
+
+export const DATA_DIR = join(process.cwd(), "data");
+
+const SAFE_NAME = /^[A-Za-z0-9_-]{1,64}$/;
+
+function checked(kind: string, value: string): string {
+  if (!SAFE_NAME.test(value)) throw new Error(`Invalid ${kind} "${value}"`);
+  return value;
+}
+
+function readJson<T>(path: string): T | undefined {
+  return existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as T) : undefined;
+}
+
+// Write a temp file, then rename it, so a crash never leaves a half-written document.
+function writeAtomic(path: string, text: string) {
+  const temp = `${path}.${randomUUID()}.tmp`;
+  writeFileSync(temp, text);
+  renameSync(temp, path);
+}
+
+export function createFileStore(root: string = DATA_DIR): Store {
+  const sessionPath = (sessionId: string, ...parts: string[]) =>
+    join(root, "sessions", checked("session id", sessionId), ...parts);
+  const forWrite = (path: string) => {
+    mkdirSync(dirname(path), { recursive: true });
+    return path;
+  };
+  const docPath = (sessionId: string, name: string) =>
+    sessionPath(sessionId, `${checked("document name", name)}.json`);
+  const blobPath = (sessionId: string, ref: string) => {
+    if (!/^blob_[0-9a-f]{16}$/.test(ref)) throw new Error(`Invalid blob ref "${ref}"`);
+    return sessionPath(sessionId, "blobs", `${ref}.json`);
+  };
+
+  return {
+    readDoc: (sessionId, name) => readJson(docPath(sessionId, name)),
+    writeDoc(sessionId, name, value) {
+      writeAtomic(forWrite(docPath(sessionId, name)), `${JSON.stringify(value, null, 2)}\n`);
+    },
+    appendTrace(sessionId, event) {
+      appendFileSync(forWrite(sessionPath(sessionId, "trace.jsonl")), `${JSON.stringify(event)}\n`);
+    },
+    readTrace<E extends { id: string }>(sessionId: string, after?: string): E[] {
+      const path = sessionPath(sessionId, "trace.jsonl");
+      if (!existsSync(path)) return [];
+      const events = readFileSync(path, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as E);
+      const index = after ? events.findIndex((e) => e.id === after) : -1;
+      return events.slice(index + 1);
+    },
+    writeBlob(sessionId, value) {
+      const text = JSON.stringify(value);
+      const ref = `blob_${createHash("sha256").update(text).digest("hex").slice(0, 16)}`;
+      writeAtomic(forWrite(blobPath(sessionId, ref)), text);
+      return ref;
+    },
+    readBlob<T>(sessionId: string, ref: string): T {
+      const value = readJson<T>(blobPath(sessionId, ref));
+      if (value === undefined) throw new Error(`No blob ${ref} in session ${sessionId}`);
+      return value;
+    },
+  };
+}
