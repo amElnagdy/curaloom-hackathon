@@ -27,10 +27,6 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], { role: string; input: str
     role: "agent_default",
     input: `${LEARNER} قال بلهجته: «أبي أتعلم تحليل البيانات، بس لا تطرشون لي رسايل الصبح». املأ ملفه.`,
   },
-  Resource: {
-    role: "agent_default",
-    input: `${LEARNER} صف مصدرًا تعليميًا مفتوح الترخيص واحدًا مناسبًا له بالإنجليزية.`,
-  },
   CoursePlan: {
     role: "curriculum",
     input: `${LEARNER} ضع خطة: طريق من 3 وحدات وأسبوعين ملتزمين بجلسات من 45 دقيقة.`,

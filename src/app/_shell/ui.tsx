@@ -145,7 +145,8 @@ export function LangBadge({ lang, full = false }: { lang: Lang; full?: boolean }
 
 // An SPDX licence id and whether code verified it. `verified: false` is shown as rejected: a
 // model's claim is not evidence (PRODUCT.md, ADR-006).
-export function LicenceTag({ spdx, verified }: { spdx: string; verified: boolean }) {
+export function LicenceTag({ licence }: { licence: Resource["licence"] }) {
+  const { spdx, use, verified } = licence;
   const label = verified ? "تحقّق الكود من الترخيص" : "لم يثبت الكود هذا الترخيص";
   return (
     <span
@@ -156,6 +157,11 @@ export function LicenceTag({ spdx, verified }: { spdx: string; verified: boolean
       <span lang="en" dir="ltr">
         {verified ? spdx : <s>{spdx}</s>}
       </span>
+      {verified && use === "personal_study" && (
+        <span className={styles.licenceUse} lang="ar" dir="rtl">
+          للدراسة الشخصية
+        </span>
+      )}
       <span className="sr-only">{label}</span>
     </span>
   );
@@ -166,7 +172,7 @@ const REJECTED_NOTE = "رُفض: لم يثبت الكود ترخيصه";
 // One source: language badge, original title (isolated, in its own script), an Arabic note, and
 // the licence. A rejected source is struck through and says why. Put it inside an <li>.
 export function SourceRow({ resource, note }: { resource: Resource; note?: string }) {
-  const { verified, spdx } = resource.licence;
+  const { verified } = resource.licence;
   return (
     <div className={cx(styles.source, !verified && styles.sourceRejected)}>
       <LangBadge lang={resource.lang} />
@@ -178,7 +184,7 @@ export function SourceRow({ resource, note }: { resource: Resource; note?: strin
           <BidiText text={verified ? (note ?? resource.why_ar) : REJECTED_NOTE} />
         </span>
       </span>
-      <LicenceTag spdx={spdx} verified={verified} />
+      <LicenceTag licence={resource.licence} />
     </div>
   );
 }

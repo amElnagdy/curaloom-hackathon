@@ -283,7 +283,7 @@ export function SourceExcerpt({
         </span>
         {resource && (
           <span className={styles.excerptLicence}>
-            <LicenceTag spdx={resource.licence.spdx} verified={resource.licence.verified} />
+            <LicenceTag licence={resource.licence} />
           </span>
         )}
       </div>

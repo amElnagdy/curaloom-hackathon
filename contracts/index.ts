@@ -7,8 +7,10 @@ import Value from "typebox/value";
 
 const Obj = <P extends Record<string, TSchema>>(properties: P) =>
   Type.Object(properties, { additionalProperties: false });
-const StringEnum = <const T extends readonly string[]>(values: T) =>
-  Type.Unsafe<T[number]>({ type: "string", enum: [...values] });
+const StringEnum = <const T extends readonly string[]>(
+  values: T,
+  options: { description?: string } = {},
+) => Type.Unsafe<T[number]>({ type: "string", enum: [...values], ...options });
 const Nullable = <T extends TSchema>(schema: T) => Type.Union([schema, Type.Null()]);
 
 export const SOURCE_LANGS = ["en", "ru", "zh", "fr"] as const;
@@ -54,10 +56,13 @@ export const Resource = Obj({
   lang: SourceLang,
   licence: Obj({
     spdx: Type.String({ description: "SPDX id, e.g. CC-BY-4.0" }),
+    use: StringEnum(["open", "personal_study"], {
+      description: "personal_study: an NC or ND licence, for the learner's own study only",
+    }),
     evidence_url: Type.String(),
+    quote: Type.String({ description: "the licence statement as quoted from evidence_url" }),
     verified: Type.Boolean({
-      description:
-        "true only after code fetched evidence_url and confirmed the licence; a model sets false",
+      description: "true only after code fetched evidence_url and classified its licence",
     }),
   }),
   type: StringEnum(["article", "video", "book", "course"]),
@@ -180,9 +185,9 @@ export const CONTRACTS = {
 export type ContractName = keyof typeof CONTRACTS;
 
 // Schemas a model fills in through `provider.structured`; each has a recorded smoke test.
+// Resource is not one: the scout builds it in code from model-filled candidates (#17).
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
-  "Resource",
   "CoursePlan",
   "Lesson",
   "GlossaryEntry",

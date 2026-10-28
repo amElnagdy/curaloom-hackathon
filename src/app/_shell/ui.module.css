@@ -224,6 +224,10 @@
 .licenceRejected s {
   text-decoration-thickness: 1px;
 }
+.licenceUse {
+  font-family: var(--font-ar);
+  font-weight: 500;
+}
 
 /* ===================================================================== source row */
 .source {

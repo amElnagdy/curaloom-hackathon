@@ -36,7 +36,9 @@
       "lang": "en",
       "licence": {
         "spdx": "CC-BY-4.0",
+        "use": "open",
         "evidence_url": "https://example.org/open-course/licence",
+        "quote": "This work is licensed under a Creative Commons Attribution 4.0 International License.",
         "verified": true
       },
       "type": "article",
@@ -51,7 +53,9 @@
       "lang": "ru",
       "licence": {
         "spdx": "CC0-1.0",
+        "use": "open",
         "evidence_url": "https://example.org/otkrytye/licence",
+        "quote": "Текст передан в общественное достояние по CC0 1.0 Universal.",
         "verified": true
       },
       "type": "book",
@@ -66,7 +70,9 @@
       "lang": "zh",
       "licence": {
         "spdx": "CC-BY-SA-4.0",
+        "use": "open",
         "evidence_url": "https://example.org/kaifang/licence",
+        "quote": "本作品采用知识共享署名-相同方式共享 4.0 国际许可协议进行许可。",
         "verified": true
       },
       "type": "article",
@@ -81,7 +87,9 @@
       "lang": "fr",
       "licence": {
         "spdx": "CC-BY-4.0",
+        "use": "open",
         "evidence_url": "https://example.org/cours-libres/mentions",
+        "quote": "",
         "verified": false
       },
       "type": "video",
