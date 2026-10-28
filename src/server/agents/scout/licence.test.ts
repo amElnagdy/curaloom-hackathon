@@ -96,11 +96,45 @@ describe("classifyLicence", () => {
     expect(text).toContain(check.quote.replace(/^…|…$/g, ""));
   });
 
-  it("classifies a huge hostile page quickly, from its head and its footer", () => {
+  describe("on a long page, a term anywhere in the text counts", () => {
+    const filler = "A pivot table groups rows and shows a total for each group. ".repeat(3_000);
+    const page = (middle: string) =>
+      [
+        "This work is licensed under a Creative Commons Attribution 4.0 International License.",
+        filler,
+        middle,
+        filler,
+      ].join(" ");
+
+    it("rejects a CC BY page that says all rights reserved in the middle", () => {
+      const check = classifyLicence(page("© 2026 Example Corp. All rights reserved."), URL);
+
+      expect(check).toMatchObject({ use: "rejected", reason: /all rights reserved/ });
+    });
+
+    it("makes a CC BY page personal study when it says NonCommercial in the middle", () => {
+      const check = classifyLicence(
+        page("Exercises may be reused for NonCommercial purposes."),
+        URL,
+      );
+
+      expect(check).toMatchObject({ spdx: "CC-BY-4.0", use: "personal_study" });
+      expect(check.reason).toContain("NonCommercial");
+    });
+
+    it("rejects a CC BY page that names a second licence in the middle", () => {
+      const check = classifyLicence(page("Code samples are licensed under the MIT License."), URL);
+
+      expect(check).toMatchObject({ use: "rejected", reason: /conflicting.*CC-BY-4\.0.*MIT/ });
+    });
+  });
+
+  it("classifies a hostile page at the fetcher's 512 KB cap quickly", () => {
     const page = [
       `Creative Commons${" ".repeat(30_000)}x`,
       "общественн".repeat(5_000),
-      "Pivot tables summarise data. CC BY-SA 4.0 ".repeat(5_000),
+      "Pivot tables summarise data. CC BY-SA 4.0 ".repeat(6_000),
+      "CC BY-SA ".repeat(15_000),
       "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
     ].join(" ");
 

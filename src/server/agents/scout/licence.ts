@@ -90,6 +90,8 @@ type Row =
   | LicenceRow
   | { kind: "not_allowed"; family: string; spdx: string; patterns: string[] }
   | { kind: "reserved"; patterns: string[] }
+  // An NC or ND term outside any licence statement: it limits whatever licence the page states.
+  | { kind: "restriction"; patterns: string[] }
   | { kind: "vague"; patterns: string[] };
 
 function ccRow(terms: CcTerm[]): LicenceRow {
@@ -209,6 +211,10 @@ const ROWS: Row[] = [
     ],
   },
   {
+    kind: "restriction",
+    patterns: [...CC_TERMS.NC.words, ...CC_TERMS.ND.words].map((w) => `${START}(?:${w})${END}`),
+  },
+  {
     kind: "vague",
     patterns: [
       String.raw`Creative\s*Commons`,
@@ -228,42 +234,34 @@ const COMPILED = ROWS.map((row) => ({
   patterns: row.patterns.map((pattern) => new RegExp(pattern, "giu")),
 }));
 
-// Page text is untrusted, so the work per page is bounded. Licence statements sit in a page's head
-// (a rel="license" link) and its footer, so only those ends are read. Collapsing whitespace keeps the
-// patterns' adjacent `\s*` from backtracking over a long run, and a page that states its licence
-// more often than MAX_PER_PATTERN times says nothing new after that.
-const EDGE_CHARS = 64 * 1024;
-const MAX_PER_PATTERN = 25;
-
-function edgesOf(text: string): string {
-  const edges =
-    text.length > 2 * EDGE_CHARS ? `${text.slice(0, EDGE_CHARS)} ${text.slice(-EDGE_CHARS)}` : text;
-  return edges.replace(/\s+/g, " ");
-}
-
 type Finding = { row: Row; rank: number; start: number; end: number; version?: string };
 
+// Page text is untrusted, and the whole of it counts: a restrictive term anywhere limits the page.
+// So every step is linear or n log n in the text: a page at the fetcher's 512 KB cap classifies in
+// about 20 ms, hostile ones included (licence.test.ts). Whitespace is collapsed first, so the
+// patterns' adjacent `\s*` cannot backtrack over a long run.
 function findStatements(text: string): Finding[] {
   const found: Finding[] = [];
   for (const { row, patterns } of COMPILED) {
     patterns.forEach((re, rank) => {
-      let count = 0;
       for (const m of text.matchAll(re)) {
-        const end = m.index + m[0].length;
-        found.push({ row, rank, start: m.index, end, version: m.groups?.v });
-        if (++count === MAX_PER_PATTERN) break;
+        found.push({ row, rank, start: m.index, end: m.index + m[0].length, version: m.groups?.v });
       }
     });
   }
   // A statement inside a longer one ("CC BY" in "CC BY-SA 4.0") is part of it, not a second licence.
   // Sorted by start, longest first, a statement is inside an earlier one exactly when an earlier
-  // one reaches its end.
+  // one reaches its end. Past that, only the first statement per pattern and version matters.
   found.sort((a, b) => a.start - b.start || b.end - a.end);
   let reach = -1;
+  const seen = new Set<string>();
   return found.filter((f) => {
     const inside = f.end <= reach;
     reach = Math.max(reach, f.end);
-    return !inside;
+    const key = `${ROWS.indexOf(f.row)}:${f.rank}:${f.version ?? ""}`;
+    if (inside || seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -285,7 +283,9 @@ type Named = { spdx: string; row: NamingRow; findings: Finding[] };
 function namedLicences(findings: Finding[]): Named[] {
   const families = new Map<string, Naming[]>();
   for (const f of findings.filter(names)) {
-    families.set(f.row.family, [...(families.get(f.row.family) ?? []), f]);
+    const family = families.get(f.row.family);
+    if (family) family.push(f);
+    else families.set(f.row.family, [f]);
   }
   return [...families.values()].flatMap((family) => {
     const ids = family.map((f) => ({ ...idOf(f), row: f.row }));
@@ -314,10 +314,11 @@ function quoteOf(text: string, findings: Finding[]): string {
 }
 
 export function classifyLicence(pageText: string, url: string): LicenceCheck {
-  const text = edgesOf(pageText);
+  const text = pageText.replace(/\s+/g, " ");
   const findings = findStatements(text);
   const named = namedLicences(findings);
   const reserved = findings.filter((f) => f.row.kind === "reserved");
+  const restriction = findings.find((f) => f.row.kind === "restriction");
   const vague = findings.filter((f) => f.row.kind === "vague");
   const rejected = (spdx: string, quoted: Finding[], reason: string, reason_ar: string) => ({
     spdx,
@@ -355,13 +356,18 @@ export function classifyLicence(pageText: string, url: string): LicenceCheck {
     );
   }
   if (only) {
+    const limit = only.row.use === "open" ? restriction : undefined;
     return {
       spdx: only.spdx,
-      use: only.row.use,
+      use: limit ? "personal_study" : only.row.use,
       evidence_url: url,
       quote: quoteOf(text, only.findings),
-      reason: `the page states ${only.spdx}`,
-      reason_ar: `تذكر صفحته ترخيص ${only.spdx}`,
+      reason: limit
+        ? `the page states ${only.spdx} but limits reuse elsewhere ("${text.slice(limit.start, limit.end)}")`
+        : `the page states ${only.spdx}`,
+      reason_ar: limit
+        ? `تذكر صفحته ترخيص ${only.spdx}، لكنها تقيّد إعادة الاستخدام في موضع آخر`
+        : `تذكر صفحته ترخيص ${only.spdx}`,
     };
   }
   if (reserved.length) {
