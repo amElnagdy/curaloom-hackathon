@@ -6,8 +6,10 @@ import {
   appendFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
@@ -15,6 +17,9 @@ import { dirname, join } from "node:path";
 export type Store = {
   readDoc<T = unknown>(sessionId: string, name: string): T | undefined;
   writeDoc(sessionId: string, name: string, value: unknown): void;
+  // Deletes every document of the session, keeping its trace and blobs: readers fall back to the
+  // seed, so this restores the seeded state.
+  clearDocs(sessionId: string): void;
   appendTrace(sessionId: string, event: { id: string }): void;
   // Events in append order; with `after`, only those that follow that event id.
   readTrace<E extends { id: string } = { id: string }>(sessionId: string, after?: string): E[];
@@ -60,6 +65,13 @@ export function createFileStore(root: string = DATA_DIR): Store {
     readDoc: (sessionId, name) => readJson(docPath(sessionId, name)),
     writeDoc(sessionId, name, value) {
       writeAtomic(forWrite(docPath(sessionId, name)), `${JSON.stringify(value, null, 2)}\n`);
+    },
+    clearDocs(sessionId) {
+      const dir = sessionPath(sessionId);
+      if (!existsSync(dir)) return;
+      for (const name of readdirSync(dir)) {
+        if (name.endsWith(".json")) rmSync(join(dir, name));
+      }
     },
     appendTrace(sessionId, event) {
       appendFileSync(forWrite(sessionPath(sessionId, "trace.jsonl")), `${JSON.stringify(event)}\n`);

@@ -28,6 +28,22 @@ describe("file store", () => {
     expect(readdirSync(join(root, "sessions/s_1")).sort()).toEqual(["profile.json"]);
   });
 
+  it("clears a session's documents but keeps its trace and blobs", () => {
+    const store = createFileStore(tempRoot());
+    store.writeDoc("s_1", "profile", { name: "عمر" });
+    store.writeDoc("s_2", "profile", { name: "سارة" });
+    store.appendTrace("s_1", { id: "evt_0001" });
+    const ref = store.writeBlob("s_1", { big: "x" });
+
+    store.clearDocs("s_1");
+    store.clearDocs("s_9");
+
+    expect(store.readDoc("s_1", "profile")).toBeUndefined();
+    expect(store.readDoc("s_2", "profile")).toEqual({ name: "سارة" });
+    expect(store.readTrace("s_1").map((e) => e.id)).toEqual(["evt_0001"]);
+    expect(store.readBlob("s_1", ref)).toEqual({ big: "x" });
+  });
+
   it("returns trace events in append order, after a cursor, across a restart", () => {
     const root = tempRoot();
     const store = createFileStore(root);
