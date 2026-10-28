@@ -32,3 +32,9 @@ it("calls models only through the provider layer (ADR-002)", () => {
 
   expect(offenders(forbidden, (file) => file.startsWith("src/server/providers/"))).toEqual([]);
 });
+
+it("resolves repo files from process.cwd(), since Next.js server bundles have no import.meta.dirname", () => {
+  const forbidden = [/import\.meta\.dirname/];
+
+  expect(offenders(forbidden, (file) => file.startsWith("evals/"))).toEqual([]);
+});

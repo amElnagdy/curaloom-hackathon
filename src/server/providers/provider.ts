@@ -87,7 +87,7 @@ export type ProviderOptions = {
   timeoutMs?: number;
 };
 
-export const FIXTURES_DIR = join(import.meta.dirname, "../../../demo/fixtures/responses");
+export const FIXTURES_DIR = join(process.cwd(), "demo/fixtures/responses");
 const MAX_ATTEMPTS = 3;
 
 type WireResponse = { status: number; body: unknown; latency_ms: number; retryAfterMs?: number };

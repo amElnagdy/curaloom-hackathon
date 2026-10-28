@@ -32,7 +32,7 @@ export type Usage = {
   audioSeconds?: number;
 };
 
-const MODELS_PATH = join(import.meta.dirname, "../../../config/models.yaml");
+const MODELS_PATH = join(process.cwd(), "config/models.yaml");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

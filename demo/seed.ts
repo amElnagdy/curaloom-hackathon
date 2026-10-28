@@ -3,7 +3,7 @@
 
 import Type, { type Static } from "typebox";
 import { CONTRACTS, validate } from "../contracts/index.ts";
-// A static import, not a read from import.meta.dirname: the Next.js server bundle has no dirname.
+// A static import, so the fixture is bundled into the Next.js server.
 import omar from "./fixtures/omar.json" with { type: "json" };
 
 const Seed = Type.Object(
