@@ -31,8 +31,11 @@ export const DATA_DIR = join(process.cwd(), "data");
 
 const SAFE_NAME = /^[A-Za-z0-9_-]{1,64}$/;
 
+// A session id or document name the store refuses: a client error, not a server fault.
+export class InvalidNameError extends Error {}
+
 function checked(kind: string, value: string): string {
-  if (!SAFE_NAME.test(value)) throw new Error(`Invalid ${kind} "${value}"`);
+  if (!SAFE_NAME.test(value)) throw new InvalidNameError(`Invalid ${kind} "${value}"`);
   return value;
 }
 
