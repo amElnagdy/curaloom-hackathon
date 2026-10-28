@@ -1,0 +1,25 @@
+// Arabic display names and one-line jobs for the agents in trace events, keyed by the `agent` field.
+// The orchestrator has no name of its own: it emits a step's start, retry, failure and output under
+// the agent's name (src/server/orchestrator/orchestrator.ts).
+
+type AgentInfo = { name: string; job: string };
+
+export const AGENTS: Readonly<Record<string, AgentInfo>> = {
+  intake: { name: "المحاور", job: "يفهم هدفك ووقتك" },
+  scout: { name: "الكشّاف", job: "يبحث عن مصادر مفتوحة الترخيص ويتحقق من تراخيصها في الكود" },
+  architect: { name: "المهندس", job: "يصمم خطة الدورة على قدر وقتك" },
+  lesson_builder: { name: "صانع الدروس", job: "يكتب دروسًا عربية بجانب نصها الأصلي" },
+  examiner: { name: "الممتحن", job: "يكتب اختبارات تجتازها عند ٨٠٪" },
+  coach: { name: "المدرب", job: "يتابعك ضمن الحدود التي اخترتها" },
+  dummy: { name: "وكيل تجريبي", job: "يجرّب خطوات النظام دون أن يستدعي نموذجًا" },
+};
+
+const UNKNOWN_AGENT = "وكيل";
+
+export function agentName(agent: string): string {
+  return AGENTS[agent]?.name ?? UNKNOWN_AGENT;
+}
+
+export function agentJob(agent: string): string | undefined {
+  return AGENTS[agent]?.job;
+}

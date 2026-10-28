@@ -1,11 +1,6 @@
-import { config } from "../config";
+import { redirect } from "next/navigation";
 
-// Placeholder until the RTL shell lands (#15).
+// The plan is the home of the app.
 export default function Home() {
-  return (
-    <main>
-      <h1>{config.appName}</h1>
-      <p>مساعدك لبناء دورة عربية من مصادر مفتوحة.</p>
-    </main>
-  );
+  redirect("/plan");
 }

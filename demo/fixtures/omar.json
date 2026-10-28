@@ -4,7 +4,7 @@
     "name": "عمر",
     "locale": "ar",
     "dialect": "gulf",
-    "goal": "junior data analyst",
+    "goal": "محلل بيانات مبتدئ",
     "topic": "{{topic}}",
     "hours_per_week": 5,
     "background": ["accounting", "excel"],
@@ -37,12 +37,57 @@
       "licence": {
         "spdx": "CC-BY-4.0",
         "evidence_url": "https://example.org/open-course/licence",
-        "verified": false
+        "verified": true
       },
       "type": "article",
       "citations": [{ "url": "https://example.org/open-course/pivot-tables" }],
       "score": 0.8,
       "why_ar": "مصدر تجريبي للبذرة؛ يبدأ من جداول البيانات التي يعرفها عمر من عمله في المحاسبة."
+    },
+    {
+      "id": "r2",
+      "url": "https://example.org/otkrytye/statistika",
+      "title": "Описательная статистика: среднее, медиана и разброс",
+      "lang": "ru",
+      "licence": {
+        "spdx": "CC0-1.0",
+        "evidence_url": "https://example.org/otkrytye/licence",
+        "verified": true
+      },
+      "type": "book",
+      "citations": [{ "url": "https://example.org/otkrytye/statistika" }],
+      "score": 0.74,
+      "why_ar": "مصدر تجريبي للبذرة: فصل من كتاب مفتوح يشرح المتوسط والوسيط والانتشار بأمثلة قصيرة."
+    },
+    {
+      "id": "r3",
+      "url": "https://example.org/kaifang/pivot",
+      "title": "数据透视表入门：分组与汇总",
+      "lang": "zh",
+      "licence": {
+        "spdx": "CC-BY-SA-4.0",
+        "evidence_url": "https://example.org/kaifang/licence",
+        "verified": true
+      },
+      "type": "article",
+      "citations": [{ "url": "https://example.org/kaifang/pivot" }],
+      "score": 0.71,
+      "why_ar": "مصدر تجريبي للبذرة: دليل قصير يشرح التجميع والتلخيص بالجداول المحورية خطوة بخطوة."
+    },
+    {
+      "id": "r4",
+      "url": "https://example.org/cours-libres/stats",
+      "title": "Statistique descriptive : les bases",
+      "lang": "fr",
+      "licence": {
+        "spdx": "CC-BY-4.0",
+        "evidence_url": "https://example.org/cours-libres/mentions",
+        "verified": false
+      },
+      "type": "video",
+      "citations": [{ "url": "https://example.org/cours-libres/stats" }],
+      "score": 0.6,
+      "why_ar": "مصدر تجريبي للبذرة: دروس مصورة قصيرة عن أساسيات الإحصاء الوصفي."
     }
   ],
   "plans": [

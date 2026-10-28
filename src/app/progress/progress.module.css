@@ -1,0 +1,56 @@
+/* Progress: the course path, attempts against the pass mark, and the first week. */
+
+.lessonLine {
+  display: block;
+}
+.rule {
+  margin-top: var(--s-5);
+}
+
+/* Best score against the pass mark */
+.score {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+.scoreHead {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.scoreHead b {
+  color: var(--ink);
+}
+.track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+}
+/* Fills from the inline start: right to left in Arabic. */
+.fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--score);
+  border-radius: var(--r-pill);
+  background: var(--attn);
+}
+.fill[data-passed] {
+  background: var(--ready);
+}
+.tick {
+  position: absolute;
+  top: -0.3125rem;
+  bottom: -0.3125rem;
+  inset-inline-start: var(--gate);
+  width: 2px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+}

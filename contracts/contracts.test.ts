@@ -86,6 +86,16 @@ describe("Omar seed", () => {
     expect(loadOmarSeed("SQL for analysts").profile.topic).toBe("SQL for analysts");
   });
 
+  it("gives each caller its own copy", () => {
+    const first = loadOmarSeed("x");
+    first.resources.splice(0);
+    first.consent.granted = false;
+
+    const second = loadOmarSeed("x");
+    expect(second.resources.length).toBeGreaterThan(0);
+    expect(second.consent.granted).toBe(true);
+  });
+
   it("validates every entity against its contract", () => {
     // loadOmarSeed validates; this pins that the seed covers every contract.
     const seed = loadOmarSeed("x");

@@ -9,6 +9,7 @@ describe("loadConfig", () => {
       modelApiKey: undefined,
       providerProfile: "live",
       simClock: true,
+      devTools: true,
     });
   });
 
@@ -19,6 +20,7 @@ describe("loadConfig", () => {
       MODEL_API_KEY: "sk-test",
       PROVIDER_PROFILE: "replay",
       SIM_CLOCK: "false",
+      NODE_ENV: "production",
     });
 
     expect(config).toEqual({
@@ -27,7 +29,14 @@ describe("loadConfig", () => {
       modelApiKey: "sk-test",
       providerProfile: "replay",
       simClock: false,
+      devTools: false,
     });
+  });
+
+  it("turns dev tools off only in a production build", () => {
+    expect(loadConfig({ NODE_ENV: "production" }).devTools).toBe(false);
+    expect(loadConfig({ NODE_ENV: "development" }).devTools).toBe(true);
+    expect(loadConfig({ NODE_ENV: "test" }).devTools).toBe(true);
   });
 
   it("rejects an unknown provider profile", () => {

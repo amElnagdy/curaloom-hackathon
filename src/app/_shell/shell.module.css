@@ -1,0 +1,337 @@
+/* Shell frame, rail and top bar (shell.tsx, rail.tsx, top-bar.tsx). */
+
+.skip {
+  position: fixed;
+  top: var(--s-2);
+  right: var(--s-2);
+  z-index: 100;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skip:focus-visible {
+  transform: none;
+  color: #fff;
+}
+
+/* Grid column 1 is the inline start: the right edge in RTL. */
+.frame {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  min-height: 100vh;
+  transition: grid-template-columns var(--dur-3) var(--ease-out);
+}
+:global(html[data-rail="open"]) .frame {
+  --rail-w: var(--rail-open-w);
+}
+.column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===================================================================== rail */
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: 0 var(--s-3) var(--s-4);
+  background: var(--canvas);
+  border-inline-end: 1px solid var(--line);
+}
+.brand {
+  height: var(--top-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.rail[data-open="true"] .brand {
+  justify-content: flex-start;
+  padding-inline: var(--s-1);
+}
+.brandLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  text-decoration: none;
+}
+.brandLink:hover {
+  color: var(--ink);
+}
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: #fff;
+  flex: none;
+}
+.brandMark svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke-width: 2.1;
+}
+.brandText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+.brandName {
+  font-family: var(--font-lat);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.brandNote {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.navAccount {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+.navLink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  min-height: 2.75rem;
+  border-radius: var(--r-ctl);
+  color: var(--ink-2);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
+}
+.navLink :global(.lucide) {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.navLink:hover {
+  background: var(--fill);
+  color: var(--ink);
+}
+.navLink[aria-current="page"] {
+  background: var(--accent-50);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.rail[data-open="true"] .navLink {
+  justify-content: flex-start;
+  padding: 0 var(--s-3);
+}
+.navLabel {
+  flex: 1;
+  min-width: 0;
+}
+/* Agents are working on the course: a quiet breathing dot on the plan route. */
+.navLink[data-busy]::after {
+  content: "";
+  position: absolute;
+  top: 0.45rem;
+  inset-inline-end: 0.45rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: var(--motion-breathe);
+}
+.rail[data-open="true"] .navLink[data-busy]::after {
+  top: calc(50% - 0.2rem);
+  inset-inline-end: var(--s-3);
+}
+
+/* Slim rail: labels become tooltips, still the links' accessible names. */
+.rail:not([data-open="true"]) .navLabel,
+.rail:not([data-open="true"]) .brandText,
+.tip {
+  position: absolute;
+  inset-inline-start: calc(100% + 1rem);
+  top: 50%;
+  flex: none;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--r-sm);
+  background: var(--ink);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+  box-shadow: var(--shadow-1);
+  opacity: 0;
+  transform: translate(0.375rem, -50%);
+  pointer-events: none;
+  transition:
+    opacity var(--dur-1) var(--ease-out),
+    transform var(--dur-2) var(--ease-out);
+}
+.rail:not([data-open="true"]) .brandText .brandName {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.rail:not([data-open="true"]) .brandText {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+.rail:not([data-open="true"]) .brandNote {
+  color: rgb(255 255 255 / 0.75);
+  font-size: var(--text-xs);
+}
+.rail[data-open="true"] .tip {
+  display: none;
+}
+.rail:not([data-open="true"]) .navLink:hover .navLabel,
+.rail:not([data-open="true"]) .navLink:focus-visible .navLabel,
+.rail:not([data-open="true"]) .brandLink:hover .brandText,
+.rail:not([data-open="true"]) .brandLink:focus-visible .brandText,
+.rail:not([data-open="true"]) .railToggle:hover .tip,
+.rail:not([data-open="true"]) .railToggle:focus-visible .tip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.railFoot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+}
+.rail[data-open="true"] .railFoot {
+  align-items: stretch;
+}
+.railToggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: transparent;
+  color: var(--ink-3);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
+}
+.railToggle:hover {
+  background: var(--fill);
+  color: var(--ink);
+}
+.me {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+.rail[data-open="true"] .me {
+  justify-content: flex-start;
+  padding-inline: var(--s-1);
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--accent-100);
+  color: var(--accent-ink);
+  font-weight: 700;
+  flex: none;
+}
+.meName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.rail:not([data-open="true"]) .meName {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ===================================================================== top bar */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  height: var(--top-h);
+  padding: 0 var(--s-6);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+.spacer {
+  flex: 1;
+}
+.crumb {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.crumb ol,
+.crumb li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.crumb :global(.lucide) {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--ink-4);
+}
+.crumb [aria-current] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .top {
+    padding-inline: var(--s-4);
+  }
+  /* Phone width: only the current page, without the root crumb and its chevron. */
+  .crumb li:first-child,
+  .crumb li > :global(.lucide) {
+    display: none;
+  }
+}

@@ -1,0 +1,491 @@
+/* Building blocks for the route pages (blocks.tsx). */
+
+/* ===================================================================== page frame */
+/* The content column is centred; its inline end keeps clear of the trace tab on the left edge. */
+.page {
+  --page-max: 75rem;
+  width: 100%;
+  max-width: calc(var(--page-max) + var(--page-gutter) + var(--page-gutter-end));
+  margin-inline: auto;
+  padding: var(--s-10) var(--page-gutter) var(--s-16);
+  padding-inline-end: var(--page-gutter-end);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+.narrow {
+  --page-max: 60rem;
+}
+.reading {
+  --page-max: 55rem;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-4) var(--s-8);
+  padding-bottom: var(--s-2);
+}
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
+}
+.title {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+}
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.metaItem :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.lede {
+  max-width: 62ch;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: var(--s-6);
+  align-items: start;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  min-width: 0;
+}
+
+/* ===================================================================== panel */
+.panel {
+  min-width: 0;
+  padding: var(--s-6);
+  border: var(--edge);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+.panelHeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.panelTitle {
+  font-size: var(--text-lg);
+}
+.panelSub {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.flush {
+  padding: 0;
+}
+.flush > .panelHead {
+  margin: 0;
+  padding: var(--s-5) var(--s-6) var(--s-1);
+}
+
+/* ===================================================================== callout */
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+}
+.callout > :global(.lucide) {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.2rem;
+  color: var(--ink-3);
+}
+.callout_accent {
+  background: var(--accent-50);
+  color: var(--accent-press);
+}
+.callout_accent > :global(.lucide) {
+  color: var(--accent);
+}
+.callout_attention {
+  background: var(--attn-50);
+  color: var(--attn-ink);
+}
+.callout_attention > :global(.lucide) {
+  color: var(--attn);
+}
+.callout_ready {
+  background: var(--ready-50);
+  color: var(--ready-ink);
+}
+.callout_ready > :global(.lucide) {
+  color: var(--ready);
+}
+
+/* ===================================================================== mark list */
+.marks {
+  display: flex;
+  flex-direction: column;
+}
+.markItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+}
+.markItem + .markItem {
+  border-top: 1px solid var(--line);
+}
+.markItem:first-child {
+  padding-top: 0;
+}
+.markItem:last-child {
+  padding-bottom: 0;
+}
+.mark {
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  margin-top: 0.05rem;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  flex: none;
+}
+.mark :global(.lucide) {
+  width: 0.875rem;
+  height: 0.875rem;
+  stroke-width: 2.25;
+}
+.mark_ready {
+  background: var(--ready-50);
+  color: var(--ready);
+}
+.mark_attention {
+  background: var(--attn-50);
+  color: var(--attn-ink);
+}
+.markText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.markTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+.markDetail {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.markValue {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* ===================================================================== empty / locked */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-12) var(--s-6);
+  border: var(--edge);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  text-align: center;
+}
+.emptyInline {
+  padding: var(--s-8) var(--s-5);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: var(--s-1);
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink-2);
+}
+.emptyInline .emptyIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: var(--surface);
+}
+.emptyIcon :global(.lucide) {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+.emptyTitle {
+  font-size: var(--text-xl);
+}
+.emptyText {
+  max-width: 48ch;
+  color: var(--ink-2);
+}
+.emptyInline .emptyText {
+  font-size: var(--text-sm);
+}
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+.emptyPreview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: 36rem;
+  margin-top: var(--s-5);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--line);
+  text-align: start;
+}
+
+/* ===================================================================== settings rows */
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-2) var(--s-6);
+  padding: var(--s-5) var(--s-6);
+}
+.row + .row {
+  border-top: 1px solid var(--line);
+}
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.rowLabel {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+.rowHelp {
+  max-width: 60ch;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.rowControl {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+/* ===================================================================== channel tag */
+.channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.5rem;
+  padding: 0 0.625rem;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.channel :global(.lucide) {
+  width: 0.8125rem;
+  height: 0.8125rem;
+}
+
+/* ===================================================================== source excerpt */
+/* One elevation: a grey fill. The text keeps its own direction and script face. */
+.excerpt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+  padding: var(--s-4) var(--s-5) var(--s-5);
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+.excerptHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.excerptHead > span:first-child {
+  background: var(--surface);
+}
+.locator {
+  font-family: var(--font-lat);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.excerptLicence {
+  margin-inline-start: auto;
+}
+.excerptLicence > span {
+  background: var(--surface);
+}
+.excerptText {
+  font-size: var(--text-md);
+  line-height: 1.7;
+  color: var(--ink);
+  text-align: start;
+}
+.excerptText:lang(zh) {
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+}
+.cite {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line-strong);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+/* The call mark: like the shelf mark on a catalogue card, resource id over source language. */
+.callMark {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 2.375rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-lat);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  flex: none;
+}
+.callMarkLang {
+  padding-top: 0.1rem;
+  margin-top: 0.1rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+}
+.citeText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.citeTitle {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+/* The address stays on one line and ends in an ellipsis; the full URL is in the link and its title. */
+.citeMeta a {
+  display: inline-block;
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  font-family: var(--font-lat);
+  color: var(--ink-3);
+}
+.citeMeta a:hover {
+  color: var(--accent-ink);
+}
+
+/* ===================================================================== narrower viewports */
+@media (max-width: 1100px) {
+  .cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .page {
+    padding-top: var(--s-6);
+  }
+  .title {
+    font-size: var(--text-2xl);
+  }
+  .panel {
+    padding: var(--s-5) var(--s-4);
+  }
+  .flush {
+    padding: 0;
+  }
+  .flush > .panelHead {
+    padding-inline: var(--s-4);
+  }
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    padding-inline: var(--s-4);
+  }
+  .rowControl {
+    justify-content: flex-start;
+  }
+}

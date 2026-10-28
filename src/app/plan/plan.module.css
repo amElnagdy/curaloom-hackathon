@@ -1,0 +1,176 @@
+/* The plan page: course document + the pinned activity column (layout C). */
+
+.plan {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--feed-w);
+  min-height: calc(100vh - var(--top-h));
+}
+
+/* Primary action at the end of the activity column */
+.start {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-3);
+}
+.startButton {
+  width: 100%;
+}
+.startHint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ready-ink);
+}
+.startHint :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.startHint[data-locked] {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.doc {
+  min-width: 0;
+  padding: var(--s-8) var(--page-gutter) var(--s-12);
+}
+.docInner {
+  max-width: 62rem;
+  margin-inline: auto;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.lede {
+  margin-top: var(--s-2);
+  max-width: 52rem;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+}
+.lede b {
+  color: var(--ink);
+}
+
+/* Properties band: four label/value pairs between hairlines. A column never gets narrower than
+   its value, so the status pill («الوحدة الأولى جاهزة») stays whole on a laptop. */
+.props {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(min-content, 1fr));
+  margin-top: var(--s-5);
+  border-block: 1px solid var(--line);
+}
+.prop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: var(--s-3) var(--s-5);
+}
+.prop:first-child {
+  padding-inline-start: 0;
+}
+.prop + .prop {
+  border-inline-start: 1px solid var(--line);
+}
+.prop dt {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.prop dt :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.prop dd {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  font-weight: 600;
+}
+.prop dd > span[title] {
+  height: 1.375rem;
+  min-width: 2.125rem;
+}
+
+/* Sections: the outline and the course sources */
+.section {
+  margin-top: var(--s-8);
+}
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+.sectionHead h2 {
+  font-size: var(--text-xl);
+}
+.sectionHead > span {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.sectionHead > button {
+  margin-inline-start: auto;
+  align-self: center;
+}
+.sectionNote {
+  margin-top: var(--s-3);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.sourceList {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--s-2);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Inside a module: groups aligned with the module title, past the chevron */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding-bottom: var(--s-3);
+  padding-inline-start: 2rem;
+}
+
+@media (max-width: 1080px) {
+  .plan {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .doc {
+    padding-inline-end: var(--page-gutter-end);
+  }
+  .title {
+    font-size: var(--text-3xl);
+  }
+  /* Goal and hours side by side; languages and status each on a full row, so neither wraps. */
+  .props {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .prop:nth-child(n + 3) {
+    grid-column: 1 / -1;
+    padding-inline-start: 0;
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+  .groups {
+    padding-inline-start: 0;
+  }
+}

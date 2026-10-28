@@ -19,6 +19,7 @@
     "fixtures:record": "RECORD_FIXTURES=1 vitest run contracts/smoke.test.ts"
   },
   "dependencies": {
+    "lucide-react": "1.56.0",
     "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",

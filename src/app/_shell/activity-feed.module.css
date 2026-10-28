@@ -1,0 +1,291 @@
+/* «ما يحدث الآن» column (activity-feed.tsx). Pinned beside the page, scrolls its own list. */
+
+.feed {
+  position: sticky;
+  top: var(--top-h);
+  align-self: start;
+  height: calc(100vh - var(--top-h));
+  background: var(--canvas);
+  border-inline-start: 1px solid var(--line);
+}
+.inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-8) var(--s-6) var(--s-5);
+  /* keep clear of the trace tab on the left edge */
+  padding-inline-end: calc(var(--tab-w) + var(--s-5));
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  flex: none;
+}
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.titleRow h2 {
+  font-size: var(--text-lg);
+}
+.titleRow span {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* The live sentence: no model, no cost (those live in the trace drawer). */
+.live {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  font-size: var(--text-base);
+  color: var(--ink-2);
+}
+.liveDot {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.7em;
+  border-radius: 50%;
+  background: var(--ink-4);
+  flex: none;
+}
+.liveDot::after {
+  content: "";
+  position: absolute;
+  inset: -0.25rem;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0;
+}
+.live_active .liveDot {
+  background: var(--accent);
+  color: var(--accent);
+}
+.live_retrying .liveDot {
+  background: var(--attn);
+  color: var(--attn);
+}
+.live_active .liveDot::after,
+.live_retrying .liveDot::after {
+  animation: var(--motion-ping);
+}
+.live_done .liveDot {
+  background: var(--ready);
+}
+.live_failed .liveDot {
+  background: var(--fail);
+}
+.liveText {
+  line-height: 1.75;
+}
+.liveText b {
+  color: var(--ink);
+}
+
+.empty {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  line-height: 1.8;
+  max-width: 36ch;
+}
+
+.traceLink {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+  text-align: start;
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
+}
+.traceLink:hover {
+  background: var(--fill);
+  color: var(--ink);
+}
+.traceLink :global(.lucide) {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Timeline: oldest first, newest at the bottom. */
+.list {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-inline: calc(var(--s-3) * -1);
+  padding-inline: var(--s-3);
+  border-radius: var(--r-md);
+  /* Only whole lines under the live line: the older line cut by the top edge is hidden above
+     --cut (set by activity-feed.tsx), and only its timeline connector fades into view. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent calc(var(--cut, 0px) - var(--s-3)),
+    #000 var(--cut, 0px)
+  );
+}
+/* A mask would also hide the focus ring; while the reader scrolls by keyboard, show it all. */
+.list:focus-visible {
+  mask-image: none;
+}
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  column-gap: var(--s-3);
+  padding: var(--s-3);
+  margin-inline: calc(var(--s-3) * -1);
+  border-radius: var(--r-md);
+  transition: background-color var(--dur-4) var(--ease-out);
+}
+.arrive {
+  animation: var(--motion-arrive);
+}
+.item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--s-3) + 0.875rem - 1px);
+  top: calc(var(--s-3) + 1.75rem + 0.25rem);
+  bottom: calc(0.25rem - var(--s-3));
+  width: 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.tone_done:not(:last-child)::before {
+  background: var(--ready-200);
+}
+
+.dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-3);
+  transition:
+    background-color var(--dur-3) var(--ease-out),
+    color var(--dur-3) var(--ease-out);
+}
+.dot :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  stroke-width: 2.4;
+}
+/* A past progress line: a small filled grey dot. */
+.tone_working .dot::after {
+  content: "";
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+.tone_done .dot {
+  background: var(--ready-50);
+  color: var(--ready);
+}
+.tone_failed .dot {
+  background: var(--fail-50);
+  color: var(--fail-ink);
+}
+.tone_retrying .dot,
+.tone_warning .dot {
+  box-shadow: inset 0 0 0 1.5px var(--attn-200);
+  color: var(--attn-ink);
+}
+
+/* The step in progress right now */
+.current.tone_working {
+  background: var(--accent-50);
+}
+.current.tone_working .dot {
+  background: var(--accent);
+}
+.current.tone_working .dot::after {
+  background: #fff;
+}
+.current.tone_retrying,
+.current.tone_warning {
+  background: var(--attn-50);
+}
+.current.tone_retrying .dot :global(.lucide) {
+  animation: var(--motion-spin-back);
+}
+.current::before {
+  opacity: 0;
+}
+
+.body {
+  min-width: 0;
+}
+.itemHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  min-height: 1.75rem;
+  padding-top: 0.15rem;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+.itemHead b {
+  font-weight: 700;
+  color: var(--ink);
+}
+.end {
+  margin-inline-start: auto;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+.current.tone_working .end {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.current.tone_retrying .end,
+.current.tone_warning .end {
+  color: var(--attn-ink);
+  font-weight: 600;
+}
+.text {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+
+.cta {
+  flex: none;
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--line);
+}
+.foot {
+  flex: none;
+  margin-top: auto;
+}
+@media (max-width: 1080px) {
+  .feed {
+    position: static;
+    height: auto;
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+  .list {
+    max-height: 28rem;
+  }
+}

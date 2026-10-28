@@ -1,0 +1,99 @@
+/* Consent: read-only controls showing the seeded limits. */
+
+.value {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* Switch: the knob sits at the inline start when off and slides to the inline end when on. */
+.switch {
+  appearance: none;
+  position: relative;
+  width: 2.5rem;
+  height: 1.5rem;
+  margin: 0;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+  flex: none;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 0.1875rem;
+  inset-inline-start: 0.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(17 24 39 / 0.2);
+  transition: inset-inline-start var(--dur-2) var(--ease-out);
+}
+.switch:checked {
+  background: var(--accent);
+}
+.switch:checked::before {
+  inset-inline-start: 1.1875rem;
+}
+/* Disabled keeps its state readable: the on colour softened, not greyed out. */
+.switch:disabled {
+  cursor: not-allowed;
+}
+.switch:disabled:checked {
+  background: color-mix(in srgb, var(--accent) 55%, var(--surface));
+}
+
+.select {
+  appearance: none;
+  min-height: 2.5rem;
+  padding-block: 0;
+  padding-inline: var(--s-3) 2.25rem;
+  border-radius: var(--r-ctl);
+  border: 1px solid var(--line-strong);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6877' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  background-position: left 0.75rem center;
+  color: var(--ink);
+  font-size: var(--text-base);
+}
+.select:disabled {
+  background-color: var(--fill);
+  border-color: var(--line);
+  color: var(--ink-2);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.range > span {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+
+.words {
+  display: flex;
+  gap: var(--s-2);
+}
+.words li {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  padding: 0 0.875rem;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}

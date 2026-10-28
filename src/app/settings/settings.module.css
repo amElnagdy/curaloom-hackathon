@@ -1,0 +1,88 @@
+/* Settings: read-only values from config and the disabled clock controls. */
+
+.tech {
+  font-family: var(--font-lat);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.name {
+  font-family: var(--font-lat);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.panelNote {
+  padding: 0 var(--s-6) var(--s-5);
+}
+.files {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s-1);
+}
+
+/* The model profile as a read-only segmented control: the current one is raised. */
+.segments {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-ctl);
+  background: var(--fill);
+}
+.segment {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-height: 2.125rem;
+  padding: 0.35rem var(--s-3);
+  border-radius: var(--r-sm);
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.segment .tech {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: inherit;
+}
+.segmentOn {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(17 24 39 / 0.08);
+}
+.segmentOn .tech {
+  color: var(--ink-2);
+}
+
+@media (max-width: 760px) {
+  .panelNote {
+    padding-inline: var(--s-4);
+  }
+  /* Three segments side by side do not fit a phone: each puts its id under its name. */
+  .segments {
+    display: flex;
+    width: 100%;
+  }
+  .segment {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding-inline: var(--s-2);
+  }
+  .files {
+    align-items: flex-start;
+  }
+}

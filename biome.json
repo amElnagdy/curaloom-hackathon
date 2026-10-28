@@ -7,6 +7,8 @@
       "!docs/spikes",
       "!pnpm-lock.yaml",
       "!demo/fixtures/responses",
+      "!.impeccable",
+      "!DESIGN.md",
       "!evals/**/results-*.json",
       "!evals/**/*.trace.jsonl"
     ]

@@ -1,0 +1,195 @@
+/* Coach messages: the queue and limits beside a simulated phone. */
+
+/* RTL: the panels at the inline start (right), the phone at the inline end (left). */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--s-6) var(--s-8);
+}
+.note {
+  margin-top: var(--s-4);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+
+/* ===================================================================== phone frame */
+/* One elevation: the float shadow of an object on the desk. */
+.phone {
+  position: sticky;
+  top: calc(var(--top-h) + var(--s-6));
+  width: 22rem;
+  max-width: 100%;
+  padding: 0.625rem;
+  border-radius: 3rem;
+  background: var(--ink);
+  box-shadow: var(--shadow-float);
+}
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: min(44rem, calc(100vh - var(--top-h) - 6rem));
+  min-height: 32rem;
+  overflow: hidden;
+  border-radius: 2.4rem;
+  background: var(--fill);
+}
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.6rem 0.4rem;
+  background: var(--surface);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.statusIcons {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.statusIcons :global(.lucide) {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.chatBar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4) var(--s-3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--accent-100);
+  color: var(--accent-ink);
+  font-weight: 700;
+  flex: none;
+}
+.who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+  min-width: 0;
+}
+.who b {
+  font-size: var(--text-sm);
+}
+.who small {
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+
+.thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-3);
+  overflow-y: auto;
+}
+.day {
+  align-self: center;
+  margin: var(--s-2) 0;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+.system {
+  align-self: center;
+  max-width: 90%;
+  padding: 0.25rem 0.5rem;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  text-align: center;
+}
+/* An incoming message sits at the inline start (right in RTL), its tail corner squared. */
+.bubble {
+  align-self: flex-start;
+  max-width: 84%;
+  padding: 0.6rem 0.85rem 0.45rem;
+  border-radius: 1.1rem;
+  border-start-start-radius: 0.35rem;
+  background: var(--surface);
+  font-size: var(--text-sm);
+  line-height: 1.75;
+  animation: var(--motion-arrive);
+}
+/* Scheduled, not yet delivered: an outline instead of a fill. */
+.queued {
+  background: transparent;
+  border: 1px dashed var(--ink-4);
+  color: var(--ink-2);
+}
+.bubbleMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+}
+.bubbleMeta :global(.lucide) {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.compose {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  flex: none;
+}
+.stop :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+  .layout > * {
+    justify-self: stretch;
+  }
+  .phone {
+    position: static;
+    justify-self: center;
+  }
+}

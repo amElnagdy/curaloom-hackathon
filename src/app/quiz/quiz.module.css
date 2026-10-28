@@ -1,0 +1,41 @@
+/* The quiz: locked state, the pass rule and the previous attempt. */
+
+.previewTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.answers {
+  display: flex;
+  flex-direction: column;
+}
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4) 0;
+}
+.answer:first-child {
+  padding-top: 0;
+}
+.answer:last-child {
+  padding-bottom: 0;
+}
+.answer + .answer {
+  border-top: 1px solid var(--line);
+}
+.prompt {
+  font-weight: 600;
+}
+.response {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  color: var(--ink);
+}
+.responseLabel {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  flex: none;
+}

@@ -9,6 +9,8 @@ export type Config = {
   modelApiKey: string | undefined;
   providerProfile: ProviderProfile;
   simClock: boolean;
+  // Dev-only pages, routes and buttons (the dummy run, /dev/bidi): on unless this is a production build.
+  devTools: boolean;
 };
 
 type Env = Record<string, string | undefined>;
@@ -33,6 +35,7 @@ export function loadConfig(env: Env): Config {
     modelApiKey: read(env, "MODEL_API_KEY"),
     providerProfile: parseProfile(read(env, "PROVIDER_PROFILE")),
     simClock: read(env, "SIM_CLOCK") !== "false",
+    devTools: read(env, "NODE_ENV") !== "production",
   };
 }
 

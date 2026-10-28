@@ -1,0 +1,359 @@
+/*
+  Design tokens and base styles for the app shell (#15). Components style themselves with CSS
+  Modules and read these tokens. The world is fixed: white surface, ink #111827, one blue accent
+  #2563EB, cool grey fills, Noto Sans Arabic. Status colours appear only where they mean that state.
+*/
+
+/* ===================================================================== tokens */
+:root {
+  /* Surfaces and ink */
+  --surface: #ffffff;
+  --canvas: #f9fafb;
+  --fill: #f3f4f6;
+  --fill-strong: #e9ecf1;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --ink: #111827;
+  --ink-2: #4b5563;
+  --ink-3: #5f6877; /* ≥4.5:1 on white and on --fill */
+  --ink-4: #9ca3af; /* decorative strokes only, never text */
+
+  /* The one accent */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-press: #1e40af;
+  --accent-ink: #1d4ed8;
+  --accent-50: #eff6ff;
+  --accent-100: #dbeafe;
+  --accent-200: #bfdbfe;
+
+  /* Status: ready green, building blue, waiting grey, attention amber, failed red */
+  --ready: #059669;
+  --ready-ink: #047857;
+  --ready-50: #ecfdf5;
+  --ready-200: #a7f3d0;
+  --building: var(--accent);
+  --building-ink: var(--accent-ink);
+  --building-50: var(--accent-50);
+  --waiting-ink: var(--ink-3);
+  --waiting-50: var(--fill);
+  --attn: #d97706;
+  --attn-ink: #b45309;
+  --attn-50: #fffbeb;
+  --attn-200: #fde68a;
+  --fail: #dc2626;
+  --fail-ink: #b91c1c;
+  --fail-50: #fef2f2;
+  --fail-200: #fecaca;
+
+  /* Type. The --font-* faces come from next/font in layout.tsx. */
+  --font-ar: var(--font-arabic), var(--font-latin), var(--font-zh), system-ui, sans-serif;
+  --font-lat: var(--font-latin), var(--font-arabic), var(--font-zh), system-ui, sans-serif;
+  --font-cjk: var(--font-zh), var(--font-latin), var(--font-arabic), sans-serif;
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --lh-tight: 1.35;
+  --lh: 1.65;
+  --lh-read: 1.95;
+
+  /* Space (4px grid) */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.25rem;
+  --s-6: 1.5rem;
+  --s-8: 2rem;
+  --s-10: 2.5rem;
+  --s-12: 3rem;
+  --s-16: 4rem;
+
+  /* Radius: containers 12–16px, controls 8–10px, pills full */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-ctl: 10px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* Elevation: a container takes ONE of these, never both */
+  --edge: 1px solid var(--line);
+  --shadow-1: 0 1px 2px rgb(17 24 39 / 0.05), 0 4px 12px -2px rgb(17 24 39 / 0.06);
+  --shadow-float: 0 4px 10px -2px rgb(17 24 39 / 0.08), 0 18px 40px -12px rgb(17 24 39 / 0.22);
+
+  /* Motion: exponential ease-out from an already-visible default */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-1: 160ms;
+  --dur-2: 280ms;
+  --dur-3: 480ms;
+  --dur-4: 720ms;
+  /* Shared animations. CSS Modules scope keyframe names, so modules use these variables. */
+  --motion-arrive: arrive var(--dur-4) var(--ease-out);
+  --motion-breathe: breathe 1.6s var(--ease-in-out) infinite;
+  --motion-ping: ping 2s var(--ease-out) infinite;
+  --motion-spin-back: spin-back 1.6s var(--ease-in-out) infinite;
+  --motion-bump: bump var(--dur-3) var(--ease-out);
+
+  /* Shell geometry */
+  --rail-w: 4rem;
+  --rail-open-w: 15rem;
+  --top-h: 3.5rem;
+  --feed-w: 27rem;
+  --tab-w: 2.5rem;
+  /* The trace drawer covers exactly the plan's activity column: one layer replaces the other. */
+  --trace-w: min(calc(var(--feed-w) + 1px), 92vw);
+  /* Pages keep their inline end clear of the trace tab on the left edge. */
+  --page-gutter: var(--s-12);
+  --page-gutter-end: calc(var(--tab-w) + var(--page-gutter));
+
+  color-scheme: light;
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --feed-w: 23.5rem;
+    --page-gutter: var(--s-8);
+  }
+}
+@media (max-width: 760px) {
+  :root {
+    --page-gutter: var(--s-4);
+    /* The drawer leaves room for the trace tab beside it. */
+    --trace-w: calc(100vw - var(--tab-w));
+  }
+}
+
+html {
+  font-size: 100%;
+}
+@media (min-width: 1800px) {
+  html {
+    font-size: 106.25%;
+  }
+}
+
+/* ===================================================================== base */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  min-height: 100vh;
+  font-family: var(--font-ar);
+  font-size: var(--text-base);
+  line-height: var(--lh);
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  caret-color: var(--accent);
+}
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
+  margin: 0;
+}
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+h1,
+h2,
+h3,
+h4 {
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+img,
+svg {
+  display: block;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+a {
+  color: var(--accent-ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+a:hover {
+  color: var(--accent-press);
+}
+b,
+strong {
+  font-weight: 600;
+}
+
+/* Foreign text: the right face per script. Arabic never gets letter-spacing. */
+:lang(en),
+:lang(ru),
+:lang(fr) {
+  font-family: var(--font-lat);
+}
+:lang(zh) {
+  font-family: var(--font-cjk);
+}
+bdi,
+[dir="auto"] {
+  unicode-bidi: isolate;
+}
+
+/* ===================================================================== browser surfaces */
+::selection {
+  background: var(--accent-100);
+  color: var(--ink);
+}
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Regions that only take programmatic focus (skip link target) draw no ring. */
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: var(--r-pill);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink-4);
+}
+::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+/* Icons (lucide-react): one stroke and one size system. Directional ones mirror (ui.tsx DirIcon). */
+.lucide {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  stroke-width: 1.75;
+}
+
+/* Hidden from sight, kept for screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===================================================================== motion */
+@keyframes arrive {
+  from {
+    opacity: 0.25;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes ping {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@keyframes spin-back {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes bump {
+  0% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Calm motion becomes no motion. !important beats every component rule, which is the point. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: must override every component's motion */
+    animation: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: must override every component's motion */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: must override every component's motion */
+    scroll-behavior: auto !important;
+  }
+}

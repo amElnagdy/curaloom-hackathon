@@ -1,10 +1,10 @@
 // The seeded Omar session (demo/fixtures/omar.json), validated against the contracts.
 // The fixture holds a {{topic}} placeholder; the topic comes from the caller (config.demoTopic).
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import Type, { type Static } from "typebox";
 import { CONTRACTS, validate } from "../contracts/index.ts";
+// A static import, not a read from import.meta.dirname: the Next.js server bundle has no dirname.
+import omar from "./fixtures/omar.json" with { type: "json" };
 
 const Seed = Type.Object(
   {
@@ -23,9 +23,8 @@ const Seed = Type.Object(
 );
 export type Seed = Static<typeof Seed>;
 
-const OMAR_PATH = join(import.meta.dirname, "fixtures/omar.json");
-
+// Each call gets its own copy, so no caller can change the seed another request reads.
 export function loadOmarSeed(topic: string): Seed {
-  const seed = validate(Seed, JSON.parse(readFileSync(OMAR_PATH, "utf8")));
+  const seed = validate(Seed, structuredClone(omar));
   return { ...seed, profile: { ...seed.profile, topic } };
 }

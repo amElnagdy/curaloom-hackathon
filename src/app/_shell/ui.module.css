@@ -1,0 +1,439 @@
+/* Shared UI pieces (ui.tsx). */
+
+.sep {
+  display: inline-block;
+  width: 1px;
+  height: 0.75em;
+  margin-inline: 0.55em;
+  vertical-align: -0.05em;
+  background: var(--line-strong);
+}
+
+:global([dir="rtl"]) .mirror {
+  transform: scaleX(-1);
+}
+
+/* ===================================================================== buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 2.5rem;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-ctl);
+  border: 1px solid transparent;
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.primary {
+  background: var(--accent);
+  color: #fff;
+}
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  color: #fff;
+}
+.primary:active:not(:disabled) {
+  background: var(--accent-press);
+}
+.secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.secondary:hover:not(:disabled) {
+  background: var(--fill);
+  color: var(--ink);
+}
+.ghost {
+  background: transparent;
+  color: var(--ink-2);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--fill);
+  color: var(--ink);
+}
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  background: var(--fill);
+  color: var(--ink-3);
+  border-color: transparent;
+}
+.lg {
+  min-height: 3rem;
+  padding: 0 var(--s-6);
+  font-size: var(--text-md);
+  border-radius: var(--r-md);
+}
+.sm {
+  min-height: 2rem;
+  padding: 0 var(--s-3);
+  font-size: var(--text-sm);
+  border-radius: var(--r-sm);
+}
+.iconOnly {
+  width: 2.5rem;
+  padding: 0;
+}
+.sm.iconOnly {
+  width: 2rem;
+}
+
+/* ===================================================================== status pill */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.5rem;
+  padding: 0 0.625rem;
+  border-radius: var(--r-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  background: var(--fill);
+  color: var(--ink-2);
+  flex: none;
+  transition:
+    background-color var(--dur-3) var(--ease-out),
+    color var(--dur-3) var(--ease-out);
+}
+.pillDot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.pill_ready {
+  background: var(--ready-50);
+  color: var(--ready-ink);
+}
+.pill_building {
+  background: var(--building-50);
+  color: var(--building-ink);
+}
+.pill_building .pillDot {
+  animation: var(--motion-breathe);
+}
+.pill_waiting {
+  background: var(--waiting-50);
+  color: var(--waiting-ink);
+}
+/* Filled and muted: a hollow ring beside Arabic text reads as the digit ٥. */
+.pill_waiting .pillDot {
+  opacity: 0.55;
+}
+.pill_attention {
+  background: var(--attn-50);
+  color: var(--attn-ink);
+}
+.pill_failed {
+  background: var(--fail-50);
+  color: var(--fail-ink);
+}
+.pill_neutral {
+  background: var(--fill);
+  color: var(--ink-2);
+}
+.pillQuiet {
+  height: auto;
+  padding: 0;
+  background: none;
+}
+.pillQuiet .pillDot {
+  animation: none;
+}
+
+/* ===================================================================== language + licence */
+.lang {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.875rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: var(--r-xs);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-family: var(--font-lat);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  direction: ltr;
+  flex: none;
+}
+.langFull {
+  display: inline-flex;
+  gap: 0.4rem;
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  direction: rtl;
+  letter-spacing: 0;
+}
+.langFull b {
+  letter-spacing: 0.04em;
+}
+.langFull span {
+  font-family: var(--font-ar);
+  font-weight: 500;
+  font-size: var(--text-xs);
+}
+
+.licence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.375rem;
+  padding: 0 0.45rem;
+  border-radius: var(--r-xs);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: var(--font-lat);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  direction: ltr;
+  flex: none;
+}
+.licence :global(.lucide) {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  stroke-width: 2.25;
+}
+.licenceVerified :global(.lucide) {
+  color: var(--ready);
+}
+.licenceRejected {
+  color: var(--fail-ink);
+  border-color: var(--fail-200);
+}
+.licenceRejected s {
+  text-decoration-thickness: 1px;
+}
+
+/* ===================================================================== source row */
+.source {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--s-3);
+  min-height: 2.125rem;
+  padding: 0.125rem var(--s-2);
+  margin-inline: calc(var(--s-2) * -1);
+  border-radius: var(--r-sm);
+  transition: background-color var(--dur-1) var(--ease-out);
+}
+.source:hover {
+  background: var(--fill);
+}
+.source > .lang {
+  justify-self: center;
+}
+.sourceText {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-width: 0;
+}
+/* The title shrinks to its text. Its own direction (dir=auto) cuts a long LTR title at its end. */
+.sourceTitle {
+  flex: 0 1 auto;
+  max-width: 72%;
+  min-width: 0;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sourceMeta {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sourceRejected .sourceTitle {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-4);
+}
+.sourceRejected .sourceMeta {
+  color: var(--fail-ink);
+}
+
+/* ===================================================================== item row + group */
+.item {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--s-3);
+  min-height: 2.125rem;
+  padding: 0.125rem var(--s-2);
+  margin-inline: calc(var(--s-2) * -1);
+  border-radius: var(--r-sm);
+  transition: background-color var(--dur-1) var(--ease-out);
+}
+.item:not(.itemMuted):hover {
+  background: var(--fill);
+}
+.itemIcon {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--ink-3);
+}
+.itemIcon :global(.lucide) {
+  width: 1.0625rem;
+  height: 1.0625rem;
+}
+.itemText {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.itemTitle {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+a.itemTitle {
+  border-radius: var(--r-xs);
+  text-decoration: none;
+}
+a.itemTitle:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+}
+.itemMeta {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itemMuted .itemIcon {
+  color: var(--ink-4);
+}
+.itemMuted .itemTitle {
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  white-space: normal;
+}
+
+.group {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  align-items: start;
+}
+.groupLabel {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-3);
+  line-height: 2.125rem;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .group {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ===================================================================== top bar chips */
+.sample {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sample :global(.lucide) {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+/* Phone width: the badge keeps its icon; the label stays for screen readers. */
+@media (max-width: 760px) {
+  .sample {
+    position: relative;
+    justify-content: center;
+    width: 1.75rem;
+    padding: 0;
+  }
+  .sampleLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+.clock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.clock :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  color: var(--ink-3);
+}
+.clockSep {
+  width: 1px;
+  height: 0.875rem;
+  background: var(--line);
+}
+.clockTime {
+  color: var(--ink);
+}
+.clockPaused .clockTime {
+  color: var(--ink-3);
+}
