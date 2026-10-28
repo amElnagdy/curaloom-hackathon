@@ -1,0 +1,271 @@
+// The notifier (#22, ADR-004): channel-agnostic sending with consent, quiet hours and opt-out
+// enforced in one place. Every adapter delivery goes through `dispatch`, which asks the gate first.
+// A deferred message waits in the session's outbox until a clock tick passes its time. An inbound
+// stop word opts the learner out at once, in any state, with one confirmation.
+
+import type { Consent } from "../../../contracts/index.ts";
+import type { NotifierAdapterName } from "../../config.ts";
+import { arabicSimTime } from "../clock/clock.ts";
+import {
+  compareSimTime,
+  formatSimTime,
+  parseSimTime,
+  type SimTime,
+  toMinutes,
+} from "../clock/time.ts";
+import type { Store } from "../store/store.ts";
+import type { Tracer } from "../trace/trace.ts";
+import { gate, type MessageKind } from "./gate.ts";
+
+export type Cta = { label_ar: string; action: "open_lesson"; lesson_id: string };
+
+export type NotifierMessage = {
+  // One message per coach event: the event's id.
+  id: string;
+  // The learner id. Contact details stay with the adapter, never in messages or traces.
+  to: string;
+  channel: NotifierAdapterName;
+  template: string;
+  text_ar: string;
+  cta: Cta | null;
+  // When it is sent, e.g. "day 2 19:00".
+  sim_ts: string;
+};
+
+// `deliver_at`: when it was or will be delivered; null when it never will be.
+// `suppressed_quiet_hours` is for a message that cannot wait; none can yet, so quiet hours defer.
+export type SendResult =
+  | { status: "sent" | "deferred"; deliver_at: string }
+  | { status: "suppressed_opt_out" | "suppressed_quiet_hours"; deliver_at: null };
+export type SendStatus = SendResult["status"];
+
+export type OutboxEntry = SendResult & { message: NotifierMessage };
+
+export type Capabilities = {
+  channel: NotifierAdapterName;
+  cta: boolean;
+  replies: boolean;
+  max_text_length: number;
+};
+
+export type InboundReply = { from: string; text: string; sim_ts: string };
+
+export type NotifierAdapter = {
+  capabilities(): Capabilities;
+  // Delivers a message now. Only the notifier calls it, after the gate allowed the message.
+  deliver(message: NotifierMessage): void;
+  // Keeps a learner's reply, for an adapter that shows the conversation.
+  received(reply: InboundReply): void;
+};
+
+export type ReplyResult = { opted_out: boolean; confirmed: boolean };
+
+// Matching ignores case, tashkeel, tatweel, alef forms and punctuation. As with SMS and WhatsApp
+// opt-out keywords, the whole reply must be the stop word: a sentence that mentions stopping
+// («توقف الفيديو عندي») is a reply, not an opt-out.
+const STOP_WORDS = new Set([
+  "stop",
+  "توقف",
+  "توقفي",
+  "توقفوا",
+  "ايقاف",
+  "اوقف",
+  "اوقفي",
+  "اوقفوا",
+  "ايقاف الرسائل",
+  "اوقف الرسائل",
+]);
+
+export function normalizeReply(text: string): string {
+  return text
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[ً-ٰٟۖ-ۭ]/g, "")
+    .replace(/ـ/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/[\p{P}\p{S}]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function isStopWord(text: string): boolean {
+  return STOP_WORDS.has(normalizeReply(text));
+}
+
+const CONFIRMATION_AR = "أوقفنا رسائل المدرب كما طلبت، ولن تصلك منه رسائل أخرى.";
+
+const CONSENT_DOC = "consent";
+const OUTBOX_DOC = "outbox";
+
+export type NotifierOptions = {
+  store: Store;
+  sessionId: string;
+  adapter: NotifierAdapter;
+  tracer: Tracer;
+  // The learner's consent before any change: the seed's.
+  initialConsent: Consent;
+};
+
+export function createNotifier({
+  store,
+  sessionId,
+  adapter,
+  tracer,
+  initialConsent,
+}: NotifierOptions) {
+  const consent = () => store.readDoc<Consent>(sessionId, CONSENT_DOC) ?? initialConsent;
+  const outbox = () => store.readDoc<OutboxEntry[]>(sessionId, OUTBOX_DOC) ?? [];
+  const saveOutbox = (entries: OutboxEntry[]) => store.writeDoc(sessionId, OUTBOX_DOC, entries);
+  const learner = initialConsent.learner_id;
+  const trace = (at: SimTime, summary_ar: string, summary_en: string) =>
+    tracer.emit({ agent: "notifier", kind: "decision", at, summary_ar, summary_en });
+
+  // The only path to the adapter.
+  const dispatch = (message: NotifierMessage, at: SimTime, kind: MessageKind) => {
+    const decision = gate(consent(), at, kind);
+    if (decision.status === "send") adapter.deliver({ ...message, sim_ts: formatSimTime(at) });
+    return decision;
+  };
+
+  const resultOf = (message: NotifierMessage, at: SimTime, kind: MessageKind): SendResult => {
+    const decision = dispatch(message, at, kind);
+    switch (decision.status) {
+      case "send":
+        return { status: "sent", deliver_at: formatSimTime(at) };
+      case "deferred":
+        return { status: "deferred", deliver_at: formatSimTime(decision.deliver_at) };
+      case "suppressed_opt_out":
+        return { status: "suppressed_opt_out", deliver_at: null };
+    }
+  };
+
+  const traceResult = (entry: OutboxEntry, at: SimTime, deferredBefore: boolean) => {
+    const { template, to } = entry.message;
+    const reason = consent().opted_out ? "opted out" : "no consent";
+    const reasonAr = consent().opted_out ? "أوقف الرسائل بطلبه" : "لم يوافق على الرسائل";
+    switch (entry.status) {
+      case "sent":
+        return trace(
+          at,
+          deferredBefore
+            ? `وصلت رسالة المدرب المؤجلة إلى ${to} بعد ساعات الهدوء`
+            : `أُرسلت رسالة المدرب إلى ${to}`,
+          `${deferredBefore ? "Delivered deferred" : "Sent"} ${template} to ${to} via ${entry.message.channel}`,
+        );
+      case "deferred":
+        return trace(
+          at,
+          `أُجّلت رسالة المدرب إلى ${to} حتى تنتهي ساعات الهدوء: ${arabicSimTime(parseSimTime(entry.deliver_at))}`,
+          `Deferred ${template} for ${to}: quiet hours until ${entry.deliver_at}`,
+        );
+      case "suppressed_opt_out":
+      case "suppressed_quiet_hours":
+        return trace(
+          at,
+          `لم تُرسل رسالة المدرب إلى ${to}، لأنه ${reasonAr}`,
+          `Suppressed ${template} for ${to}: ${reason}`,
+        );
+    }
+  };
+
+  return {
+    consent,
+    outbox,
+    capabilities: () => adapter.capabilities(),
+
+    send(message: NotifierMessage): SendResult {
+      const sent = outbox().find((e) => e.message.id === message.id);
+      if (sent) {
+        const { message: _, ...result } = sent;
+        return result;
+      }
+      const { max_text_length } = adapter.capabilities();
+      if (message.text_ar.length > max_text_length) {
+        throw new Error(`Message ${message.id} is longer than ${max_text_length} characters`);
+      }
+      const at = parseSimTime(message.sim_ts);
+      const entry: OutboxEntry = { message, ...resultOf(message, at, "coach") };
+      saveOutbox([...outbox(), entry]);
+      traceResult(entry, at, false);
+      const { message: _, ...result } = entry;
+      return result;
+    },
+
+    // Delivers, oldest first, each deferred message whose time has come by `upTo`, asking the gate
+    // again at its delivery time. Returns the entries it settled.
+    deliverDue(upTo: SimTime): OutboxEntry[] {
+      const entries = outbox();
+      const due: { index: number; at: SimTime }[] = [];
+      entries.forEach((e, index) => {
+        if (e.status !== "deferred") return;
+        const at = parseSimTime(e.deliver_at);
+        if (compareSimTime(at, upTo) <= 0) due.push({ index, at });
+      });
+      due.sort((a, b) => compareSimTime(a.at, b.at));
+      return due.map(({ index, at }) => {
+        const entry = entries[index] as OutboxEntry;
+        const next: OutboxEntry = {
+          message: entry.message,
+          ...resultOf(entry.message, at, "coach"),
+        };
+        entries[index] = next;
+        saveOutbox(entries);
+        traceResult(next, at, true);
+        return next;
+      });
+    },
+
+    // The inbound reply handler. A stop word opts out at once, whatever the state; the first one
+    // also cancels deferred messages and sends one confirmation.
+    receive(text: string, at: SimTime): ReplyResult {
+      adapter.received({ from: learner, text, sim_ts: formatSimTime(at) });
+      if (!isStopWord(text)) {
+        trace(at, `وصل ردّ من ${learner}`, `Reply from ${learner}`);
+        return { opted_out: consent().opted_out, confirmed: false };
+      }
+      const before = consent();
+      if (before.opted_out) {
+        trace(
+          at,
+          `وصلت كلمة إيقاف من ${learner}، والرسائل متوقفة من قبل`,
+          `Stop word from ${learner}: already opted out, no second confirmation`,
+        );
+        return { opted_out: true, confirmed: false };
+      }
+
+      store.writeDoc(sessionId, CONSENT_DOC, {
+        ...before,
+        opted_out: true,
+        opted_out_sim_day: at.day,
+      } satisfies Consent);
+      saveOutbox(
+        outbox().map(
+          (e): OutboxEntry =>
+            e.status === "deferred"
+              ? { message: e.message, status: "suppressed_opt_out", deliver_at: null }
+              : e,
+        ),
+      );
+      trace(
+        at,
+        `أوقف ${learner} الرسائل بكلمة إيقاف، فأُلغيت كل رسالة مؤجلة`,
+        `Stop word from ${learner}: opted out; deferred messages cancelled`,
+      );
+
+      const confirmation: NotifierMessage = {
+        id: `opt_out_${toMinutes(at)}`,
+        to: learner,
+        channel: adapter.capabilities().channel,
+        template: "opt_out_confirmation",
+        text_ar: CONFIRMATION_AR,
+        cta: null,
+        sim_ts: formatSimTime(at),
+      };
+      dispatch(confirmation, at, "opt_out_confirmation");
+      trace(at, `أُرسل تأكيد الإيقاف إلى ${learner}`, `Sent the opt-out confirmation to ${learner}`);
+      return { opted_out: true, confirmed: true };
+    },
+  };
+}
+
+export type Notifier = ReturnType<typeof createNotifier>;

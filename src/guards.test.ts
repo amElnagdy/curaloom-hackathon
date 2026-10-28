@@ -45,3 +45,13 @@ it("reads the system time only in the clock module (ADR-004)", () => {
 
   expect(offenders(forbidden, (file) => file.startsWith("src/server/clock/"))).toEqual([]);
 });
+
+it("sends no real messages: the notifier makes no network calls (ADR-004)", () => {
+  const forbidden = [
+    /\bfetch\s*\(/,
+    /\b(XMLHttpRequest|WebSocket)\b/,
+    /from\s+["'](node:)?(http|https|http2|net|tls|dgram)["']/,
+  ];
+
+  expect(offenders(forbidden, (file) => !file.startsWith("src/server/notifier/"))).toEqual([]);
+});

@@ -3,12 +3,17 @@
 export const PROVIDER_PROFILES = ["live", "record", "replay"] as const;
 export type ProviderProfile = (typeof PROVIDER_PROFILES)[number];
 
+// Notifier channels (ADR-004). Only `simulated` sends anything; the others are documented stubs.
+export const NOTIFIER_ADAPTERS = ["simulated", "whatsapp", "email"] as const;
+export type NotifierAdapterName = (typeof NOTIFIER_ADAPTERS)[number];
+
 export type Config = {
   appName: string;
   demoTopic: string;
   modelApiKey: string | undefined;
   providerProfile: ProviderProfile;
   simClock: boolean;
+  notifierAdapter: NotifierAdapterName;
   // Dev-only pages, routes and buttons (the dummy run, /dev/bidi): on unless this is a production build.
   devTools: boolean;
 };
@@ -20,12 +25,15 @@ function read(env: Env, name: string): string | undefined {
   return value ? value : undefined;
 }
 
-function parseProfile(value: string | undefined): ProviderProfile {
-  if (value === undefined) return "live";
-  if ((PROVIDER_PROFILES as readonly string[]).includes(value)) return value as ProviderProfile;
-  throw new Error(
-    `PROVIDER_PROFILE must be one of ${PROVIDER_PROFILES.join(", ")}; got "${value}"`,
-  );
+function parseChoice<const T extends readonly string[]>(
+  name: string,
+  choices: T,
+  value: string | undefined,
+  fallback: T[number],
+): T[number] {
+  if (value === undefined) return fallback;
+  if ((choices as readonly string[]).includes(value)) return value as T[number];
+  throw new Error(`${name} must be one of ${choices.join(", ")}; got "${value}"`);
 }
 
 export function loadConfig(env: Env): Config {
@@ -33,8 +41,19 @@ export function loadConfig(env: Env): Config {
     appName: read(env, "APP_NAME") ?? "CuraLoom",
     demoTopic: read(env, "DEMO_TOPIC") ?? "<DEMO_TOPIC>",
     modelApiKey: read(env, "MODEL_API_KEY"),
-    providerProfile: parseProfile(read(env, "PROVIDER_PROFILE")),
+    providerProfile: parseChoice(
+      "PROVIDER_PROFILE",
+      PROVIDER_PROFILES,
+      read(env, "PROVIDER_PROFILE"),
+      "live",
+    ),
     simClock: read(env, "SIM_CLOCK") !== "false",
+    notifierAdapter: parseChoice(
+      "NOTIFIER_ADAPTER",
+      NOTIFIER_ADAPTERS,
+      read(env, "NOTIFIER_ADAPTER"),
+      "simulated",
+    ),
     devTools: read(env, "NODE_ENV") !== "production",
   };
 }

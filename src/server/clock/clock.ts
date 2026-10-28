@@ -38,7 +38,8 @@ export function readSimNow(store: Store, sessionId: string): SimTime {
   return store.readDoc<{ now: SimTime }>(sessionId, CLOCK_DOC)?.now ?? DAY_ZERO;
 }
 
-function arabic(t: SimTime): string {
+// A simulated time in Arabic for trace summaries, e.g. «اليوم 2، الساعة 19:00».
+export function arabicSimTime(t: SimTime): string {
   const day = t.day === 0 ? "يوم البدء" : `اليوم ${t.day}`;
   return `${day}، الساعة ${hhmm(t.minute)}`;
 }
@@ -66,7 +67,7 @@ export function createSimClock(store: Store, sessionId: string, tracer: Tracer):
       const to = forward(from, later(from, by));
       return moveTo(
         to,
-        `تقدّمت الساعة المحاكاة إلى ${arabic(to)}`,
+        `تقدّمت الساعة المحاكاة إلى ${arabicSimTime(to)}`,
         `Clock advanced from ${formatSimTime(from)} to ${formatSimTime(to)}`,
       );
     },
@@ -75,14 +76,14 @@ export function createSimClock(store: Store, sessionId: string, tracer: Tracer):
       const to = forward(from, startOfDay(day));
       return moveTo(
         to,
-        `قفزت الساعة المحاكاة إلى ${arabic(to)}`,
+        `قفزت الساعة المحاكاة إلى ${arabicSimTime(to)}`,
         `Clock set from ${formatSimTime(from)} to ${formatSimTime(to)}`,
       );
     },
     reset: () =>
       moveTo(
         DAY_ZERO,
-        `أُعيدت الساعة المحاكاة إلى ${arabic(DAY_ZERO)}`,
+        `أُعيدت الساعة المحاكاة إلى ${arabicSimTime(DAY_ZERO)}`,
         `Clock reset to ${formatSimTime(DAY_ZERO)}`,
       ),
   };

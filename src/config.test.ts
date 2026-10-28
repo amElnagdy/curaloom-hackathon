@@ -9,6 +9,7 @@ describe("loadConfig", () => {
       modelApiKey: undefined,
       providerProfile: "live",
       simClock: true,
+      notifierAdapter: "simulated",
       devTools: true,
     });
   });
@@ -20,6 +21,7 @@ describe("loadConfig", () => {
       MODEL_API_KEY: "sk-test",
       PROVIDER_PROFILE: "replay",
       SIM_CLOCK: "false",
+      NOTIFIER_ADAPTER: "email",
       NODE_ENV: "production",
     });
 
@@ -29,6 +31,7 @@ describe("loadConfig", () => {
       modelApiKey: "sk-test",
       providerProfile: "replay",
       simClock: false,
+      notifierAdapter: "email",
       devTools: false,
     });
   });
@@ -39,8 +42,9 @@ describe("loadConfig", () => {
     expect(loadConfig({ NODE_ENV: "test" }).devTools).toBe(true);
   });
 
-  it("rejects an unknown provider profile", () => {
+  it("rejects an unknown provider profile or notifier adapter", () => {
     expect(() => loadConfig({ PROVIDER_PROFILE: "staging" })).toThrow(/PROVIDER_PROFILE/);
+    expect(() => loadConfig({ NOTIFIER_ADAPTER: "sms" })).toThrow(/NOTIFIER_ADAPTER/);
   });
 
   it("treats blank values as unset", () => {
