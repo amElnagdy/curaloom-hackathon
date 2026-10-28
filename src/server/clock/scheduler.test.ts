@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
+import { readInbox } from "../notifier/adapters";
 import { createFileStore } from "../store/store";
 import type { TraceEvent } from "../trace/trace";
 import { type CoachRule, fillTemplate } from "./scheduler";
@@ -71,7 +72,7 @@ describe("coach scheduler", () => {
     expect(() => fillTemplate("{name} و{lesson}", { name: "عمر" })).toThrow(/\{lesson\}/);
   });
 
-  it("stamps each fired rule's trace event with the rule's sim time", () => {
+  it("traces a jump with the sim time each step happened, in order", () => {
     const { store, sim } = setup();
 
     sim().set(10);
@@ -80,8 +81,13 @@ describe("coach scheduler", () => {
     expect(events.map((e) => [e.agent, e.sim_ts])).toEqual([
       ["clock", "day 10 09:00"],
       ["scheduler", "day 2 09:00"],
+      ["notifier", "day 2 09:00"],
+      ["notifier", "day 2 12:00"],
       ["scheduler", "day 5 09:00"],
+      ["notifier", "day 5 09:00"],
+      ["notifier", "day 5 12:00"],
       ["scheduler", "day 10 09:00"],
+      ["notifier", "day 10 09:00"],
     ]);
   });
 
@@ -94,5 +100,65 @@ describe("coach scheduler", () => {
     expect(reset).toEqual({ now: "day 0 09:00", events: [] });
     expect(sim().coachEvents()).toEqual(seed.coach_events);
     expect(keyed(sim().set(10).events)).toEqual(["c1@2", "c2@5", "c3@10"]);
+  });
+});
+
+describe("coach messages through the notifier", () => {
+  it("holds each 09:00 message for quiet hours, delivering it at 12:00 as the clock passes", () => {
+    const { store, sim } = setup();
+
+    const jump = sim().set(10);
+    const phoneAtNine = readInbox(store, "s_1").map((e) => [e.id, e.sim_ts]);
+    const later = sim().advance({ minutes: 3 * 60 });
+
+    expect(jump.events.map((e) => [e.id, e.status])).toEqual([
+      ["c1", "sent"],
+      ["c2", "sent"],
+      ["c3", "queued"],
+    ]);
+    expect(phoneAtNine).toEqual([
+      ["c1", "day 2 12:00"],
+      ["c2", "day 5 12:00"],
+    ]);
+    expect(later.events).toEqual([]);
+    expect(
+      sim()
+        .coachEvents()
+        .find((e) => e.id === "c3")?.status,
+    ).toBe("sent");
+    expect(readInbox(store, "s_1").at(-1)).toMatchObject({ id: "c3", sim_ts: "day 10 12:00" });
+  });
+
+  it("gives the day 2 nudge its button", () => {
+    const { store, sim } = setup();
+
+    sim().set(3);
+
+    expect(readInbox(store, "s_1")[0]?.cta).toEqual({
+      label_ar: "ابدأ مهمة ١٠ دقائق",
+      action: "open_lesson",
+      lesson_id: "L1",
+    });
+  });
+
+  it("cancels the held message and suppresses later ones once the learner replies توقف", () => {
+    const { store, sim } = setup();
+    sim().set(10);
+
+    const reply = sim().reply("توقف");
+    const after = sim().set(17);
+
+    expect(reply).toEqual({ opted_out: true, confirmed: true });
+    expect(
+      sim()
+        .coachEvents()
+        .find((e) => e.id === "c3")?.status,
+    ).toBe("suppressed_opt_out");
+    expect(after.events.map((e) => [e.id, e.status])).toEqual([["c4", "suppressed_opt_out"]]);
+    expect(
+      readInbox(store, "s_1")
+        .filter((e) => e.direction === "out")
+        .map((e) => e.template),
+    ).toEqual(["nudge_day2", "checkin_day5", "opt_out_confirmation"]);
   });
 });

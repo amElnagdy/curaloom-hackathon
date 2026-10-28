@@ -1,15 +1,19 @@
-// A session's simulated time (#23): the sim clock and the coach scheduler it drives. Each move
-// returns the new time and the coach events it fired; the HTTP routes are thin wrappers over it.
+// A session's simulated time (#23): the sim clock, the coach scheduler it drives and the notifier
+// the scheduler sends through (#22). Each move returns the new time and the coach events it fired;
+// a reply goes to the notifier's inbound handler. The HTTP routes are thin wrappers over it.
 
 import type { CoachEvent } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
+import { config, type NotifierAdapterName } from "../../config.ts";
+import { createAdapter } from "../notifier/adapters.ts";
+import { createNotifier, type ReplyResult } from "../notifier/notifier.ts";
 import type { Store } from "../store/store.ts";
 import { createTracer } from "../trace/trace.ts";
 import { createSimClock } from "./clock.ts";
 import { type CoachRule, createScheduler } from "./scheduler.ts";
 import { type Duration, formatSimTime, type SimTime } from "./time.ts";
 
-export type SimSeed = Pick<Seed, "profile" | "coach_events">;
+export type SimSeed = Pick<Seed, "profile" | "consent" | "coach_events">;
 
 // `now` as "day 2 19:00".
 export type SimResult = { now: string; events: CoachEvent[] };
@@ -19,15 +23,30 @@ export type SimOptions = {
   sessionId: string;
   seed: SimSeed;
   rules?: readonly CoachRule[];
+  adapter?: NotifierAdapterName;
 };
 
-export function createSim({ store, sessionId, seed, rules }: SimOptions) {
+export function createSim({
+  store,
+  sessionId,
+  seed,
+  rules,
+  adapter = config.notifierAdapter,
+}: SimOptions) {
   const tracer = createTracer(store, sessionId);
   const clock = createSimClock(store, sessionId, tracer);
+  const notifier = createNotifier({
+    store,
+    sessionId,
+    adapter: createAdapter(adapter, store, sessionId),
+    tracer,
+    initialConsent: seed.consent,
+  });
   const scheduler = createScheduler({
     store,
     sessionId,
     tracer,
+    notifier,
     context: { learner: { id: seed.profile.id, name: seed.profile.name } },
     initialEvents: seed.coach_events,
     rules,
@@ -42,8 +61,16 @@ export function createSim({ store, sessionId, seed, rules }: SimOptions) {
   return {
     now: clock.now,
     coachEvents: scheduler.events,
+    consent: notifier.consent,
+    outbox: notifier.outbox,
     advance: (by: Duration) => moved(clock.advance(by)),
     set: (day: number) => moved(clock.set(day)),
+    // The learner's reply from the phone, at the current sim time.
+    reply(text: string): ReplyResult {
+      const result = notifier.receive(text, clock.now());
+      scheduler.syncStatuses();
+      return result;
+    },
     // Back to the seeded demo state: every session document goes, the trace stays.
     reset(): SimResult {
       store.clearDocs(sessionId);
