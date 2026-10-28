@@ -1,11 +1,11 @@
 // Arabic quality eval runner (#8). Usage: pnpm eval:arabic --model muse-wonder-1.0 [--judge M] [--only id,id]
-// Known exception to ADR-004 until the clock module (#23) lands: the run timestamp, the results
-// filename date and trace lines all read the system clock.
+// The run timestamp, the results filename date and trace lines are wall time, from the clock module.
 
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { config } from "../../src/config.ts";
+import { wallNow } from "../../src/server/clock/clock.ts";
 import { loadModels, type Models, parseRole } from "../../src/server/providers/models.ts";
 import {
   createProvider,
@@ -46,7 +46,7 @@ const TASKS: Record<Category, (item: Item) => string> = {
 let tracePath = "";
 
 function trace(event: ProviderTraceEvent) {
-  appendFileSync(tracePath, `${JSON.stringify({ ts: new Date().toISOString(), ...event })}\n`);
+  appendFileSync(tracePath, `${JSON.stringify({ ts: wallNow().toISOString(), ...event })}\n`);
 }
 
 // The CLI picks the answering and judging models, so they are routed as two roles added at
@@ -162,10 +162,10 @@ async function main() {
   const items = parseItems(readFileSync(join(DIR, "items.jsonl"), "utf8")).filter(
     (item) => !only || only.includes(item.id),
   );
-  const runAt = new Date().toISOString();
+  const runAt = wallNow().toISOString();
   // A --only run gets its own file so it never overwrites a full run's results.
   const suffix = only ? "-partial" : "";
-  const stem = join(DIR, `results-${new Date().toLocaleDateString("en-CA")}-${model}${suffix}`);
+  const stem = join(DIR, `results-${wallNow().toLocaleDateString("en-CA")}-${model}${suffix}`);
   tracePath = `${stem}.trace.jsonl`;
   writeFileSync(tracePath, "");
 

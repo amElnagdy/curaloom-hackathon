@@ -63,11 +63,43 @@ describe("sim clock", () => {
     open().reset();
 
     const events = store.readTrace<TraceEvent>("s_1");
-    expect(events.map((e) => [e.agent, e.summary_en])).toEqual([
-      ["clock", "Clock advanced from day 0 09:00 to day 1 09:00"],
-      ["clock", "Clock set from day 1 09:00 to day 10 09:00"],
-      ["clock", "Clock reset to day 0 09:00"],
+    expect(events.map((e) => [e.agent, e.sim_ts, e.summary_en])).toEqual([
+      ["clock", "day 1 09:00", "Clock advanced from day 0 09:00 to day 1 09:00"],
+      ["clock", "day 10 09:00", "Clock set from day 1 09:00 to day 10 09:00"],
+      ["clock", "day 0 09:00", "Clock reset to day 0 09:00"],
     ]);
     for (const e of events) expect(e.summary_ar).toMatch(/[؀-ۿ]/);
+  });
+});
+
+describe("tracer", () => {
+  it("stamps every event with the session's sim time, or the time it names", () => {
+    const { store, open } = setup();
+    open().set(2);
+    const tracer = createTracer(store, "s_1");
+
+    const now = tracer.emit({ agent: "scout", kind: "decision", summary_ar: "س", summary_en: "s" });
+    const caughtUp = tracer.emit({
+      agent: "scheduler",
+      kind: "decision",
+      summary_ar: "س",
+      summary_en: "s",
+      at: { day: 1, minute: 19 * 60 },
+    });
+
+    expect(now.sim_ts).toBe("day 2 09:00");
+    expect(caughtUp.sim_ts).toBe("day 1 19:00");
+    expect(Date.parse(now.ts)).not.toBeNaN();
+  });
+
+  it("continues ids from the stored trace when two tracers write one session", () => {
+    const { store } = setup();
+    const first = createTracer(store, "s_1");
+    const second = createTracer(store, "s_1");
+    const event = { agent: "scout", kind: "decision", summary_ar: "س", summary_en: "s" } as const;
+
+    const ids = [first.emit(event).id, second.emit(event).id, first.emit(event).id];
+
+    expect(ids).toEqual(["evt_0001", "evt_0002", "evt_0003"]);
   });
 });

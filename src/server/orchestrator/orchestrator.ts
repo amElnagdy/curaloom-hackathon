@@ -6,7 +6,7 @@ import type { Static, TSchema } from "typebox";
 import { contractErrors } from "../../../contracts/index.ts";
 import type { Provider, ProviderTraceEvent } from "../providers/provider.ts";
 import type { Store } from "../store/store.ts";
-import { createTracer, type TraceInput, type Tracer } from "../trace/trace.ts";
+import { createTracer, type TraceClock, type TraceInput, type Tracer } from "../trace/trace.ts";
 
 export type AgentContext = {
   sessionId: string;
@@ -31,17 +31,17 @@ export class StepFailed extends Error {}
 export type OrchestratorOptions = {
   store: Store;
   makeProvider(onTrace: (event: ProviderTraceEvent) => void): Provider;
-  now?: () => Date;
+  clock?: TraceClock;
 };
 
 const SESSION_DOC = "session";
 
-export function createOrchestrator({ store, makeProvider, now }: OrchestratorOptions) {
+export function createOrchestrator({ store, makeProvider, clock }: OrchestratorOptions) {
   const tracers = new Map<string, Tracer>();
   const tracerFor = (sessionId: string) => {
     let tracer = tracers.get(sessionId);
     if (!tracer) {
-      tracer = createTracer(store, sessionId, now);
+      tracer = createTracer(store, sessionId, clock);
       tracers.set(sessionId, tracer);
     }
     return tracer;

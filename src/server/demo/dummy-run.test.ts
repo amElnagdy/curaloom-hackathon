@@ -12,7 +12,7 @@ function setup() {
   const runner = createDummyRunner({
     store,
     sleep: async (ms) => void sleeps.push(ms),
-    now: () => new Date("2026-10-28T16:00:00Z"),
+    clock: { wall: () => new Date("2026-10-28T16:00:00Z"), sim: () => null },
   });
   return { store, runner, sleeps };
 }

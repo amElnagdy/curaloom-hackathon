@@ -6,7 +6,7 @@ import Type, { type Static } from "typebox";
 import { type Agent, type AgentContext, createOrchestrator } from "../orchestrator/orchestrator.ts";
 import type { Provider } from "../providers/provider.ts";
 import { createFileStore, type Store } from "../store/store.ts";
-import type { TraceInput } from "../trace/trace.ts";
+import type { TraceClock, TraceInput } from "../trace/trace.ts";
 
 // A dummy result is not a domain entity, so its contract lives here, not in contracts/index.ts
 // (ADR-006 covers the entities agents exchange).
@@ -119,7 +119,7 @@ export type DummyRunOutcome =
   | { status: "done"; key: string; output: DummyOutput }
   | { status: "failed"; key: string; error: string };
 
-export type DummyRunnerOptions = { store?: Store; sleep?: Sleep; now?: () => Date };
+export type DummyRunnerOptions = { store?: Store; sleep?: Sleep; clock?: TraceClock };
 
 // Counts a session's dummy runs, so each run gets its own step key and runs again.
 const RUNS_DOC = "dummy_runs";
@@ -127,7 +127,7 @@ const RUNS_DOC = "dummy_runs";
 export function createDummyRunner({
   store = createFileStore(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  now,
+  clock,
 }: DummyRunnerOptions = {}) {
   const agent = createDummyAgent(sleep);
   const running = new Set<string>();
@@ -142,9 +142,8 @@ export function createDummyRunner({
       running.add(sessionId);
       const key = `${agent.name}:${runs + 1}`;
 
-      // A fresh orchestrator per run: its tracer continues ids from the stored trace, and runs of
-      // one session never overlap, so ids stay unique.
-      const orchestrator = createOrchestrator({ store, makeProvider: () => NO_MODELS, now });
+      // A fresh orchestrator per run: its tracer continues ids from the stored trace.
+      const orchestrator = createOrchestrator({ store, makeProvider: () => NO_MODELS, clock });
       return orchestrator
         .runStep(sessionId, agent, null, { key })
         .then(

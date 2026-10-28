@@ -75,7 +75,7 @@ function setup(root = mkdtempSync(join(tmpdir(), "orch-"))) {
     store,
     makeProvider: (onTrace) =>
       createProvider({ models: MODELS, profile: "live", apiKey: "sk-test", fetch, onTrace }),
-    now: () => new Date("2026-10-28T16:00:00Z"),
+    clock: { wall: () => new Date("2026-10-28T16:00:00Z"), sim: () => null },
   });
   return { root, store, orchestrator, modelCalls: () => calls };
 }

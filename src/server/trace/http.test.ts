@@ -8,7 +8,10 @@ import { createTracer } from "./trace";
 
 function seeded() {
   const store = createFileStore(mkdtempSync(join(tmpdir(), "http-")));
-  const tracer = createTracer(store, "s_1", () => new Date("2026-10-28T16:00:00Z"));
+  const tracer = createTracer(store, "s_1", {
+    wall: () => new Date("2026-10-28T16:00:00Z"),
+    sim: () => null,
+  });
   for (const n of [1, 2, 3]) {
     tracer.emit({
       agent: "scout",

@@ -38,3 +38,10 @@ it("resolves repo files from process.cwd(), since Next.js server bundles have no
 
   expect(offenders(forbidden, (file) => file.startsWith("evals/"))).toEqual([]);
 });
+
+// Test files are not scanned: they pass fixed dates, e.g. new Date("2026-10-28T16:00:00Z").
+it("reads the system time only in the clock module (ADR-004)", () => {
+  const forbidden = [/\bDate\.now\s*\(/, /\bnew\s+Date\s*\(\s*\)/];
+
+  expect(offenders(forbidden, (file) => file.startsWith("src/server/clock/"))).toEqual([]);
+});
