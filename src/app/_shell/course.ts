@@ -10,7 +10,8 @@ import type {
   QuizAttempt,
 } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
-import { arabicNumber, countOf, MODULES, ordinalF } from "./format.ts";
+import { hhmm, type SimTime } from "../../server/clock/time.ts";
+import { arabicNumber, clockTime, countOf, MODULES, ordinalF } from "./format.ts";
 import type { Status } from "./ui.tsx";
 
 export type Session = CoursePlan["committed"]["sessions"][number];
@@ -124,6 +125,11 @@ export function quizState(seed: Seed, lessonId: string): QuizState | undefined {
 // with an Arabic-Indic zero reads as a dot.
 export function simDay(day: number): string {
   return day === 0 ? "يوم البدء" : `اليوم ${arabicNumber(day)}`;
+}
+
+// A simulated time in full, e.g. «اليوم ٢، ٧:٠٠ م».
+export function simTimeText(t: SimTime): string {
+  return `${simDay(t.day)}، ${clockTime(hhmm(t.minute))}`;
 }
 
 export const COACH_TITLE: Record<CoachEvent["type"], string> = {

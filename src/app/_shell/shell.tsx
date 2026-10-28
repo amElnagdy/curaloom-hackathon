@@ -3,11 +3,11 @@
 // which has no padding of its own (pages use --page-gutter and --page-gutter-end from globals.css).
 
 import type { ReactNode } from "react";
+import { LiveSimClockPill } from "./activity-feed.tsx";
 import { Rail } from "./rail.tsx";
 import styles from "./shell.module.css";
 import { TopBar } from "./top-bar.tsx";
 import { TraceDrawer } from "./trace-drawer.tsx";
-import { SimClockPill } from "./ui.tsx";
 
 export function Shell({
   appName,
@@ -24,8 +24,7 @@ export function Shell({
   devTools: boolean;
   children: ReactNode;
 }) {
-  // Until the clock module (#23) exists the simulated clock has not started.
-  const clock = simClock ? <SimClockPill now={null} running={false} /> : null;
+  const clock = simClock ? <LiveSimClockPill /> : null;
 
   return (
     <>

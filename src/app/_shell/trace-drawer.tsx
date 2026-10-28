@@ -62,10 +62,10 @@ function TraceEventRow({ event }: { event: TraceEvent }) {
         <span className={styles.evKind} title={KIND_AR[event.kind]} lang="en">
           {event.kind}
         </span>
-        <span className={styles.evId} dir="ltr" lang="en">
+        <span className={styles.evId} dir="ltr" lang="en" title={techTime(event.ts)}>
           {event.id}
           <span className={styles.evIdSep} aria-hidden />
-          {techTime(event.ts)}
+          {event.sim_ts ?? techTime(event.ts)}
         </span>
       </div>
       <p className={styles.evAr}>

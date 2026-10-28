@@ -1,6 +1,7 @@
 // Learner-facing activity (#15): one trace event becomes one plain-Arabic line for «ما يحدث الآن».
 // No model ids, costs or step keys reach the learner; retries and failures are told calmly.
 
+import { DAY_ZERO, parseSimTime, type SimTime } from "../../server/clock/time.ts";
 import type { TraceEvent } from "../../server/trace/trace.ts";
 import { agentJob, agentName } from "./agents.ts";
 import { arabicDigits } from "./format.ts";
@@ -13,9 +14,14 @@ export type ActivityItem = {
   agentName: string;
   tone: ActivityTone;
   text: string;
-  // Wall time of the event (ISO), for display.
+  // Wall time of the event (ISO), and its simulated time when it has one; the feed shows the latter.
   at: string;
+  simAt: SimTime | null;
 };
+
+// Instant bookkeeping of the clock, the coach scheduler and the notifier, not agent work: the clock
+// pill and the coach page show it, and the drawer lists it.
+const SYSTEM_ACTORS = new Set(["clock", "scheduler", "notifier"]);
 
 // The English summaries the orchestrator and the tracer write for their own events
 // (src/server/orchestrator/orchestrator.ts, src/server/trace/trace.ts). activity.test.ts drives the
@@ -40,8 +46,10 @@ function startText(agent: string): string {
   return job ? `بدأ العمل: ${job}.` : "بدأ العمل.";
 }
 
-// Returns null for events that change nothing for the learner (a step resumed from its saved output).
+// Returns null for events that are not agent work, and for those that change nothing for the
+// learner (a step resumed from its saved output).
 export function toActivityItem(event: TraceEvent): ActivityItem | null {
+  if (SYSTEM_ACTORS.has(event.agent)) return null;
   const item = (tone: ActivityTone, text: string): ActivityItem => ({
     id: event.id,
     agent: event.agent,
@@ -49,6 +57,7 @@ export function toActivityItem(event: TraceEvent): ActivityItem | null {
     tone,
     text: arabicDigits(text),
     at: event.ts,
+    simAt: event.sim_ts ? parseSimTime(event.sim_ts) : null,
   });
   const en = event.summary_en;
 
@@ -68,4 +77,12 @@ export function toActivityItem(event: TraceEvent): ActivityItem | null {
     case "model_call":
       return item("working", event.summary_ar);
   }
+}
+
+// Where the simulated clock is: every move of the clock emits one event under the agent "clock",
+// stamped with the new time (src/server/clock/clock.ts). A session whose clock never moved is at
+// day 0.
+export function clockNow(events: readonly TraceEvent[]): SimTime {
+  const last = events.findLast((e) => e.agent === "clock" && e.sim_ts !== null);
+  return last?.sim_ts ? parseSimTime(last.sim_ts) : DAY_ZERO;
 }

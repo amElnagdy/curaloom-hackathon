@@ -14,8 +14,9 @@ import {
   useRef,
   useState,
 } from "react";
+import type { SimTime } from "../../server/clock/time.ts";
 import type { TraceEvent } from "../../server/trace/trace.ts";
-import { type ActivityItem, toActivityItem } from "./activity.ts";
+import { type ActivityItem, clockNow, toActivityItem } from "./activity.ts";
 
 export type TraceConnection = "connecting" | "open" | "reconnecting";
 
@@ -30,6 +31,8 @@ type TraceState = {
   // first flush has settled; null until then. Only events after it are new to this page.
   replayed: ReadonlySet<string> | null;
   totalCostUsd: number;
+  // The simulated clock, from the clock's own events; null until the history has replayed.
+  simNow: SimTime | null;
   connection: TraceConnection;
   drawerOpen: boolean;
   openDrawer(): void;
@@ -118,6 +121,7 @@ export function TraceProvider({ sessionId, children }: { sessionId: string; chil
       running: last !== undefined && last.tone !== "done" && last.tone !== "failed",
       replayed,
       totalCostUsd: events.reduce((sum, e) => sum + (e.cost_usd ?? 0), 0),
+      simNow: replayed === null ? null : clockNow(events),
       connection,
       drawerOpen,
       openDrawer,

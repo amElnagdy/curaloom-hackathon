@@ -13,7 +13,9 @@ import {
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import type { Resource } from "../../../contracts/index.ts";
-import { arabicNumber, splitRuns } from "./format.ts";
+import { hhmm, type SimTime } from "../../server/clock/time.ts";
+import { simDay } from "./course.ts";
+import { clockTime, splitRuns } from "./format.ts";
 import styles from "./ui.module.css";
 
 export function cx(...names: (string | false | null | undefined)[]): string {
@@ -239,36 +241,29 @@ export function SampleBadge() {
   );
 }
 
-// The simulated clock (ADR-004), display only. `now` is the simulated day and a preformatted Arabic
-// time of day, or null while the clock has not started: then it says only «لم تبدأ», because a
-// day «٠» in Arabic-Indic digits reads as a dot.
-export function SimClockPill({
-  now,
-  running,
-}: {
-  now: { day: number; time: string } | null;
-  running: boolean;
-}) {
-  const dayText = now ? `اليوم ${arabicNumber(now.day)}` : null;
-  const timeText = now?.time ?? "لم تبدأ";
+// The simulated clock (ADR-004), display only: the day by name and the Arabic time of day. `now` is
+// null while the page has not read the clock yet; then only the icon shows.
+export function SimClockPill({ now, running }: { now: SimTime | null; running: boolean }) {
+  const dayText = now ? simDay(now.day) : null;
+  const timeText = now ? clockTime(hhmm(now.minute)) : null;
   const state = running ? "" : "، متوقفة";
   return (
     <span
       className={cx(styles.clock, !running && styles.clockPaused)}
       role="timer"
-      aria-label={`ساعة المحاكاة: ${dayText ? `${dayText}، ` : ""}${timeText}${state}`}
+      aria-label={`ساعة المحاكاة${now ? `: ${dayText}، ${timeText}${state}` : ""}`}
       title="ساعة المحاكاة"
     >
       {running ? <Clock aria-hidden /> : <Pause aria-hidden />}
-      {dayText && (
+      {now && (
         <>
           <span aria-hidden>{dayText}</span>
           <span className={styles.clockSep} aria-hidden />
+          <span className={styles.clockTime} aria-hidden>
+            {timeText}
+          </span>
         </>
       )}
-      <span className={styles.clockTime} aria-hidden>
-        {timeText}
-      </span>
     </span>
   );
 }

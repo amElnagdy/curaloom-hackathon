@@ -92,6 +92,12 @@ export const ATTEMPTS: CountForms = {
   many: "محاولة",
 };
 export const EVENTS: CountForms = { one: "حدث واحد", two: "حدثان", few: "أحداث", many: "حدثًا" };
+export const MESSAGES: CountForms = {
+  one: "رسالة واحدة",
+  two: "رسالتان",
+  few: "رسائل",
+  many: "رسالة",
+};
 export const UPDATES: CountForms = {
   one: "تحديث واحد",
   two: "تحديثان",

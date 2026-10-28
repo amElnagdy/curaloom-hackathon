@@ -6,12 +6,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Type from "typebox";
 import { describe, expect, it } from "vitest";
+import { loadOmarSeed } from "../../../demo/seed";
+import { createSim } from "../../server/clock/sim";
 import { type Agent, createOrchestrator } from "../../server/orchestrator/orchestrator";
 import { parseModels } from "../../server/providers/models";
 import { createProvider } from "../../server/providers/provider";
 import { createFileStore } from "../../server/store/store";
 import { createTracer, type TraceEvent } from "../../server/trace/trace";
-import { toActivityItem } from "./activity";
+import { clockNow, toActivityItem } from "./activity";
 
 const MODELS = parseModels(`
 roles:
@@ -187,5 +189,35 @@ describe("toActivityItem", () => {
 
     expect(toActivityItem(event("dummy"))?.agentName).toBe("وكيل تجريبي");
     expect(toActivityItem(event("x_agent"))?.agentName).toBe("وكيل");
+  });
+
+  it("dates a line by its simulated time", async () => {
+    const { store, orchestrator, trace } = setup();
+    createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") }).set(2);
+    await orchestrator.runStep("s_1", scout([{ found: 3 }]), null);
+
+    expect(toActivityItem(trace().at(-1) as TraceEvent)?.simAt).toEqual({ day: 2, minute: 540 });
+  });
+
+  it("leaves the clock, the coach scheduler and the notifier out of the feed", () => {
+    const { store, trace } = setup();
+    createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") }).set(10);
+
+    expect(trace().map((e) => e.agent)).toContain("scheduler");
+    expect(lines(trace()).every((line) => line === null)).toBe(true);
+  });
+});
+
+describe("clockNow", () => {
+  it("reads the simulated clock from the trace, back to day 0 on reset", () => {
+    const { store, trace } = setup();
+    const sim = () => createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") });
+
+    expect(clockNow(trace())).toEqual({ day: 0, minute: 540 });
+    sim().set(10);
+    sim().advance({ minutes: 90 });
+    expect(clockNow(trace())).toEqual(sim().now());
+    sim().reset();
+    expect(clockNow(trace())).toEqual({ day: 0, minute: 540 });
   });
 });

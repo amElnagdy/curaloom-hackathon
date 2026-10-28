@@ -1,13 +1,13 @@
 // Settings (#15 slot): the demo layer's settings, read from config. The model profile is read-only;
-// the simulated clock's controls stay disabled until the clock module exists (#23).
+// the simulated clock moves from here (#23).
 
-import { CalendarPlus, FastForward, Info, Play } from "lucide-react";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config, PROVIDER_PROFILES, type ProviderProfile } from "../../config.ts";
-import { Callout, Page, PageHead, Panel, SettingRow, SettingRows } from "../_shell/blocks.tsx";
-import { buttonClass, cx, SimClockPill } from "../_shell/ui.tsx";
+import { Page, PageHead, Panel, SettingRow, SettingRows } from "../_shell/blocks.tsx";
+import { cx } from "../_shell/ui.tsx";
+import { ClockControls } from "./clock-controls.tsx";
 import styles from "./settings.module.css";
 
 export const metadata: Metadata = { title: "الإعدادات" };
@@ -55,40 +55,10 @@ export default function SettingsPage() {
       />
 
       <Panel id="clock-title" title="الساعة المحاكاة" flush>
-        <SettingRows>
-          {config.simClock ? (
-            <SettingRow
-              label="الوقت الآن"
-              labelId="clock-now"
-              help="يرى المدرب هذا الوقت. تقديم الساعة يُطلق رسائل المدرب المستحقة بالترتيب، مرة واحدة لكل رسالة."
-            >
-              <SimClockPill now={null} running={false} />
-              <fieldset className={styles.buttons} aria-labelledby="clock-now" disabled>
-                <button type="button" className={buttonClass("secondary", "sm")} disabled>
-                  <Play aria-hidden />
-                  تشغيل الساعة
-                </button>
-                <button
-                  type="button"
-                  className={buttonClass("secondary", "sm")}
-                  aria-label="قدّم ساعة"
-                  disabled
-                >
-                  <FastForward aria-hidden />
-                  ساعة
-                </button>
-                <button
-                  type="button"
-                  className={buttonClass("secondary", "sm")}
-                  aria-label="قدّم يومًا"
-                  disabled
-                >
-                  <CalendarPlus aria-hidden />
-                  يوم
-                </button>
-              </fieldset>
-            </SettingRow>
-          ) : (
+        {config.simClock ? (
+          <ClockControls sessionId={DEMO_SESSION_ID} />
+        ) : (
+          <SettingRows>
             <SettingRow
               label="الساعة المحاكاة متوقفة"
               labelId="clock-off"
@@ -100,14 +70,7 @@ export default function SettingsPage() {
             >
               <Tech>SIM_CLOCK=false</Tech>
             </SettingRow>
-          )}
-        </SettingRows>
-        {config.simClock && (
-          <div className={styles.panelNote}>
-            <Callout icon={Info}>
-              الأزرار معطّلة حتى تُبنى وحدة الساعة المحاكاة. الساعة لم تبدأ بعد.
-            </Callout>
-          </div>
+          </SettingRows>
         )}
       </Panel>
 

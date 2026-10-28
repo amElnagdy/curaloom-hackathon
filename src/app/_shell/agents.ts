@@ -12,6 +12,10 @@ export const AGENTS: Readonly<Record<string, AgentInfo>> = {
   examiner: { name: "الممتحن", job: "يكتب اختبارات تجتازها عند ٨٠٪" },
   coach: { name: "المدرب", job: "يتابعك ضمن الحدود التي اخترتها" },
   dummy: { name: "وكيل تجريبي", job: "يجرّب خطوات النظام دون أن يستدعي نموذجًا" },
+  // Not agents: the clock module and the notifier trace their decisions under these names.
+  clock: { name: "الساعة المحاكاة", job: "تقدّم الوقت في العرض التجريبي" },
+  scheduler: { name: "جدول المدرب", job: "يُطلق رسائل المدرب حين يحلّ موعدها" },
+  notifier: { name: "قناة الرسائل", job: "ترسل الرسائل ضمن موافقتك وساعات الهدوء" },
 };
 
 const UNKNOWN_AGENT = "وكيل";

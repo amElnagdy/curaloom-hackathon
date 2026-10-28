@@ -1,4 +1,4 @@
-/* Settings: read-only values from config and the disabled clock controls. */
+/* Settings: read-only values from config and the simulated clock's controls. */
 
 .tech {
   font-family: var(--font-lat);

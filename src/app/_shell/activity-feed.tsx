@@ -3,15 +3,17 @@
 // «ما يحدث الآن» (#15): the learner's view of agent work, one plain-Arabic line per trace event
 // (toActivityItem), live from the trace stream. `children` is the column's primary action; the
 // footer opens the technical trace drawer. Used as the pinned column of the plan page.
-// LiveStatusPill shows a course status that follows the same live state.
+// LiveStatusPill shows a course status that follows the same live state, LiveSimClockPill the
+// simulated clock.
 
 import { Check, Logs, RotateCcw, TriangleAlert, X } from "lucide-react";
 import { type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect } from "react";
 import type { ActivityItem, ActivityTone } from "./activity.ts";
 import styles from "./activity-feed.module.css";
+import { simTimeText } from "./course.ts";
 import { arabicTime, countOf, UPDATES } from "./format.ts";
 import { useTrace } from "./trace-provider.tsx";
-import { BidiText, cx, type Status, StatusPill } from "./ui.tsx";
+import { BidiText, cx, SimClockPill, type Status, StatusPill } from "./ui.tsx";
 import { useStickToBottom } from "./use-stick-to-bottom.ts";
 
 const NOW_NOTE: Record<ActivityTone, string> = {
@@ -63,7 +65,13 @@ function FeedItem({
       <div className={styles.body}>
         <p className={styles.itemHead}>
           <b>{item.agentName}</b>
-          <span className={styles.end}>{current ? NOW_NOTE[item.tone] : arabicTime(item.at)}</span>
+          <span className={styles.end}>
+            {current
+              ? NOW_NOTE[item.tone]
+              : item.simAt
+                ? simTimeText(item.simAt)
+                : arabicTime(item.at)}
+          </span>
         </p>
         <p className={styles.text}>
           <BidiText text={item.text} />
@@ -111,6 +119,13 @@ export function LiveStatusPill({ status, label }: { status: Status; label: strin
   ) : (
     <StatusPill status={status}>{label}</StatusPill>
   );
+}
+
+// The simulated clock as the trace stream reports it, live across tabs. Icon only until the stream
+// has replayed the session's history.
+export function LiveSimClockPill() {
+  const { simNow } = useTrace();
+  return <SimClockPill now={simNow} running={false} />;
 }
 
 // Hides the older line cut by the list's top edge, so under the live line the list shows whole
