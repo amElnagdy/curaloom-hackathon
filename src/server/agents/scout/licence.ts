@@ -137,7 +137,7 @@ const ROWS: Row[] = [
       String.raw`(?:released|dedicated|placed)\s+(?:in|into|to)\s+the\s+public\s+domain`,
       String.raw`(?:is|are|remains?)\s+in\s+the\s+public\s+domain`,
       String.raw`public\s+domain\s+(?:dedication|mark)`,
-      String.raw`общественн\p{L}*\s+достояни\p{L}*`,
+      String.raw`общественн\p{L}{0,3}\s+достояни\p{L}{0,3}`,
       String.raw`domaine\s+public`,
       "公有领域|公共领域|公有領域",
       String.raw`creativecommons\.org/publicdomain/mark`,
@@ -217,7 +217,7 @@ const ROWS: Row[] = [
       String.raw`open\s+educational\s+resources?`,
       `${START}OER${END}`,
       String.raw`licence\s+(?:libre|ouverte)`,
-      String.raw`свободн\p{L}*\s+лицензи\p{L}*`,
+      String.raw`свободн\p{L}{0,3}\s+лицензи\p{L}{0,3}`,
       "开放许可|開放授權",
     ],
   },
@@ -228,25 +228,43 @@ const COMPILED = ROWS.map((row) => ({
   patterns: row.patterns.map((pattern) => new RegExp(pattern, "giu")),
 }));
 
+// Page text is untrusted, so the work per page is bounded. Licence statements sit in a page's head
+// (a rel="license" link) and its footer, so only those ends are read. Collapsing whitespace keeps the
+// patterns' adjacent `\s*` from backtracking over a long run, and a page that states its licence
+// more often than MAX_PER_PATTERN times says nothing new after that.
+const EDGE_CHARS = 64 * 1024;
+const MAX_PER_PATTERN = 25;
+
+function edgesOf(text: string): string {
+  const edges =
+    text.length > 2 * EDGE_CHARS ? `${text.slice(0, EDGE_CHARS)} ${text.slice(-EDGE_CHARS)}` : text;
+  return edges.replace(/\s+/g, " ");
+}
+
 type Finding = { row: Row; rank: number; start: number; end: number; version?: string };
 
 function findStatements(text: string): Finding[] {
-  const found = COMPILED.flatMap(({ row, patterns }) =>
-    patterns.flatMap((re, rank) =>
-      [...text.matchAll(re)].map((m) => ({
-        row,
-        rank,
-        start: m.index,
-        end: m.index + m[0].length,
-        version: m.groups?.v,
-      })),
-    ),
-  );
+  const found: Finding[] = [];
+  for (const { row, patterns } of COMPILED) {
+    patterns.forEach((re, rank) => {
+      let count = 0;
+      for (const m of text.matchAll(re)) {
+        const end = m.index + m[0].length;
+        found.push({ row, rank, start: m.index, end, version: m.groups?.v });
+        if (++count === MAX_PER_PATTERN) break;
+      }
+    });
+  }
   // A statement inside a longer one ("CC BY" in "CC BY-SA 4.0") is part of it, not a second licence.
-  const length = (f: Finding) => f.end - f.start;
-  return found.filter(
-    (f) => !found.some((g) => length(g) > length(f) && g.start <= f.start && f.end <= g.end),
-  );
+  // Sorted by start, longest first, a statement is inside an earlier one exactly when an earlier
+  // one reaches its end.
+  found.sort((a, b) => a.start - b.start || b.end - a.end);
+  let reach = -1;
+  return found.filter((f) => {
+    const inside = f.end <= reach;
+    reach = Math.max(reach, f.end);
+    return !inside;
+  });
 }
 
 type NamingRow = Extract<Row, { family: string }>;
@@ -296,7 +314,8 @@ function quoteOf(text: string, findings: Finding[]): string {
 }
 
 export function classifyLicence(pageText: string, url: string): LicenceCheck {
-  const findings = findStatements(pageText);
+  const text = edgesOf(pageText);
+  const findings = findStatements(text);
   const named = namedLicences(findings);
   const reserved = findings.filter((f) => f.row.kind === "reserved");
   const vague = findings.filter((f) => f.row.kind === "vague");
@@ -304,7 +323,7 @@ export function classifyLicence(pageText: string, url: string): LicenceCheck {
     spdx,
     use: "rejected" as const,
     evidence_url: url,
-    quote: quoteOf(pageText, quoted),
+    quote: quoteOf(text, quoted),
     reason,
     reason_ar,
   });
@@ -340,7 +359,7 @@ export function classifyLicence(pageText: string, url: string): LicenceCheck {
       spdx: only.spdx,
       use: only.row.use,
       evidence_url: url,
-      quote: quoteOf(pageText, only.findings),
+      quote: quoteOf(text, only.findings),
       reason: `the page states ${only.spdx}`,
       reason_ar: `تذكر صفحته ترخيص ${only.spdx}`,
     };

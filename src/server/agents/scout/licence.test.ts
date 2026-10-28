@@ -96,6 +96,22 @@ describe("classifyLicence", () => {
     expect(text).toContain(check.quote.replace(/^…|…$/g, ""));
   });
 
+  it("classifies a huge hostile page quickly, from its head and its footer", () => {
+    const page = [
+      `Creative Commons${" ".repeat(30_000)}x`,
+      "общественн".repeat(5_000),
+      "Pivot tables summarise data. CC BY-SA 4.0 ".repeat(5_000),
+      "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+    ].join(" ");
+
+    const started = performance.now();
+    const check = classifyLicence(page, URL);
+
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(check).toMatchObject({ spdx: "CC-BY-SA-4.0", use: "open" });
+    expect(check.quote).toContain("Creative Commons Attribution-ShareAlike 4.0 License.");
+  });
+
   it("quotes the licence sentence rather than the bare link", () => {
     expect(classifyLicence(WIKIPEDIA_EN, URL).quote).toBe(
       "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License ;",
