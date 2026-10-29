@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: محلل بيانات مبتدئ\nLevel: beginner\nLanguage searched: en\n\nSearch answer:\nHere are openly licensed beginner resources for Excel pivot tables:\n\n- **Microsoft Office/Create a Pivot Table — Wikibooks**\n  https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table\n  Teaches how to build a simple pivot table from a small sample table.\n\n- **Pivot table — Wikipedia**\n  https://en.wikipedia.org/wiki/Pivot_table\n  Teaches what a pivot table is and how row, column and data fields organize summaries.\n\n- **7.2: PivotTables for Data Analysis — Business LibreTexts**\n  https://biz.libretexts.org/Courses/Coalinga_College/Introduction_to_Spreadsheets_(BSOT_112)/07%3A_Analyzing_and_Troubleshooting_Data/7.02%3A_PivotTables_for_Data_Analysis\n  Teaches how to create a PivotTable with Rows, Columns, Values and Filters for interactive analysis.\n\n- **8.8: Pivot Tables — Business LibreTexts**\n  https://biz.libretexts.org/Courses/Lumen_Learning/Book%3A_Computer_Applications_for_Managers_(Lumen)/08%3A_Microsoft_Excel_Advanced_Skills/8.08%3A_Pivot_Tables\n  Teaches how to create a PivotTable using Recommended PivotTables or from scratch.\n\nCited pages:\n1. https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table | Microsoft Office/Create a Pivot Table\n2. https://en.wikipedia.org/wiki/Pivot_table | Pivot table - Wikipedia\n3. https://biz.libretexts.org/Courses/Coalinga_College/Introduction_to_Spreadsheets_(BSOT_112)/07%3A_Analyzing_and_Troubleshooting_Data/7.02%3A_PivotTables_for_Data_Analysis | 7.2: PivotTables for Data Analysis\n4. https://biz.libretexts.org/Courses/Lumen_Learning/Book%3A_Computer_Applications_for_Managers_(Lumen)/08%3A_Microsoft_Excel_Advanced_Skills/8.08%3A_Pivot_Tables | 8.8: Pivot Tables",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "required": [
+            "candidates"
+          ],
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae293111f279057fda94ec8",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793233681,
+    "completed_at": 1793233681,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae293111f279057fda94ec8:rs_5e64b992-4191-4e66-b731-8da1984176ab",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_6bc50393-4f80-4b39-9450-a33e855eab3a",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": [{\"lang\": \"en\", \"level_fit\": 0.95, \"relevance\": 0.9, \"title\": \"Microsoft Office/Create a Pivot Table\", \"type\": \"article\", \"url\": \"https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table\", \"why_ar\": \"هذه الصفحة تناسبك لأنها تشرح خطوة بخطوة كيفية إنشاء جدول محوري بسيط من جدول صغير.\"}, {\"lang\": \"en\", \"level_fit\": 0.7, \"relevance\": 0.65, \"title\": \"Pivot table - Wikipedia\", \"type\": \"article\", \"url\": \"https://en.wikipedia.org/wiki/Pivot_table\", \"why_ar\": \"هذه الصفحة تناسبك لأنها توضح بلغة مبسطة ما هو الجدول المحوري وكيف تنظم الحقول الملخصات.\"}, {\"lang\": \"en\", \"level_fit\": 0.9, \"relevance\": 0.95, \"title\": \"7.2: PivotTables for Data Analysis\", \"type\": \"article\", \"url\": \"https://biz.libretexts.org/Courses/Coalinga_College/Introduction_to_Spreadsheets_(BSOT_112)/07%3A_Analyzing_and_Troubleshooting_Data/7.02%3A_PivotTables_for_Data_Analysis\", \"why_ar\": \"هذه الصفحة تناسبك لأنها تعلمك عمليا استخدام الصفوف والأعمدة والقيم والفلاتر للتحليل التفاعلي.\"}, {\"lang\": \"en\", \"level_fit\": 0.85, \"relevance\": 0.9, \"title\": \"8.8: Pivot Tables\", \"type\": \"article\", \"url\": \"https://biz.libretexts.org/Courses/Lumen_Learning/Book%3A_Computer_Applications_for_Managers_(Lumen)/08%3A_Microsoft_Excel_Advanced_Skills/8.08%3A_Pivot_Tables\", \"why_ar\": \"هذه الصفحة تناسبك لأنها توضح إنشاء الجداول المحورية المقترحة واليدوية بطريقة سهلة للمبتدئين.\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 787,
+      "input_tokens_details": {
+        "cached_tokens": 241
+      },
+      "output_tokens": 1828,
+      "output_tokens_details": {
+        "reasoning_tokens": 1338
+      },
+      "total_tokens": 2615
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 9189
+}

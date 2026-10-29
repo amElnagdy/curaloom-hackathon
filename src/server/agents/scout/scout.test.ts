@@ -2,12 +2,13 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { Resource } from "../../../../contracts/index.ts";
+import { type Resource, SOURCE_LANGS } from "../../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
-import type { ModelResult, Provider } from "../../providers/provider.ts";
+import { loadModels } from "../../providers/models.ts";
+import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
 import { createFileStore } from "../../store/store.ts";
-import type { FetchOutcome, PageFetcher } from "../../tools/fetch-page.ts";
+import { createPageFetcher, type FetchOutcome, type PageFetcher } from "../../tools/fetch-page.ts";
 import type { TraceEvent } from "../../trace/trace.ts";
 import { runScout, scoutBrief } from "./scout.ts";
 
@@ -245,5 +246,50 @@ describe("scout", () => {
 
     await run(["en", "ru"], "Another topic");
     expect(providers()).toBe(2);
+  });
+});
+
+// The topic of the run recorded in demo/fixtures. It is a sample: the demo topic is not decided.
+// Re-record with `PROVIDER_PROFILE=record pnpm scout` and this topic set in the shell.
+const RECORDED_TOPIC = "Excel pivot tables for data analysis";
+
+describe("scout, replaying the recorded run", () => {
+  it("reproduces it offline: cited, licence-checked resources in several languages", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "scout-replay-"));
+    dirs.push(dir);
+    const store = createFileStore(dir);
+    const orchestrator = createOrchestrator({
+      store,
+      makeProvider: (onTrace) =>
+        createProvider({ models: loadModels(), profile: "replay", onTrace }),
+    });
+    const pages = createPageFetcher({
+      profile: "replay",
+      userAgent: "test",
+      transport: async () => {
+        throw new Error("replay must not touch the network");
+      },
+    });
+    const brief = scoutBrief({ ...profile, topic: RECORDED_TOPIC });
+
+    const { resources, rejected } = await runScout({ orchestrator, sessionId: "s1", brief, pages });
+
+    expect(resources.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(resources.map((r) => r.lang)).size).toBeGreaterThanOrEqual(2);
+    for (const r of resources) {
+      expect(r.citations).toEqual([{ url: r.url }]);
+      expect(r.licence).toMatchObject({
+        verified: true,
+        evidence_url: expect.stringMatching(/^https:/),
+      });
+      expect(r.licence.spdx).not.toBe("NOASSERTION");
+      expect(r.licence.quote).not.toBe("");
+    }
+    const trace = store.readTrace<TraceEvent>("s1").map((e) => e.summary_en);
+    for (const lang of SOURCE_LANGS) {
+      expect(trace.filter((line) => line.startsWith(`Queries (${lang}): `))).toHaveLength(1);
+    }
+    for (const r of rejected) expect(trace).toContain(`Rejected ${r.url}: ${r.reason}`);
+    expect(trace).toContainEqual(expect.stringMatching(/run cost \$\d+\.\d{4} in total$/));
   });
 });

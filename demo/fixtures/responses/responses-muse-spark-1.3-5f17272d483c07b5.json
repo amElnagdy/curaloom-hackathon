@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: محلل بيانات مبتدئ\nLevel: beginner\nLanguage searched: zh\n\nSearch answer:\n- **数据透视表** — https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html\n  - 教初学者数据透视表可组合、比较和分析大批量数据并交互查看摘要。\n\n- **创建数据透视表** — https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_createtable.html\n  - 教初学者选择数据区并把字段按钮拖到筛选、列、行和数据区来生成透视表。\n\n\nCited pages:\n1. https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html | 数据透视表",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "candidates"
+          ],
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae29323caefcc692711477e",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793233699,
+    "completed_at": 1793233699,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae29323caefcc692711477e:rs_62b23817-3c90-487f-9d4e-49428ca4b991",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_cbf0db09-4815-47ca-9dfd-e0f5b443459a",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": [{\"lang\": \"zh\", \"level_fit\": 0.95, \"relevance\": 0.9, \"title\": \"数据透视表\", \"type\": \"article\", \"url\": \"https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html\", \"why_ar\": \"هذه الصفحة مناسبة لك لأنها تشرح ببساطة للمبتدئين كيفية استخدام الجداول المحورية لتحليل البيانات الكبيرة\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 473,
+      "input_tokens_details": {
+        "cached_tokens": 241
+      },
+      "output_tokens": 1203,
+      "output_tokens_details": {
+        "reasoning_tokens": 1087
+      },
+      "total_tokens": 1676
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 6229
+}

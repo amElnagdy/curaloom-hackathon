@@ -1,0 +1,11 @@
+{
+  "url": "https://biz.libretexts.org/robots.txt",
+  "latency_ms": 1077,
+  "response": {
+    "kind": "page",
+    "status": 200,
+    "content_type": "text/plain; charset=utf-8",
+    "truncated": false,
+    "text": "User-Agent: *\nCrawl-delay: 5\nSitemap: https://biz.libretexts.org/sitemap.xml\nRequest-rate: 1/5\n\n# allow file attachments\nAllow: /@api/deki/files/\n\n# allow GSA authentication\nAllow: /@api/deki/users/authenticate\nAllow: /Special:UserLogin\nAllow: /*title=Special:UserLogin\nAllow: /@app/auth/\nAllow: /@app/saml/\n\n# allow favicons saved in host domain\nAllow: /@public/*favicon.png\nAllow: /@public/*favicon.ico\n\n# block operational (non content) locations\nDisallow: /Special:*\nDisallow: /*title=Special:*\nDisallow: /Template:*\nDisallow: /*title=Template:*\nDisallow: /User:*\nDisallow: /*title=User:*\nDisallow: /deki/\nDisallow: /*action=*\nDisallow: /@*\n"
+  }
+}

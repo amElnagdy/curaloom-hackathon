@@ -1,0 +1,11 @@
+{
+  "url": "https://help.libreoffice.org/robots.txt",
+  "latency_ms": 352,
+  "response": {
+    "kind": "page",
+    "status": 200,
+    "content_type": "text/plain",
+    "truncated": false,
+    "text": "User-agent: *\nDisallow: /6.\nDisallow: /7.\nDisallow: /24.\nDisallow: /25.\nDisallow: /26.\nDisallow: /27.\nDisallow: /28.\nDisallow: /29.\nDisallow: /30.\nDisallow: /31.\nDisallow: /32.\nDisallow: /33.\nDisallow: /34.\nDisallow: /35.\nAllow: /latest/\nDisallow: /master/\nSitemap: https://help.libreoffice.org/sitemap.xml\n"
+  }
+}

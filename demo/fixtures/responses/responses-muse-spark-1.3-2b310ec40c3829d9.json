@@ -1,0 +1,293 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Language: Russian\nTopic: Excel pivot tables for data analysis\nThe learner's goal: محلل بيانات مبتدئ\nLevel: beginner\nSearch queries to try: сводные таблицы Excel для начинающих викиучебник; анализ данных сводные таблицы открытый учебник",
+      "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "tools": [
+        {
+          "type": "web_search"
+        }
+      ]
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "tools": [
+      {
+        "type": "web_search"
+      }
+    ],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae292f0edca0aa62ae9425a",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793233648,
+    "completed_at": 1793233674,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_10eb8682-36e1-47dd-bdf1-9ecba6e129c7",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_ec332a32-878b-4d12-b82b-cb0b87cdb074",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Ищу открытые учебники по сводным таблицам Excel для начинающих.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_1b2a3808-4d3d-43f7-b88e-7ef0b289af33",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "сводные таблицы Excel для начинающих викиучебник"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_59074a2b-cb24-4a89-a4ed-f12fa793788c",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "анализ данных сводные таблицы открытый учебник"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_0a742b4c-5511-420e-86f8-de6fc93a6af2",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_91478d6c-a456-4860-a474-bc6e5b97cd86",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Первые результаты не подошли, попробую поискать в открытых вики-библиотеках.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_b8f0c92b-3ee0-48d1-b689-8ed389f9890d",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "site:ru.wikipedia.org сводная таблица Excel"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_303b2b0b-1f74-44bf-8192-55e02a8ec578",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "сводная таблица Excel Википедия создание руководство"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_f4c8d2ec-2375-4eb4-8a68-8a03c8fe539a",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_b661bb16-9360-4f4e-a07e-41362838a363",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Поиск дал мало открытых источников, поэтому открою напрямую проверенные открытые страницы на русском языке.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_ae38bc95-f145-4fc0-8062-fcdce9d41232",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://ru.wikipedia.org/wiki/Сводная_таблица"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_936af5a6-d9df-437d-a19a-20d875fa143e",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_fdec5a97-86ea-4534-bc55-9c937a54719a",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/ru/text/scalc/01/pivot_table_layout.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_41320736-3030-4bb6-98e5-d457a6bc8490",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_4c6d46c2-8743-4648-a95c-fc5043c49de9",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://ru.wikibooks.org/wiki/Microsoft_Excel"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_839457c8-9e9f-43ba-b29c-3462681a83e2",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_3a6a135b-fed0-419c-9f40-a30d6cd6c4ee",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://ru.wikipedia.org/wiki/Microsoft_Excel"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_48401f4a-38db-4564-aafb-991e747c06ae",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_8ff10b7e-4f5b-4ff8-aeec-66afc1067a52",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Нашла базовые статьи, теперь открою документацию с практическими примерами.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_302fe32b-10ae-4bf3-88e7-eca24cb3851a",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/24.2/ru/text/scalc/01/04060000.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_e49c85eb-7b4a-47ea-b4b9-07ea2714ca6e",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_13c1d52e-fa4e-4d43-8862-34d42260ba2a",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/ru/text/scalc/01/12060000.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae292f0edca0aa62ae9425a:rs_7d977e9d-8150-42a4-8ca8-64f580517b93",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_7a69183e-ce0b-4faa-831d-d53f775117e5",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "- **Сводная таблица — Википедия**\n  https://ru.wikipedia.org/wiki/Сводная_таблица\n  Учит понятию сводной таблицы как инструмента обобщения данных.\n\n- **Microsoft Excel — Викиучебник**\n  https://ru.wikibooks.org/wiki/Microsoft_Excel\n  Учит основам работы в табличном процессоре Microsoft Excel.\n\n- **Microsoft Excel — Википедия**\n  https://ru.wikipedia.org/wiki/Microsoft_Excel\n  Учит назначению программы Excel для работы с электронными таблицами.\n",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url": "https://ru.wikipedia.org/wiki/Сводная_таблица",
+                "start_index": 84,
+                "end_index": 146,
+                "title": "Сводная таблица"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://ru.wikibooks.org/wiki/Microsoft_Excel",
+                "start_index": 234,
+                "end_index": 293,
+                "title": "Microsoft Excel — Викиучебник"
+              }
+            ],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+    "usage": {
+      "input_tokens": 113444,
+      "input_tokens_details": {
+        "cached_tokens": 80362
+      },
+      "output_tokens": 3552,
+      "output_tokens_details": {
+        "reasoning_tokens": 2651
+      },
+      "total_tokens": 116996
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 28350
+}

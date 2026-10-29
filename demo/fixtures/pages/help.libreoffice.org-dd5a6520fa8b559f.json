@@ -1,0 +1,11 @@
+{
+  "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html",
+  "latency_ms": 111,
+  "response": {
+    "kind": "page",
+    "status": 200,
+    "content_type": "text/html",
+    "truncated": false,
+    "text": "数据透视表 LibreOffice 26.8 帮助 模块 语言 目录 数据透视表 「 数据透视表 」 (原作「 数据助理 」) 可以组合、比较和分析大批量数据。您可以查看不同的源数据摘要，还可以显示感兴趣区域的详细资料并创建报告。 使用 数据透视表 建立的工作表是交互式工作表。可以根据不同的视角对数据进行排列、重新排列或汇总。 打开文件示例: 相关主题 创建数据透视表 编辑透视表 Formatting Pivot Tables 筛选数据透视表 更新数据透视表 选择数据透视表输出区域 Pivot Table Calculated Field 删除数据透视表 数据透视图 请支持我们! 请支持我们! LibreOffice Books Writer Icon Calc Icon Impress Icon Draw Icon Base Icon Math Icon Getting Started Icon Impressum (Legal Info) | Privacy Policy | Statutes (non-binding English translation) - Satzung (binding German version) | Copyright information: Unless otherwise specified, all text and images on this website are licensed under the Mozilla Public License v2.0 . “LibreOffice” and “The Document Foundation” are registered trademarks of their corresponding registered owners or are in actual use as trademarks in one or more countries. Their respective logos and icons are also subject to international copyright laws. Use thereof is explained in our trademark policy . LibreOffice was based on OpenOffice.org. Help content debug info: This page is: /text/scalc/guide/datapilot.xhp Title is: 数据透视表"
+  }
+}

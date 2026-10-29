@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: محلل بيانات مبتدئ\nLevel: beginner\nLanguage searched: fr\n\nSearch answer:\nRessources libres en français pour débuter :\n\n* **Tableau croisé dynamique — Wikipédia**\nhttps://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique\nEnseigne le principe du regroupement de données en lignes et colonnes avec agrégation.\n\n* **Tableau de contingence**\nhttps://fr.wikipedia.org/wiki/Tableau_de_contingence\nEnseigne la lecture d’un tableau à double entrée avec effectifs par ligne et colonne.\n\n* **Documentation en français | LibreOffice Documentation**\nhttps://documentation.libreoffice.org/fr/documentation/\nIndique où trouver les guides LibreOffice traduits et finalisés en français.\n\n\nCited pages:\n1. https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique | Tableau croisé dynamique — Wikipédia\n2. https://fr.wikipedia.org/wiki/Tableau_de_contingence | Tableau de contingence\n3. https://documentation.libreoffice.org/fr/documentation/ | Documentation en français | LibreOffice Documentation - LibreOffice User Guides",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "candidates"
+          ]
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae2930ba26dc3ef2386412c",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793233675,
+    "completed_at": 1793233675,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae2930ba26dc3ef2386412c:rs_0b3f7420-056b-42af-b12f-1e581fdf285e",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_2d9acad8-4a97-41c6-a610-11afb4da170a",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": [{\"lang\": \"fr\", \"level_fit\": 0.85, \"relevance\": 0.95, \"title\": \"Tableau crois\\u00e9 dynamique \\u2014 Wikip\\u00e9dia\", \"type\": \"article\", \"url\": \"https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique\", \"why_ar\": \"هذه الصفحة تشرح لك بالفرنسية مبدأ الجداول المحورية وتجميع البيانات بطريقة مبسطة تناسب محلل البيانات المبتدئ.\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 546,
+      "input_tokens_details": {
+        "cached_tokens": 113
+      },
+      "output_tokens": 1587,
+      "output_tokens_details": {
+        "reasoning_tokens": 1455
+      },
+      "total_tokens": 2133
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 7731
+}
