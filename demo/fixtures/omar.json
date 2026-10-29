@@ -110,14 +110,17 @@
         "start": "day0",
         "weeks": 2,
         "lessons": [
-          { "id": "L1", "title_ar": "الجدول المحوري: تلخيص آلاف الصفوف في دقيقة", "module": 0 }
+          { "id": "L1", "title_ar": "الجدول المحوري: تلخيص آلاف الصفوف في دقيقة", "module": 0 },
+          { "id": "L2", "title_ar": "الإحصاء الوصفي: المتوسط والوسيط والتشتت", "module": 1 }
         ],
         "sessions": [
           { "id": "s1", "day": 1, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
-          { "id": "s2", "day": 3, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] }
+          { "id": "s2", "day": 3, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
+          { "id": "s3", "day": 8, "minutes": 45, "lesson_id": "L2", "resource_ids": ["r2"] },
+          { "id": "s4", "day": 10, "minutes": 45, "lesson_id": "L2", "resource_ids": ["r2"] }
         ]
       },
-      "rationale_ar": "خطة تجريبية للبذرة: جلستان قصيرتان في الأسبوع الأول، لأنك تركت دورات طويلة من قبل.",
+      "rationale_ar": "خطة تجريبية للبذرة: جلستان قصيرتان في كل أسبوع من الأسبوعين الأولين، لأنك تركت دورات طويلة من قبل.",
       "version": 1,
       "reason": "initial"
     }

@@ -15,6 +15,7 @@ import { runScout, scoutBrief } from "../scout/scout.ts";
 import {
   architectBrief,
   createPlanner,
+  limitsOf,
   PlanConflict,
   PlanEditRejected,
   planFor,
@@ -153,6 +154,16 @@ function setup(drafts: PlanDraft[]) {
 }
 
 describe("architect", () => {
+  // The plan page shows the seed's plan as the example before the intake.
+  it("keeps the seed's example plan within the rules a built plan keeps", () => {
+    const example = seed.plans.at(-1);
+    if (!example) throw new Error("the seed has a plan");
+
+    expect(planViolations(example, limitsOf(architectBrief(seed.profile, seed.resources)))).toEqual(
+      [],
+    );
+  });
+
   it("builds the first version of the plan from the model's draft", async () => {
     const { run } = setup([DRAFT]);
 
