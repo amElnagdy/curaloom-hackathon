@@ -8,7 +8,7 @@
     "topic": "{{topic}}",
     "hours_per_week": 5,
     "background": ["accounting", "excel"],
-    "source_langs_ok": ["en"],
+    "source_langs_ok": ["en", "ru", "zh", "fr"],
     "diagnostic": {
       "level": "beginner",
       "scores": [

@@ -163,7 +163,7 @@ function setup(options: FakeOptions = {}) {
     runScout({
       orchestrator,
       sessionId: "s1",
-      brief: scoutBrief({ ...profile, topic }, langs),
+      brief: scoutBrief({ ...profile, topic, source_langs_ok: langs }),
       pages,
     });
   return {
@@ -174,6 +174,18 @@ function setup(options: FakeOptions = {}) {
     trace: () => store.readTrace<TraceEvent>("s1").map((e) => e.summary_en),
   };
 }
+
+describe("scoutBrief", () => {
+  it("searches the languages the learner's profile accepts, in the profile's order", () => {
+    const brief = scoutBrief({ ...profile, source_langs_ok: ["ru", "en", "ru"] });
+
+    expect(brief.langs).toEqual(["ru", "en"]);
+  });
+
+  it("refuses a profile that accepts no source language", () => {
+    expect(() => scoutBrief({ ...profile, source_langs_ok: [] })).toThrow(/no source language/);
+  });
+});
 
 describe("scout", () => {
   it("keeps cited pages whose licence code clears, ranked, with their evidence", async () => {

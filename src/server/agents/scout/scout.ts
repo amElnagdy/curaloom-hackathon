@@ -11,7 +11,6 @@ import {
   type Resource,
   ScoutQueries,
   ScoutResult,
-  SOURCE_LANGS,
   validate,
 } from "../../../../contracts/index.ts";
 import type { Agent, AgentContext, createOrchestrator } from "../../orchestrator/orchestrator.ts";
@@ -32,18 +31,11 @@ export type ScoutBrief = {
   langs: Lang[];
 };
 
-// `source_langs_ok` lists what the learner reads; lessons are written in Arabic, so the scout
-// searches every source language unless told otherwise.
-export function scoutBrief(
-  profile: LearnerProfile,
-  langs: readonly Lang[] = SOURCE_LANGS,
-): ScoutBrief {
-  return {
-    topic: profile.topic,
-    goal: profile.goal,
-    level: profile.diagnostic.level,
-    langs: [...langs],
-  };
+// The scout searches the source languages the learner's profile accepts, in the profile's order.
+export function scoutBrief(profile: LearnerProfile): ScoutBrief {
+  const langs = [...new Set(profile.source_langs_ok)];
+  if (!langs.length) throw new Error("The learner's profile accepts no source language to search");
+  return { topic: profile.topic, goal: profile.goal, level: profile.diagnostic.level, langs };
 }
 
 export type ScoutRun = {
