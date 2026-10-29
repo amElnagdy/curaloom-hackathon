@@ -7,6 +7,9 @@ export type ProviderProfile = (typeof PROVIDER_PROFILES)[number];
 export const NOTIFIER_ADAPTERS = ["simulated", "whatsapp", "email"] as const;
 export type NotifierAdapterName = (typeof NOTIFIER_ADAPTERS)[number];
 
+// The demo topic until one is set; a paid search for it is wasted.
+export const UNSET_TOPIC = "<DEMO_TOPIC>";
+
 export type Config = {
   appName: string;
   demoTopic: string;
@@ -39,7 +42,7 @@ function parseChoice<const T extends readonly string[]>(
 export function loadConfig(env: Env): Config {
   return {
     appName: read(env, "APP_NAME") ?? "CuraLoom",
-    demoTopic: read(env, "DEMO_TOPIC") ?? "<DEMO_TOPIC>",
+    demoTopic: read(env, "DEMO_TOPIC") ?? UNSET_TOPIC,
     modelApiKey: read(env, "MODEL_API_KEY"),
     providerProfile: parseChoice(
       "PROVIDER_PROFILE",
