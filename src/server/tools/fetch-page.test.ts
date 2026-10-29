@@ -106,21 +106,39 @@ describe("fetchPage", () => {
     expect(await again.pages.fetchPage(PAGE, again.trace)).toEqual(recorded);
   });
 
-  it("records again a page whose fixture holds a passing network failure", async () => {
-    const down: Transport = async () => {
-      throw new TypeError("fetch failed");
+  // What failed while recording passes, so a re-record fetches it again: a network failure, a busy
+  // server or a rate limit, on the page or on the robots.txt that decides whether it may be read.
+  it.each([
+    ["a network failure on the page", PAGE, "network"],
+    ["a 503 on the page", PAGE, { status: 503, body: "busy" }],
+    ["a 429 on the page", PAGE, { status: 429, body: "slow down" }],
+    ["a 503 on robots.txt", ROBOTS, { status: 503, body: "busy" }],
+  ] as const)("records again what was recorded as %s", async (_, url, failure) => {
+    const healthy = {
+      [ROBOTS]: { type: "text/plain", body: "User-agent: *\nDisallow: /private/" },
+      [PAGE]: { body: HTML },
+    };
+    const busy = fakeWeb(failure === "network" ? healthy : { ...healthy, [url]: failure });
+    const down: Transport = async (requested, init) => {
+      if (failure === "network" && requested.href === url) throw new TypeError("fetch failed");
+      return busy.transport(requested, init);
     };
     const first = fetcher({ profile: "record", transport: down });
     expect((await first.pages.fetchPage(PAGE, first.trace)).ok).toBe(false);
 
-    const web = fakeWeb({ [PAGE]: { body: HTML } });
     const again = fetcher({
       profile: "record",
-      transport: web.transport,
+      transport: fakeWeb(healthy).transport,
+      fixturesDir: first.fixturesDir,
+    });
+    await again.pages.fetchPage(PAGE, again.trace);
+    const replayer = fetcher({
+      profile: "replay",
+      transport: noNetwork,
       fixturesDir: first.fixturesDir,
     });
 
-    expect((await again.pages.fetchPage(PAGE, again.trace)).ok).toBe(true);
+    expect((await replayer.pages.fetchPage(PAGE, replayer.trace)).ok).toBe(true);
   });
 
   it("fails loudly in replay when a page was never recorded", async () => {

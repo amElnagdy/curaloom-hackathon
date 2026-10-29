@@ -70,6 +70,12 @@ type Robots = { disallow: string[] } | { blocked: string };
 // its type, so a mislabelled one keeps its rules.
 type Body = "page" | "robots";
 
+// A failure that may pass: a network error or timeout, a busy server or a rate limit.
+const passing = (seen: Seen) =>
+  seen.kind === "failed"
+    ? seen.transient
+    : seen.kind === "page" && (seen.status === 429 || seen.status >= 500);
+
 export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
   const { profile, userAgent } = options;
   const fixturesDir = options.fixturesDir ?? PAGES_DIR;
@@ -125,10 +131,10 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
       return JSON.parse(readFileSync(path, "utf8")) as Observation;
     }
     // Recording keeps a page it already has, as the provider keeps a response, so a re-record
-    // fetches only new pages. A passing network failure is fetched again.
+    // fetches only new pages. A passing failure is fetched again.
     if (profile === "record" && existsSync(path)) {
       const saved = JSON.parse(readFileSync(path, "utf8")) as Observation;
-      if (!(saved.response.kind === "failed" && saved.response.transient)) return saved;
+      if (!passing(saved.response)) return saved;
     }
     // performance.now() measures a duration, not the time of day, so ADR-004's clock rule does
     // not apply.
