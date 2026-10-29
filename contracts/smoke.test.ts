@@ -22,41 +22,64 @@ const provider = createProvider({
 const LEARNER =
   "المتعلم: عمر، 28 سنة، محاسب في الرياض يريد أن يصبح محلل بيانات مبتدئًا، لديه 5 ساعات أسبوعيًا، ويقرأ الإنجليزية. الموضوع: أساسيات جداول البيانات.";
 
-const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], { role: string; input: string }> = {
+const ARABIC = "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.";
+
+// The scout's own prompts are in scout.ts. These two calls were recorded with no instructions.
+const SCOUT_LEARNER =
+  "Topic: spreadsheet basics\nThe learner's goal: محلل بيانات مبتدئ\nLevel: beginner";
+
+type Prompt = { role: string; instructions?: string; input: string };
+
+const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
   LearnerProfile: {
     role: "agent_default",
+    instructions: ARABIC,
     input: `${LEARNER} قال بلهجته: «أبي أتعلم تحليل البيانات، بس لا تطرشون لي رسايل الصبح». املأ ملفه.`,
+  },
+  ScoutQueries: {
+    role: "agent_default",
+    input: `Write two web search queries per language for open learning resources.\n${SCOUT_LEARNER}\nLanguages: en, ru, zh, fr`,
+  },
+  Candidates: {
+    role: "agent_default",
+    input: `Describe each cited page for this learner; why_ar is in Arabic.\n${SCOUT_LEARNER}\n\nCited pages:\n1. https://en.wikipedia.org/wiki/Spreadsheet | Spreadsheet - Wikipedia\n2. https://en.wikibooks.org/wiki/LibreOffice_Calc | LibreOffice Calc - Wikibooks`,
   },
   CoursePlan: {
     role: "curriculum",
+    instructions: ARABIC,
     input: `${LEARNER} ضع خطة: طريق من 3 وحدات وأسبوعين ملتزمين بجلسات من 45 دقيقة.`,
   },
   Lesson: {
     role: "agent_default",
+    instructions: ARABIC,
     input: `${LEARNER} اكتب درسًا قصيرًا عن الجدول المحوري بقسم واحد، مع مقتطف إنجليزي قصير من المصدر r1.`,
   },
   GlossaryEntry: {
     role: "agent_default",
+    instructions: ARABIC,
     input: "أنشئ مدخل مسرد للمصطلح الإنجليزي pivot table بالعربية مع التشكيل الكامل.",
   },
   Quiz: {
     role: "agent_default",
+    instructions: ARABIC,
     input: "أنشئ اختبارًا من سؤالين (اختيار من متعدد وإجابة قصيرة) لدرس L1 عن الجدول المحوري.",
   },
   QuizAttempt: {
     role: "agent_default",
+    instructions: ARABIC,
     input:
       "صحّح محاولة الاختبار q1 لدرس L1 في اليوم 3. السؤال i1 (اختيار من متعدد، الإجابة: تلخيص البيانات بتجميعها) وأجاب المتعلم: «تلخيص البيانات بتجميعها». السؤال i2 (إجابة قصيرة: مثال من العمل) وأجاب: «أجمع المصروفات حسب القسم». حد النجاح 0.8.",
   },
   CoachEvent: {
     role: "agent_default",
+    instructions: ARABIC,
     input: `${LEARNER} لم يدخل منذ يومين. اكتب رسالة تذكير قصيرة له في اليوم الثاني.`,
   },
 };
 
 describe.each(AGENT_OUTPUTS)("%s", (name: ContractName) => {
   it("is accepted by Meta as a strict response format and the output validates", async () => {
-    const { role, input } = PROMPTS[name as keyof typeof PROMPTS];
+    const { role, instructions, input } = PROMPTS[name as keyof typeof PROMPTS];
     const result = await provider.structured({
       role,
       trace: {
@@ -64,7 +87,7 @@ describe.each(AGENT_OUTPUTS)("%s", (name: ContractName) => {
         summary_ar: `اختبار عقد ${name}`,
         summary_en: `Smoke test for the ${name} contract`,
       },
-      instructions: "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
+      instructions,
       input,
       schema: { name, schema: CONTRACTS[name] },
     });

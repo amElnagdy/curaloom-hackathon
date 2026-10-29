@@ -49,6 +49,8 @@ export const Consent = Obj({
   opted_out_sim_day: Nullable(Type.Integer()),
 });
 
+const ResourceType = StringEnum(["article", "video", "book", "course"]);
+
 export const Resource = Obj({
   id: Type.String(),
   url: Type.String(),
@@ -65,10 +67,55 @@ export const Resource = Obj({
       description: "true only after code fetched evidence_url and classified its licence",
     }),
   }),
-  type: StringEnum(["article", "video", "book", "course"]),
+  type: ResourceType,
   citations: Type.Array(Obj({ url: Type.String() })),
   score: Score,
   why_ar: Type.String(),
+});
+
+// The scout (#17). The model fills ScoutQueries and Candidates; code builds ScoutResult from them.
+export const ScoutQueries = Obj({
+  queries: Type.Array(
+    Obj({
+      lang: SourceLang,
+      queries: Type.Array(Type.String(), {
+        description: "two short web search queries, written in that language",
+      }),
+    }),
+  ),
+});
+
+// What the model says about a page it cited. Licence fields are absent on purpose: code decides.
+export const Candidates = Obj({
+  candidates: Type.Array(
+    Obj({
+      url: Type.String({ description: "one of the cited page URLs, copied exactly" }),
+      title: Type.String(),
+      lang: SourceLang,
+      type: ResourceType,
+      why_ar: Type.String({
+        description: "one Arabic sentence on why this page suits the learner",
+      }),
+      relevance: Type.Number({ description: "how closely the page teaches the topic, 0 to 1" }),
+      level_fit: Type.Number({
+        description: "how well the page suits the learner's level, 0 to 1",
+      }),
+    }),
+  ),
+});
+
+// A cited page the scout did not keep, with the reason in English and in Arabic.
+export const Rejection = Obj({
+  url: Type.String(),
+  title: Type.String(),
+  lang: SourceLang,
+  reason: Type.String(),
+  reason_ar: Type.String(),
+});
+
+export const ScoutResult = Obj({
+  resources: Type.Array(Resource, { minItems: 1, maxItems: 8 }),
+  rejected: Type.Array(Rejection),
 });
 
 // Versioned: a re-plan is a new CoursePlan with version n+1, never an edit of the old one.
@@ -174,6 +221,10 @@ export const CONTRACTS = {
   LearnerProfile,
   Consent,
   Resource,
+  ScoutQueries,
+  Candidates,
+  Rejection,
+  ScoutResult,
   CoursePlan,
   Lesson,
   GlossaryEntry,
@@ -185,9 +236,11 @@ export const CONTRACTS = {
 export type ContractName = keyof typeof CONTRACTS;
 
 // Schemas a model fills in through `provider.structured`; each has a recorded smoke test.
-// Resource is not one: the scout builds it in code from model-filled candidates (#17).
+// Resource and ScoutResult are not: the scout builds them in code from model-filled Candidates.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
+  "ScoutQueries",
+  "Candidates",
   "CoursePlan",
   "Lesson",
   "GlossaryEntry",
@@ -199,6 +252,10 @@ export const AGENT_OUTPUTS = [
 export type LearnerProfile = Static<typeof LearnerProfile>;
 export type Consent = Static<typeof Consent>;
 export type Resource = Static<typeof Resource>;
+export type ScoutQueries = Static<typeof ScoutQueries>;
+export type Candidates = Static<typeof Candidates>;
+export type Rejection = Static<typeof Rejection>;
+export type ScoutResult = Static<typeof ScoutResult>;
 export type CoursePlan = Static<typeof CoursePlan>;
 export type Lesson = Static<typeof Lesson>;
 export type GlossaryEntry = Static<typeof GlossaryEntry>;

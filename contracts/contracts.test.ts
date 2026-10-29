@@ -42,6 +42,10 @@ describe("contracts", () => {
         "Quiz",
         "QuizAttempt",
         "Resource",
+        "ScoutQueries",
+        "Candidates",
+        "Rejection",
+        "ScoutResult",
       ].sort(),
     );
   });

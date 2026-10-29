@@ -4,8 +4,15 @@
 // only the topic, goal, level and languages, and never decides a licence.
 
 import { createHash } from "node:crypto";
-import Type, { type Static, type TSchema } from "typebox";
-import { type LearnerProfile, Resource, SOURCE_LANGS } from "../../../../contracts/index.ts";
+import {
+  Candidates,
+  type LearnerProfile,
+  type Rejection,
+  type Resource,
+  ScoutQueries,
+  ScoutResult,
+  SOURCE_LANGS,
+} from "../../../../contracts/index.ts";
 import type { Agent, AgentContext, createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import type { Citation } from "../../providers/provider.ts";
 import type { PageFetcher } from "../../tools/fetch-page.ts";
@@ -13,56 +20,7 @@ import { classifyLicence, type LicenceCheck } from "./licence.ts";
 import { rank } from "./rank.ts";
 
 type Lang = Resource["lang"];
-
-const Obj = <P extends Record<string, TSchema>>(properties: P) =>
-  Type.Object(properties, { additionalProperties: false });
-const SourceLang = Resource.properties.lang;
-
-export const ScoutQueries = Obj({
-  queries: Type.Array(
-    Obj({
-      lang: SourceLang,
-      queries: Type.Array(Type.String(), {
-        description: "two short web search queries, written in that language",
-      }),
-    }),
-  ),
-});
-
-// What the model says about a page it cited. Licence fields are absent on purpose: code decides.
-export const Candidates = Obj({
-  candidates: Type.Array(
-    Obj({
-      url: Type.String({ description: "one of the cited page URLs, copied exactly" }),
-      title: Type.String(),
-      lang: SourceLang,
-      type: Resource.properties.type,
-      why_ar: Type.String({
-        description: "one Arabic sentence on why this page suits the learner",
-      }),
-      relevance: Type.Number({ description: "how closely the page teaches the topic, 0 to 1" }),
-      level_fit: Type.Number({
-        description: "how well the page suits the learner's level, 0 to 1",
-      }),
-    }),
-  ),
-});
-type Candidate = Static<typeof Candidates>["candidates"][number];
-
-const Rejection = Obj({
-  url: Type.String(),
-  title: Type.String(),
-  lang: SourceLang,
-  reason: Type.String(),
-  reason_ar: Type.String(),
-});
-type Rejection = Static<typeof Rejection>;
-
-export const ScoutResult = Obj({
-  resources: Type.Array(Resource, { minItems: 1, maxItems: 8 }),
-  rejected: Type.Array(Rejection),
-});
-export type ScoutResult = Static<typeof ScoutResult>;
+type Candidate = Candidates["candidates"][number];
 
 // All the scout knows about the learner. It has no name or contact field, so neither can reach a
 // prompt.
