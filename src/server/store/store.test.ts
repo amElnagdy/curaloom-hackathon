@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createFileStore } from "./store";
+import { createFileCache, createFileStore } from "./store";
 
 const tempRoot = () => mkdtempSync(join(tmpdir(), "store-"));
 
@@ -85,5 +85,30 @@ describe("file store", () => {
     expect(() => store.writeDoc("../etc", "profile", {})).toThrow(/session id/);
     expect(() => store.writeDoc("s_1", "../../x", {})).toThrow(/document name/);
     expect(() => store.readBlob("s_1", "blob_../../x")).toThrow(/blob/);
+  });
+});
+
+describe("file cache", () => {
+  it("keeps a value outside every session, across a restart", () => {
+    const root = tempRoot();
+    createFileCache(root).write("scout", "search_1a2b", { citations: [] });
+
+    expect(createFileCache(root).read("scout", "search_1a2b")).toEqual({ citations: [] });
+    expect(readdirSync(join(root, "cache/scout"))).toEqual(["search_1a2b.json"]);
+    expect(readdirSync(root)).toEqual(["cache"]);
+  });
+
+  it("returns undefined for a value never cached, and creates nothing", () => {
+    const root = tempRoot();
+
+    expect(createFileCache(root).read("scout", "result_none")).toBeUndefined();
+    expect(readdirSync(root)).toEqual([]);
+  });
+
+  it("rejects areas and keys that could escape the cache folder", () => {
+    const cache = createFileCache(tempRoot());
+
+    expect(() => cache.write("../sessions", "x", {})).toThrow(/cache area/);
+    expect(() => cache.read("scout", "../../x")).toThrow(/cache key/);
   });
 });

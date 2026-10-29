@@ -1,5 +1,6 @@
 // Session state as JSON files (ADR-003): data/sessions/<id>/<name>.json, trace.jsonl, blobs/.
-// Feature code uses the Store interface, never fs.
+// Results worth more than one session, such as a paid web search, go in a Cache:
+// data/cache/<area>/<key>.json. Feature code uses these interfaces, never fs.
 
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -27,6 +28,12 @@ export type Store = {
   readBlob<T = unknown>(sessionId: string, ref: string): T;
 };
 
+// Outside every session: a sim reset or a new session reads the same values.
+export type Cache = {
+  read<T = unknown>(area: string, key: string): T | undefined;
+  write(area: string, key: string, value: unknown): void;
+};
+
 export const DATA_DIR = join(process.cwd(), "data");
 
 const SAFE_NAME = /^[A-Za-z0-9_-]{1,64}$/;
@@ -50,13 +57,25 @@ function writeAtomic(path: string, text: string) {
   renameSync(temp, path);
 }
 
+function forWrite(path: string): string {
+  mkdirSync(dirname(path), { recursive: true });
+  return path;
+}
+
+export function createFileCache(root: string = DATA_DIR): Cache {
+  const path = (area: string, key: string) =>
+    join(root, "cache", checked("cache area", area), `${checked("cache key", key)}.json`);
+  return {
+    read: (area, key) => readJson(path(area, key)),
+    write(area, key, value) {
+      writeAtomic(forWrite(path(area, key)), `${JSON.stringify(value, null, 2)}\n`);
+    },
+  };
+}
+
 export function createFileStore(root: string = DATA_DIR): Store {
   const sessionPath = (sessionId: string, ...parts: string[]) =>
     join(root, "sessions", checked("session id", sessionId), ...parts);
-  const forWrite = (path: string) => {
-    mkdirSync(dirname(path), { recursive: true });
-    return path;
-  };
   const docPath = (sessionId: string, name: string) =>
     sessionPath(sessionId, `${checked("document name", name)}.json`);
   const blobPath = (sessionId: string, ref: string) => {
