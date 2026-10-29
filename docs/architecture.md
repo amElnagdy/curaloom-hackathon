@@ -55,19 +55,19 @@ flowchart LR
 
 ## Components
 
-| Component      | Owner issue      | Responsibility                                                                                                              |
-| -------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Config         | #11              | `src/config.ts` reads `.env`. The only place that reads `APP_NAME`, `DEMO_TOPIC` and the other settings.                    |
-| Contracts      | #14              | TypeBox schemas for every entity (ADR-006): TS types, runtime validation, and strict `json_schema` response formats in one. |
-| Provider layer | #12              | One interface for all model calls, routed by role. Modes `live`, `record` and `replay`.                                     |
-| Orchestrator   | #13              | Runs agents as typed steps over session state. Validates each output against its contract and retries once on failure.      |
-| Store          | #13              | Session state and trace events as JSON files under `data/`.                                                                 |
-| Trace          | #13              | Event per model call, tool call, decision, output or error, with Arabic and English summaries, model, cost and latency.     |
-| UI shell       | #15              | The RTL Arabic UI in `src/app`: nav, top bar, trace drawer. One live trace stream feeds the drawer and the activity feed.   |
-| Agents         | #16-#20, #25-#27 | Intake, Scout, Architect, Lesson builder, Examiner, Coach.                                                                  |
-| Notifier       | #22              | Consent-gated, channel-agnostic sending, quiet-hours deferral and stop words. Only the simulated adapter sends.             |
-| Clock          | #23              | Simulated time per session, the only reader of system time. Moving it fires due coach rules in time order, exactly once.    |
-| Evals          | #8               | Arabic quality eval in `evals/arabic`, reused as a regression test.                                                         |
+| Component      | Owner issue      | Responsibility                                                                                                               |
+| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Config         | #11              | `src/config.ts` reads `.env`. The only place that reads `APP_NAME`, `DEMO_TOPIC` and the other settings.                     |
+| Contracts      | #14              | TypeBox schemas for every entity (ADR-006): TS types, runtime validation, and strict `json_schema` response formats in one.  |
+| Provider layer | #12              | One interface for all model calls, routed by role. Modes `live`, `record` and `replay`.                                      |
+| Orchestrator   | #13              | Runs agents as typed steps over session state. Validates each output against its contract and retries once on failure.       |
+| Store          | #13              | Session state and trace events as JSON files under `data/sessions/`, and a cache under `data/cache/` that outlives sessions. |
+| Trace          | #13              | Event per model call, tool call, decision, output or error, with Arabic and English summaries, model, cost and latency.      |
+| UI shell       | #15              | The RTL Arabic UI in `src/app`: nav, top bar, trace drawer. One live trace stream feeds the drawer and the activity feed.    |
+| Agents         | #16-#20, #25-#27 | Intake, Scout, Architect, Lesson builder, Examiner, Coach.                                                                   |
+| Notifier       | #22              | Consent-gated, channel-agnostic sending, quiet-hours deferral and stop words. Only the simulated adapter sends.              |
+| Clock          | #23              | Simulated time per session, the only reader of system time. Moving it fires due coach rules in time order, exactly once.     |
+| Evals          | #8               | Arabic quality eval in `evals/arabic`, reused as a regression test.                                                          |
 
 ## Layout
 
