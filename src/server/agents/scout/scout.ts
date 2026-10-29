@@ -12,6 +12,7 @@ import {
   ScoutQueries,
   ScoutResult,
   SOURCE_LANGS,
+  validate,
 } from "../../../../contracts/index.ts";
 import type { Agent, AgentContext, createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import type { Citation } from "../../providers/provider.ts";
@@ -87,6 +88,11 @@ const DESCRIBE_INSTRUCTIONS =
 
 const learnerLines = (brief: ScoutBrief) =>
   `Topic: ${brief.topic}\nThe learner's goal: ${brief.goal}\nLevel: ${brief.level}`;
+
+// A model reply that breaks its contract fails the attempt (validate() throws). On the
+// orchestrator's one retry, the model is told why.
+const withFeedback = (ctx: AgentContext, input: string) =>
+  ctx.feedback ? `${input}\n\nThe previous attempt failed: ${ctx.feedback.join("; ")}` : input;
 
 type Cleared = LicenceCheck & { use: Resource["licence"]["use"] };
 type Checked =
@@ -176,11 +182,12 @@ async function planQueries(
       summary_en: `Writing search queries for ${brief.langs.join(", ")}`,
     },
     instructions: QUERIES_INSTRUCTIONS,
-    input: `${learnerLines(brief)}\nLanguages: ${brief.langs.join(", ")}`,
+    input: withFeedback(ctx, `${learnerLines(brief)}\nLanguages: ${brief.langs.join(", ")}`),
     schema: { name: "ScoutQueries", schema: ScoutQueries },
   });
+  const plan = validate(ScoutQueries, result.json);
   return brief.langs.map((lang) => {
-    const written = result.json.queries
+    const written = plan.queries
       .filter((q) => q.lang === lang)
       .flatMap((q) => q.queries)
       .map((q) => q.trim())
@@ -232,15 +239,19 @@ async function searchLanguage(
       summary_en: `Describing ${search.citations.length} cited pages (${lang})`,
     },
     instructions: DESCRIBE_INSTRUCTIONS,
-    input: `${learnerLines(brief)}\nLanguage searched: ${lang}\n\nSearch answer:\n${search.text}\n\nCited pages:\n${citedList(search.citations)}`,
+    input: withFeedback(
+      ctx,
+      `${learnerLines(brief)}\nLanguage searched: ${lang}\n\nSearch answer:\n${search.text}\n\nCited pages:\n${citedList(search.citations)}`,
+    ),
     schema: { name: "Candidates", schema: Candidates },
   });
+  const { candidates } = validate(Candidates, described.json);
 
   const byUrl = new Map(search.citations.map((c) => [normalUrl(c.url), c]));
   const kept = new Set<string>();
   const cited: Candidate[] = [];
   const dropped: Rejection[] = [];
-  for (const candidate of described.json.candidates) {
+  for (const candidate of candidates) {
     const key = normalUrl(candidate.url);
     const citation = byUrl.get(key);
     if (!citation) {

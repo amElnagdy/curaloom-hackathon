@@ -63,9 +63,18 @@ const PLAN: ScoutQueries["queries"] = [
   { lang: "ru", queries: [SCRIPT.ru.query] },
 ];
 
-function fakeProvider(plan = PLAN) {
+// `broken` names a schema whose first reply breaks its contract.
+type FakeOptions = { plan?: ScoutQueries["queries"]; broken?: "ScoutQueries" | "Candidates" };
+
+function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
   const prompts: string[] = [];
   let calls = 0;
+  let unbroken = false;
+  const breaks = (schema: string) => {
+    if (schema !== broken || unbroken) return false;
+    unbroken = true;
+    return true;
+  };
   const reply = <J>(json: J, extra: Partial<ModelResult<J>> = {}) => {
     calls++;
     return {
@@ -91,7 +100,9 @@ function fakeProvider(plan = PLAN) {
     async structured(call) {
       const input = String(call.input);
       prompts.push(`${call.instructions}\n${input}`);
-      if (call.schema.name === "ScoutQueries") return reply({ queries: plan });
+      if (call.schema.name === "ScoutQueries") {
+        return reply({ queries: breaks("ScoutQueries") ? [{ lang: "de", queries: "x" }] : plan });
+      }
       const lang = scripted(input, "cited");
       return reply({
         candidates: SCRIPT[lang].described.map((url) => ({
@@ -101,6 +112,7 @@ function fakeProvider(plan = PLAN) {
           type: "article",
           why_ar: "يشرح الجداول المحورية خطوة بخطوة.",
           ...(SCORES[url] ?? { relevance: 0.5, level_fit: 0.5 }),
+          ...(breaks("Candidates") && { relevance: "high" }),
         })),
       });
     },
@@ -127,11 +139,11 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function setup({ plan }: { plan?: ScoutQueries["queries"] } = {}) {
+function setup(options: FakeOptions = {}) {
   const dir = mkdtempSync(join(tmpdir(), "scout-"));
   dirs.push(dir);
   const store = createFileStore(dir);
-  const fake = fakeProvider(plan);
+  const fake = fakeProvider(options);
   let providers = 0;
   const orchestrator = createOrchestrator({
     store,
@@ -233,6 +245,25 @@ describe("scout", () => {
     expect(search).toMatch(/Search queries to try: pivot table tutorial; pivot table guide$/);
     expect(trace()).toContain('Queries (en): "pivot table tutorial", "pivot table guide"');
   });
+
+  it.each([
+    { schema: "ScoutQueries", error: "ScoutQueries is invalid: /queries/0/lang" },
+    { schema: "Candidates", error: "Candidates is invalid: /candidates/0/relevance" },
+  ] as const)(
+    "checks $schema against its contract and retries with the errors",
+    async ({ schema, error }) => {
+      const { run, fake, trace } = setup({ broken: schema });
+
+      const result = await run(["en", "ru"]);
+
+      expect(trace()).toContainEqual(
+        expect.stringContaining(`attempt 1 failed; retrying once: ${error}`),
+      );
+      const asked = fake.prompts.filter((p) => p.includes(`The previous attempt failed: ${error}`));
+      expect(asked.length).toBeGreaterThan(0);
+      expect(result.resources.map((r) => r.url)).toEqual([WIKI, BOOK_CITED]);
+    },
+  );
 
   it("sends the model the topic, goal, level and languages, and nothing else about the learner", async () => {
     const { run, fake } = setup();
