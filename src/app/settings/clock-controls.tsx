@@ -113,7 +113,7 @@ export function ClockControls({ sessionId }: { sessionId: string }) {
         <SettingRow
           label="انتقل إلى يوم"
           labelId="clock-jump"
-          help="تنتقل الساعة إلى بداية اليوم، ٩:٠٠ ص، وتُطلق في طريقها كل رسالة حلّ موعدها."
+          help="تنتقل الساعة إلى بداية اليوم، ٩:٠٠ ص، وتُطلق في طريقها كل رسالة حلّ موعدها. الساعة لا تعود إلى الوراء، فالأيام التي مضت معطّلة حتى تعيد الضبط."
         >
           <fieldset className={styles.buttons} aria-labelledby="clock-jump" disabled={disabled}>
             {JUMP_DAYS.map((day) => (

@@ -122,8 +122,8 @@
   align-self: flex-start;
   max-width: 84%;
   padding: 0.6rem 0.85rem 0.45rem;
-  border-radius: 1.1rem;
-  border-start-start-radius: 0.35rem;
+  border-radius: var(--r-lg);
+  border-start-start-radius: var(--r-xs);
   background: var(--surface);
   font-size: var(--text-sm);
   line-height: 1.75;
@@ -132,8 +132,8 @@
 /* The learner's own reply sits at the inline end (left in RTL), in the accent tint. */
 .mine {
   align-self: flex-end;
-  border-start-start-radius: 1.1rem;
-  border-start-end-radius: 0.35rem;
+  border-start-start-radius: var(--r-lg);
+  border-start-end-radius: var(--r-xs);
   background: var(--accent-100);
 }
 .cta {

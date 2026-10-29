@@ -50,25 +50,49 @@ export function sessionClock(store: Store, sessionId: string): TraceClock {
   };
 }
 
-// Ids and the cost total continue from the stored trace, read again on every emit, so tracers in
-// different requests of one process (a dummy run, a clock jump) never reuse an id.
+type Tally = { count: number; total: number };
+
+// One tally per session per store, shared by every tracer in the process, so tracers in different
+// requests (a dummy run, a clock jump) never reuse an id. It is read from the stored trace once.
+const tallies = new WeakMap<Store, Map<string, Tally>>();
+
+function tallyOf(store: Store, sessionId: string): Tally {
+  let sessions = tallies.get(store);
+  if (!sessions) {
+    sessions = new Map();
+    tallies.set(store, sessions);
+  }
+  let tally = sessions.get(sessionId);
+  if (!tally) {
+    const existing = store.readTrace<TraceEvent>(sessionId);
+    tally = {
+      count: existing.length,
+      total: existing.reduce((sum, e) => sum + (e.cost_usd ?? 0), 0),
+    };
+    sessions.set(sessionId, tally);
+  }
+  return tally;
+}
+
 export function createTracer(
   store: Store,
   sessionId: string,
   clock: TraceClock = sessionClock(store, sessionId),
 ): Tracer {
   const emit = ({ at, ...event }: TraceInput): TraceEvent => {
-    const existing = store.readTrace<TraceEvent>(sessionId);
+    const tally = tallyOf(store, sessionId);
     const sim = at ?? clock.sim();
+    tally.count++;
     const full: TraceEvent = {
-      id: `evt_${String(existing.length + 1).padStart(4, "0")}`,
+      id: `evt_${String(tally.count).padStart(4, "0")}`,
       session_id: sessionId,
       ts: clock.wall().toISOString(),
       sim_ts: sim ? formatSimTime(sim) : null,
       ...event,
     };
     if (event.cost_usd !== undefined) {
-      full.total_cost_usd = existing.reduce((sum, e) => sum + (e.cost_usd ?? 0), event.cost_usd);
+      tally.total += event.cost_usd;
+      full.total_cost_usd = tally.total;
     }
     store.appendTrace(sessionId, full);
     return full;
