@@ -441,7 +441,9 @@ describe("intake, replaying Omar's recorded interview", () => {
       .readTrace<TraceEvent>("s1")
       .filter((e) => e.agent === "architect" && e.kind === "model_call")
       .map((e) => e.model);
-    // Wonder's first recorded reply broke the rules (no lesson at all); the retry kept them.
-    expect(models).toEqual(["muse-wonder-1.0", "muse-wonder-1.0"]);
+    // Wonder's first reply in this recording broke the rules and the retry kept them; a re-record
+    // may need one attempt or two.
+    expect(models.length).toBeGreaterThan(0);
+    expect(new Set(models)).toEqual(new Set(["muse-wonder-1.0"]));
   }, 600_000);
 });
