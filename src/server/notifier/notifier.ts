@@ -60,9 +60,9 @@ export type NotifierAdapter = {
 
 export type ReplyResult = { opted_out: boolean; confirmed: boolean };
 
-// Matching ignores case, tashkeel, tatweel, alef forms and punctuation. As with SMS and WhatsApp
-// opt-out keywords, the whole reply must be the stop word: a sentence that mentions stopping
-// («توقف الفيديو عندي») is a reply, not an opt-out.
+// Matching ignores case, tashkeel, tatweel, alef forms, punctuation and polite words. As with SMS
+// and WhatsApp opt-out keywords, what is left must be the stop word: a sentence that mentions
+// stopping («توقف الفيديو عندي») is a reply, while «توقف من فضلك» is a stop.
 const STOP_WORDS = new Set([
   "stop",
   "توقف",
@@ -74,7 +74,11 @@ const STOP_WORDS = new Set([
   "اوقفوا",
   "ايقاف الرسائل",
   "اوقف الرسائل",
+  "اوقفي الرسائل",
+  "اوقفوا الرسائل",
 ]);
+
+const POLITE = ["من فضلك", "لو سمحت", "لو سمحتي", "لو سمحتم", "رجاء", "please", "pls", "plz"];
 
 export function normalizeReply(text: string): string {
   return text
@@ -89,7 +93,11 @@ export function normalizeReply(text: string): string {
 }
 
 export function isStopWord(text: string): boolean {
-  return STOP_WORDS.has(normalizeReply(text));
+  let padded = ` ${normalizeReply(text)} `;
+  for (const word of POLITE) {
+    while (padded.includes(` ${word} `)) padded = padded.replace(` ${word} `, " ");
+  }
+  return STOP_WORDS.has(padded.trim());
 }
 
 const CONFIRMATION_AR = "أوقفنا رسائل المدرب كما طلبت، ولن تصلك منه رسائل أخرى.";
