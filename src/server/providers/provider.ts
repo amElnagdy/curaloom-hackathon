@@ -176,9 +176,11 @@ export function createProvider(options: ProviderOptions): Provider {
   async function send(req: WireRequest, { timeoutMs, normalize }: Sending): Promise<WireResponse> {
     const { material, name } = fixtureKey(req);
     const path = join(fixturesDir, name);
-    const saved = existsSync(path)
-      ? (JSON.parse(readFileSync(path, "utf8")) as Fixture)
-      : undefined;
+    // Live leaves the recordings alone.
+    const saved =
+      profile !== "live" && existsSync(path)
+        ? (JSON.parse(readFileSync(path, "utf8")) as Fixture)
+        : undefined;
     // Recording reuses what is already recorded, so a re-record calls the model only for the
     // requests that changed. A reply recorded cut off is asked for again, so a retry identical to
     // the failed call can still pass. Delete a fixture to record it again.

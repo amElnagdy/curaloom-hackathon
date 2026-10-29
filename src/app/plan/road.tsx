@@ -51,14 +51,23 @@ const BUSY_RETRY_MS = 3000;
 
 const BuildFailed = createContext({ failed: false, retry: () => {} });
 
-// The page keys it by the learner's profile, so a new profile starts a new build.
-export function Building({ sessionId, children }: { sessionId: string; children: ReactNode }) {
+// The page keys it by the learner's profile, so a new profile starts a new build. It stays mounted
+// once the plan is shown, so the page keeps its focus when the plan arrives.
+export function Building({
+  sessionId,
+  build,
+  children,
+}: {
+  sessionId: string;
+  build: boolean;
+  children: ReactNode;
+}) {
   const router = useRouter();
   const [failed, setFailed] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
-    if (failed) return;
+    if (!build || failed) return;
     const abort = new AbortController();
     (async () => {
       while (!abort.signal.aborted) {
@@ -74,7 +83,7 @@ export function Building({ sessionId, children }: { sessionId: string; children:
       }
     })();
     return () => abort.abort();
-  }, [failed, sessionId, router]);
+  }, [build, failed, sessionId, router]);
 
   return <BuildFailed value={{ failed, retry: () => setFailed(false) }}>{children}</BuildFailed>;
 }
@@ -103,11 +112,19 @@ export function BuildingBody() {
   const { failed, retry } = useContext(BuildFailed);
   if (failed) {
     return (
-      <div className={styles.buildFailed}>
+      <div className={styles.buildFailed} role="alert">
         <Callout icon={TriangleAlert} tone="attention">
           تعذّر بناء خطتك هذه المرة. حاول مرة أخرى بعد قليل.
         </Callout>
-        <button type="button" className={buttonClass("secondary")} onClick={retry}>
+        <button
+          type="button"
+          className={buttonClass("secondary")}
+          onClick={() => {
+            // The button goes with the failure; focus moves to the page's title, not the body.
+            document.getElementById("plan-title")?.focus();
+            retry();
+          }}
+        >
           <RotateCcw aria-hidden />
           حاول مرة أخرى
         </button>

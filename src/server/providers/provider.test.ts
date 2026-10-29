@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -441,6 +441,22 @@ describe("record and replay", () => {
 
     expect(again.sent).toHaveLength(1);
     expect(replayed.json).toEqual(retried.json);
+  });
+
+  it("leaves recordings alone when live, even one it could not read", async () => {
+    const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
+    const recorder = provider([{ status: 200, body: spike("json_schema", "/responses") }], {
+      profile: "record",
+      fixturesDir,
+    });
+    await recorder.p.structured(call);
+    writeFileSync(join(fixturesDir, readdirSync(fixturesDir)[0] ?? ""), '{"request": {');
+
+    const live = provider([{ status: 200, body: spike("json_schema", "/responses") }], {
+      fixturesDir,
+    });
+
+    await expect(live.p.structured(call)).resolves.toMatchObject({ model: "muse-spark-1.3" });
   });
 
   it("fails clearly when replay has no recording for a request", async () => {

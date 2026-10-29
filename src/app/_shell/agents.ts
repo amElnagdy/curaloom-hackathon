@@ -16,6 +16,7 @@ export const AGENTS: Readonly<Record<string, AgentInfo>> = {
   clock: { name: "الساعة المحاكاة", job: "تقدّم الوقت في العرض التجريبي" },
   scheduler: { name: "جدول المدرب", job: "يُطلق رسائل المدرب حين يحلّ موعدها" },
   notifier: { name: "قناة الرسائل", job: "ترسل الرسائل ضمن موافقتك وساعات الهدوء" },
+  sim: { name: "العرض التجريبي", job: "يعيد العرض إلى بياناته التجريبية" },
 };
 
 const UNKNOWN_AGENT = "وكيل";
