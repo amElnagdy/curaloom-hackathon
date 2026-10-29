@@ -64,6 +64,11 @@ export function runScout({
 
 const CACHE_AREA = "scout";
 const MAX_RESOURCES = 8;
+// Fewer passing resources than this after the first round buy one extra round.
+const TARGET_RESOURCES = 5;
+// The extra round searches again in at most this many languages, so it costs at most half of a
+// first round in four languages.
+const EXTRA_ROUND_LANGS = 2;
 const MAX_QUERIES = 2;
 const FETCH_CONCURRENCY = 4;
 
@@ -76,6 +81,9 @@ const LANGUAGE: Record<Lang, { en: string; ar: string }> = {
 
 const QUERIES_INSTRUCTIONS =
   "You plan web searches for free, openly licensed learning resources. For each language listed, write two short search queries in that language that find pages teaching the topic at the learner's level, from open sources such as Wikipedia, Wikibooks, Wikiversity, open textbooks and open courseware. Give each language once, by its code.";
+
+const BROADER_QUERIES_INSTRUCTIONS =
+  "You plan web searches for free, openly licensed learning resources. The queries already tried found too few openly licensed pages. For each language listed, write two broader search queries in that language: the wider subject the topic belongs to, or another name for it, still at the learner's level, from open sources such as Wikipedia, Wikibooks, Wikiversity, open textbooks and open courseware. Do not repeat a query already tried. Give each language once, by its code.";
 
 const SEARCH_INSTRUCTIONS =
   "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.";
@@ -95,8 +103,12 @@ type Cleared = LicenceCheck & { use: Resource["licence"]["use"] };
 type Checked =
   | { ok: true; candidate: Candidate; check: Cleared }
   | { ok: false; rejection: Rejection };
+type Accepted = Extract<Checked, { ok: true }>;
 type Planned = { lang: Lang; queries: string[] };
 type Summary = { summary_ar: string; summary_en: string };
+// What the rounds of one run found so far. `seen` holds every page URL a round kept or rejected,
+// normalised, so a later round neither checks nor rejects one again.
+type Pool = { seen: Set<string>; accepted: Accepted[]; rejected: Rejection[] };
 
 // What every part of one run reads: the orchestrator's context, the brief and the scout's tools.
 type ScoutContext = AgentContext & { brief: ScoutBrief; pages: PageFetcher; cache: Cache };
@@ -121,39 +133,28 @@ function scoutAgent(
       }
       const ctx: ScoutContext = { ...agentCtx, brief, pages, cache };
       const costBefore = ctx.provider.totalCostUsd();
-      const planned = await planQueries(ctx);
-      const found = await settleAll(
-        planned.map(({ lang, queries }) => searchLanguage(ctx, lang, queries)),
-      );
+      const pool: Pool = { seen: new Set(), accepted: [], rejected: [] };
+      const planned = await planQueries(ctx, brief.langs);
+      await scoutRound(ctx, planned, pool);
 
-      const seen = new Set<string>();
-      const rejected: Rejection[] = [];
-      const candidates: Candidate[] = [];
-      for (const { cited, dropped } of found) {
-        rejected.push(...dropped);
-        for (const candidate of cited) {
-          const key = normalUrl(candidate.url);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          candidates.push(candidate);
-        }
-      }
-
-      const checked = await mapPool(candidates, FETCH_CONCURRENCY, (c) => checkPage(ctx, c));
-      const accepted = checked.flatMap((c) => (c.ok ? [c] : []));
-      rejected.push(...checked.flatMap((c) => (c.ok ? [] : [c.rejection])));
-      for (const r of rejected) {
+      // Short of the target: one more round, with broader queries, for the languages that yielded
+      // least. Then the scout stops, whatever that round finds.
+      if (pool.accepted.length < TARGET_RESOURCES) {
+        const langs = leastYield(brief.langs, pool.accepted).slice(0, EXTRA_ROUND_LANGS);
+        const passed = pool.accepted.length;
         ctx.trace({
           kind: "decision",
-          summary_ar: `استبعد مصدرًا من ${hostOf(r.url)}: ${r.reason_ar}`,
-          summary_en: `Rejected ${r.url}: ${r.reason}`,
+          summary_ar: `اجتاز ${passed} من ${TARGET_RESOURCES} مصادر مطلوبة، فيبحث مرة أخرى بعبارات أوسع ${langs.map((l) => LANGUAGE[l].ar).join(" و")}`,
+          summary_en: `Only ${passed} of the ${TARGET_RESOURCES} resources aimed for passed; one more round with broader queries for ${langs.join(", ")}`,
         });
+        await scoutRound(ctx, await planQueries(ctx, langs, planned), pool);
       }
 
       const ranked = rank(
-        accepted.map(({ candidate, check }) => ({ ...candidate, use: check.use, check })),
+        pool.accepted.map(({ candidate, check }) => ({ ...candidate, use: check.use, check })),
         MAX_RESOURCES,
       );
+      const { rejected } = pool;
       const resources: Resource[] = ranked.map(({ item, score }) => ({
         id: `r_${createHash("sha256").update(item.url).digest("hex").slice(0, 8)}`,
         url: item.url,
@@ -172,6 +173,14 @@ function scoutAgent(
         why_ar: item.why_ar,
       }));
 
+      // The trace has no warning kind; the activity feed shows a non-step error as a warning.
+      if (resources.length && resources.length < TARGET_RESOURCES) {
+        ctx.trace({
+          kind: "error",
+          summary_ar: `لم يجد إلا ${resources.length} من ${TARGET_RESOURCES} مصادر مطلوبة بعد بحث إضافي، فيكتفي بها`,
+          summary_en: `Warning: only ${resources.length} of the ${TARGET_RESOURCES} resources aimed for passed after the extra round; returning them`,
+        });
+      }
       const perLang = brief.langs
         .map((lang) => `${lang} ${resources.filter((r) => r.lang === lang).length}`)
         .join(", ");
@@ -209,32 +218,47 @@ async function paidOnce<T>(
   return answer;
 }
 
-async function planQueries(ctx: ScoutContext): Promise<Planned[]> {
+// Has the model write queries for `langs`; given the queries already `tried`, broader ones.
+async function planQueries(
+  ctx: ScoutContext,
+  langs: Lang[],
+  tried?: Planned[],
+): Promise<Planned[]> {
   const { brief } = ctx;
-  const input = `${learnerLines(brief)}\nLanguages: ${brief.langs.join(", ")}`;
+  const instructions = tried ? BROADER_QUERIES_INSTRUCTIONS : QUERIES_INSTRUCTIONS;
+  const triedLines = (tried ?? [])
+    .filter((t) => langs.includes(t.lang))
+    .map((t) => `${t.lang}: ${t.queries.join("; ")}`);
+  const input = [
+    learnerLines(brief),
+    `Languages: ${langs.join(", ")}`,
+    ...(tried ? ["Queries already tried:", ...triedLines] : []),
+  ].join("\n");
   const hit = {
     summary_ar: "يستعمل عبارات البحث التي صاغها من قبل لهذا الطلب",
-    summary_en: `Queries read from the cache for ${brief.langs.join(", ")}`,
+    summary_en: `Queries read from the cache for ${langs.join(", ")}`,
   };
   const plan = await paidOnce(
     ctx,
-    { kind: "plan", material: [QUERIES_INSTRUCTIONS, input], hit },
+    { kind: "plan", material: [instructions, input], hit },
     async () => {
       const result = await ctx.provider.structured({
         role: "agent_default",
         trace: {
           agent: "scout",
-          summary_ar: "يصوغ عبارات بحث بكل لغة من لغات المصادر",
-          summary_en: `Writing search queries for ${brief.langs.join(", ")}`,
+          summary_ar: tried
+            ? "يصوغ عبارات بحث أوسع للغات التي وجد فيها أقل"
+            : "يصوغ عبارات بحث بكل لغة من لغات المصادر",
+          summary_en: `Writing ${tried ? "broader " : ""}search queries for ${langs.join(", ")}`,
         },
-        instructions: QUERIES_INSTRUCTIONS,
+        instructions,
         input: withFeedback(ctx, input),
         schema: { name: "ScoutQueries", schema: ScoutQueries },
       });
       return validate(ScoutQueries, result.json);
     },
   );
-  return brief.langs.map((lang) => {
+  return langs.map((lang) => {
     const written = plan.queries
       .filter((q) => q.lang === lang)
       .flatMap((q) => q.queries)
@@ -250,6 +274,41 @@ async function planQueries(ctx: ScoutContext): Promise<Planned[]> {
     return { lang, queries };
   });
 }
+
+// One round: searches each planned language and checks each page no earlier round saw. A page that
+// any language kept is checked, even if another language left it out. Every rejection is traced.
+async function scoutRound(ctx: ScoutContext, planned: Planned[], pool: Pool): Promise<void> {
+  const found = await settleAll(
+    planned.map(({ lang, queries }) => searchLanguage(ctx, lang, queries)),
+  );
+  const unseen = (url: string) => {
+    const key = normalUrl(url);
+    if (pool.seen.has(key)) return false;
+    pool.seen.add(key);
+    return true;
+  };
+  const candidates = found.flatMap((f) => f.cited).filter((c) => unseen(c.url));
+  const dropped = found.flatMap((f) => f.dropped).filter((r) => unseen(r.url));
+
+  const checked = await mapPool(candidates, FETCH_CONCURRENCY, (c) => checkPage(ctx, c));
+  const rejected = [...dropped, ...checked.flatMap((c) => (c.ok ? [] : [c.rejection]))];
+  for (const r of rejected) {
+    ctx.trace({
+      kind: "decision",
+      summary_ar: `استبعد مصدرًا من ${hostOf(r.url)}: ${r.reason_ar}`,
+      summary_en: `Rejected ${r.url}: ${r.reason}`,
+    });
+  }
+  pool.accepted.push(...checked.flatMap((c) => (c.ok ? [c] : [])));
+  pool.rejected.push(...rejected);
+}
+
+// The brief's languages, those with the fewest passing pages first; a tie keeps the brief's order.
+const leastYield = (langs: Lang[], accepted: Accepted[]) =>
+  langs
+    .map((lang) => ({ lang, passed: accepted.filter((a) => a.candidate.lang === lang).length }))
+    .toSorted((a, b) => a.passed - b.passed)
+    .map(({ lang }) => lang);
 
 // Searches in one language and has the model describe what the search cited. A candidate whose URL
 // the search never cited is dropped, as a page the search did not open is not evidence of anything,

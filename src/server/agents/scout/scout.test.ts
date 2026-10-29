@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Resource, type ScoutQueries, SOURCE_LANGS } from "../../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
-import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
+import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
 import { createFileCache, createFileStore } from "../../store/store.ts";
@@ -24,49 +24,83 @@ const OFF_TOPIC = "https://en.wikipedia.org/wiki/Contingency_table";
 const BOOK = "https://ru.wikibooks.org/wiki/Сводные_таблицы";
 const BOOK_CITED = encodeURI(BOOK);
 const BLOCKED = "https://blocked.example/svodnye";
+const WIKIBOOKS = "https://en.wikibooks.org/wiki/Pivot_Tables";
+const DOCS = "https://docs.example.org/pivot";
+const RU_WIKI = "https://ru.wikipedia.org/wiki/Svodnaya_tablitsa";
+// Found only by the broader queries of an extra round.
+const WIKIVERSITY = "https://en.wikiversity.org/wiki/Spreadsheets";
+const COURSE = "https://kursy.example/tablitsy";
+const ZH_BOOK = "https://zh.wikibooks.org/wiki/Excel";
 
 const page = (url: string, text: string, truncated = false): FetchOutcome => ({
   ok: true,
   page: { url, final_url: url, status: 200, content_type: "text/html", truncated, text },
 });
+const gone = (url: string): FetchOutcome => ({ ok: false, url, reason: "HTTP 404" });
 const CC_BY_SA = "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License.";
 const WEB: Record<string, FetchOutcome> = {
   [WIKI]: page(WIKI, `Pivot table. ${CC_BY_SA}`),
   [VENDOR]: page(VENDOR, "Pivot tables. © 2026 Vendor Inc. All rights reserved."),
   [HUGE]: page(HUGE, CC_BY_SA, true),
+  [WIKIBOOKS]: page(WIKIBOOKS, `Pivot Tables. ${CC_BY_SA}`),
+  [DOCS]: page(DOCS, "Content is licensed under CC BY 4.0, and code samples under Apache 2.0."),
   [BOOK_CITED]: page(BOOK_CITED, "Сводные таблицы. Текст доступен по лицензии CC BY-NC 4.0."),
   [BLOCKED]: { ok: false, url: BLOCKED, reason: "robots.txt disallows it" },
+  [RU_WIKI]: page(RU_WIKI, "Сводная таблица. Текст доступен по лицензии CC BY-SA 4.0."),
+  [WIKIVERSITY]: page(WIKIVERSITY, `Spreadsheets. ${CC_BY_SA}`),
+  [COURSE]: page(COURSE, "Курс. Все права защищены."),
+  [ZH_BOOK]: page(ZH_BOOK, "数据透视表。本页面采用 CC BY-SA 4.0 授权。"),
 };
 
-// Per language: the query the model writes, the pages the search cites, and the URLs the model
-// then describes (one invented, one left out, one a second spelling of a page another language
-// found).
-const SCRIPT: Record<"en" | "ru", { query: string; cited: string[]; described: string[] }> = {
-  en: {
-    query: "pivot table tutorial",
-    cited: [WIKI, VENDOR, HUGE, OFF_TOPIC],
-    described: [WIKI, VENDOR, HUGE, INVENTED],
-  },
-  ru: {
-    query: "сводные таблицы",
-    cited: [BOOK_CITED, BLOCKED, `${WIKI}/`],
-    described: [BOOK, BLOCKED, `${WIKI}/#Uses`],
-  },
+// Per language and round (the first, then the broader extra round): the query the model writes,
+// the pages the search cites, and the URLs the model then describes. In English and Russian the
+// first round has one invented URL, one page left out and one second spelling of a page another
+// language found.
+type Round = { query: string; cited: string[]; described: string[] };
+const SCRIPT: Record<"en" | "ru" | "zh", [Round, Round]> = {
+  en: [
+    {
+      query: "pivot table tutorial",
+      cited: [WIKI, VENDOR, HUGE, OFF_TOPIC, WIKIBOOKS, DOCS],
+      described: [WIKI, VENDOR, HUGE, INVENTED, WIKIBOOKS, DOCS],
+    },
+    { query: "spreadsheet summaries", cited: [WIKIVERSITY, WIKI], described: [WIKIVERSITY, WIKI] },
+  ],
+  ru: [
+    {
+      query: "сводные таблицы",
+      cited: [BOOK_CITED, BLOCKED, `${WIKI}/`, RU_WIKI],
+      described: [BOOK, BLOCKED, `${WIKI}/#Uses`, RU_WIKI],
+    },
+    { query: "электронные таблицы", cited: [COURSE], described: [COURSE] },
+  ],
+  zh: [
+    { query: "数据透视表", cited: [], described: [] },
+    { query: "电子表格", cited: [ZH_BOOK], described: [ZH_BOOK] },
+  ],
 };
+type Scripted = keyof typeof SCRIPT;
 const SCORES: Record<string, { relevance: number; level_fit: number }> = {
   [WIKI]: { relevance: 0.9, level_fit: 0.8 },
   [BOOK]: { relevance: 7, level_fit: 0.8 },
+  [WIKIBOOKS]: { relevance: 0.8, level_fit: 0.9 },
+  [DOCS]: { relevance: 0.7, level_fit: 0.7 },
+  [RU_WIKI]: { relevance: 0.6, level_fit: 0.6 },
+};
+// What the first round of an English and Russian run keeps, in rank order.
+const RANKED = [WIKI, BOOK_CITED, WIKIBOOKS, RU_WIKI, DOCS];
+
+const LANGUAGE_NAMES: Record<Scripted, string> = { en: "English", ru: "Russian", zh: "Chinese" };
+
+// `plan` replaces the first round's queries, `broken` names a schema whose first reply breaks its
+// contract, and `web` replaces pages.
+type FakeOptions = {
+  plan?: ScoutQueries["queries"];
+  broken?: "ScoutQueries" | "Candidates";
+  web?: Record<string, FetchOutcome>;
 };
 
-const PLAN: ScoutQueries["queries"] = [
-  { lang: "en", queries: [SCRIPT.en.query] },
-  { lang: "ru", queries: [SCRIPT.ru.query] },
-];
-
-// `broken` names a schema whose first reply breaks its contract.
-type FakeOptions = { plan?: ScoutQueries["queries"]; broken?: "ScoutQueries" | "Candidates" };
-
-function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
+function fakeProvider({ plan, broken }: FakeOptions = {}) {
   const prompts: string[] = [];
   // One entry per call: the schema name, or "web_search".
   const log: string[] = [];
@@ -91,10 +125,10 @@ function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
       ...extra,
     } as ModelResult<never>;
   };
-  const scripted = (input: string, part: "query" | "cited") =>
-    (Object.keys(SCRIPT) as (keyof typeof SCRIPT)[]).find((lang) =>
-      [SCRIPT[lang][part]].flat().every((s) => input.includes(s)),
-    ) ?? "en";
+  // A search prompt holds its round's query, and a describe prompt quotes the search answer, which
+  // names it too.
+  const round = (lang: Scripted, input: string) =>
+    SCRIPT[lang].find((r) => input.includes(r.query)) as Round;
   const unused = () => {
     throw new Error("the scout does not use this call");
   };
@@ -104,11 +138,17 @@ function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
       prompts.push(`${call.instructions}\n${input}`);
       log.push(call.schema.name);
       if (call.schema.name === "ScoutQueries") {
-        return reply({ queries: breaks("ScoutQueries") ? [{ lang: "de", queries: "x" }] : plan });
+        if (breaks("ScoutQueries")) return reply({ queries: [{ lang: "de", queries: "x" }] });
+        const broader = input.includes("Queries already tried") ? 1 : 0;
+        if (plan && !broader) return reply({ queries: plan });
+        const langs = (/^Languages: (.+)$/m.exec(input)?.[1] ?? "").split(", ") as Scripted[];
+        return reply({
+          queries: langs.map((lang) => ({ lang, queries: [SCRIPT[lang][broader].query] })),
+        });
       }
-      const lang = scripted(input, "cited");
+      const lang = /^Language searched: (\w+)$/m.exec(input)?.[1] as Scripted;
       return reply({
-        candidates: SCRIPT[lang].described.map((url) => ({
+        candidates: round(lang, input).described.map((url) => ({
           url,
           title: `Page at ${url}`,
           lang,
@@ -123,9 +163,12 @@ function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
       const input = String(call.input);
       prompts.push(`${call.instructions}\n${input}`);
       log.push("web_search");
-      const cited = SCRIPT[scripted(input, "query")].cited;
+      const lang = (Object.keys(SCRIPT) as Scripted[]).find((l) =>
+        input.startsWith(`Language: ${LANGUAGE_NAMES[l]}\n`),
+      ) as Scripted;
+      const { query, cited } = round(lang, input);
       return reply(null, {
-        text: "Pages found.",
+        text: `Pages found for ${query}.`,
         citations: cited.map((url) => ({ url, title: url, snippet: "" })),
       });
     },
@@ -157,10 +200,11 @@ function setup(options: FakeOptions = {}) {
     },
   });
   const fetched: string[] = [];
+  const web = { ...WEB, ...options.web };
   const pages: PageFetcher = {
     async fetchPage(url) {
       fetched.push(url);
-      return WEB[url] ?? { ok: false, url, reason: "HTTP 404" };
+      return web[url] ?? gone(url);
     },
   };
   const cache = createFileCache(dir);
@@ -204,6 +248,9 @@ describe("scout", () => {
     ).toEqual([
       [WIKI, "en", "CC-BY-SA-4.0", "open", 0.89],
       [BOOK_CITED, "ru", "CC-BY-NC-4.0", "personal_study", 0.84],
+      [WIKIBOOKS, "en", "CC-BY-SA-4.0", "open", 0.87],
+      [RU_WIKI, "ru", "CC-BY-SA-4.0", "open", 0.68],
+      [DOCS, "en", "CC-BY-4.0", "open", 0.76],
     ]);
     for (const resource of result.resources) {
       expect(resource.citations).toEqual([{ url: resource.url }]);
@@ -242,7 +289,7 @@ describe("scout", () => {
         'Queries (en): "pivot table tutorial"',
         'Queries (ru): "сводные таблицы"',
         expect.stringMatching(
-          /^Scout chose 2 resources \(en 1, ru 1\) and rejected 5; run cost \$0\.0500/,
+          /^Scout chose 5 resources \(en 3, ru 2\) and rejected 5; run cost \$0\.0500/,
         ),
       ]),
     );
@@ -252,8 +299,8 @@ describe("scout", () => {
     const extra = ["pivot table guide", "pivot table course"];
     const { run, fake, trace } = setup({
       plan: [
-        { lang: "en", queries: [SCRIPT.en.query, ...extra] },
-        { lang: "ru", queries: [SCRIPT.ru.query] },
+        { lang: "en", queries: [SCRIPT.en[0].query, ...extra] },
+        { lang: "ru", queries: [SCRIPT.ru[0].query] },
       ],
     });
 
@@ -279,7 +326,7 @@ describe("scout", () => {
       );
       const asked = fake.prompts.filter((p) => p.includes(`The previous attempt failed: ${error}`));
       expect(asked.length).toBeGreaterThan(0);
-      expect(result.resources.map((r) => r.url)).toEqual([WIKI, BOOK_CITED]);
+      expect(result.resources.map((r) => r.url)).toEqual(RANKED);
     },
   );
 
@@ -337,6 +384,57 @@ describe("scout", () => {
         expect.stringMatching(/^web_search \(ru\) read from the cache/),
       ]),
     );
+  });
+});
+
+describe("scout, when fewer than 5 resources pass", () => {
+  it("runs one extra round with broader queries for the two languages that yielded least", async () => {
+    // The first round keeps en 3, ru 1 and zh 0.
+    const { run, fake, trace } = setup({ web: { [RU_WIKI]: gone(RU_WIKI) } });
+
+    const result = await run(["en", "ru", "zh"]);
+
+    const broader = fake.prompts.filter((p) => p.includes("Queries already tried"));
+    expect(broader).toHaveLength(1);
+    expect(broader[0]).toMatch(/^Languages: zh, ru$/m);
+    expect(fake.prompts.filter((p) => p.includes("Language: English"))).toHaveLength(1);
+    expect(result.resources).toHaveLength(5);
+    expect(result.resources.map((r) => r.url)).toContain(ZH_BOOK);
+    expect(result.rejected).toContainEqual(
+      expect.objectContaining({ url: COURSE, reason: "all rights reserved" }),
+    );
+    expect(trace()).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(
+          /^Only 4 of the 5 resources aimed for passed; one more round .* zh, ru/,
+        ),
+        'Queries (zh): "电子表格"',
+      ]),
+    );
+    expect(trace()).not.toContainEqual(expect.stringMatching(/^Warning/));
+  });
+
+  it("returns what passed, with a warning, when the extra round still falls short", async () => {
+    const { run, fake, trace } = setup();
+
+    const result = await run(["en"]);
+
+    expect(result.resources.map((r) => r.url).sort()).toEqual(
+      [WIKI, WIKIBOOKS, DOCS, WIKIVERSITY].sort(),
+    );
+    expect(fake.log.filter((call) => call === "web_search")).toHaveLength(2);
+    expect(trace()).toContainEqual(
+      expect.stringMatching(/^Warning: only 4 of the 5 resources aimed for passed/),
+    );
+  });
+
+  it("fails the step only when no page passes, and pays for each search once", async () => {
+    const { run, fake } = setup({ web: { [ZH_BOOK]: gone(ZH_BOOK) } });
+
+    await expect(run(["zh"])).rejects.toThrow(StepFailed);
+
+    expect(fake.log.filter((call) => call === "web_search")).toHaveLength(2);
+    expect(fake.log.filter((call) => call === "ScoutQueries")).toHaveLength(2);
   });
 });
 
