@@ -93,6 +93,12 @@ export const QUESTIONS: CountForms = {
   few: "أسئلة",
   many: "سؤالًا",
 };
+export const SESSIONS: CountForms = {
+  one: "جلسة واحدة",
+  two: "جلستان",
+  few: "جلسات",
+  many: "جلسة",
+};
 export const SOURCES: CountForms = { one: "مصدر واحد", two: "مصدران", few: "مصادر", many: "مصدرًا" };
 export const ATTEMPTS: CountForms = {
   one: "محاولة واحدة",

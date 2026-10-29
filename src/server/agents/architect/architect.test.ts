@@ -260,10 +260,7 @@ function plannerSetup() {
     saved: () => savedPlan(store, "s1"),
     calls: fake.calls,
     searches: () => searches,
-    decisions: () =>
-      store
-        .readTrace<TraceEvent>("s1")
-        .filter((e) => e.agent === "architect" && e.kind === "decision"),
+    events: () => store.readTrace<TraceEvent>("s1").filter((e) => e.agent === "architect"),
   };
 }
 
@@ -341,19 +338,20 @@ describe("planner", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("traces each edit and each refusal for the activity feed", async () => {
-    const { planner, decisions } = plannerSetup();
+  it("traces each edit and each refusal as finished work, so the activity feed stops", async () => {
+    const { planner, events } = plannerSetup();
     await planner.build();
+    const before = events().length;
 
     planner.edit({ op: "move", session_id: "s2", day: 6 });
     refusal(() => planner.edit({ op: "shorten", session_id: "s3", minutes: 60 }));
 
-    expect(decisions().map((e) => e.summary_en)).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/moved session s2 from day 4 to day 6; plan version 2/),
-        expect.stringMatching(/refused.*s3.*60/),
-      ]),
-    );
+    const told = events().slice(before);
+    expect(told.map((e) => e.summary_en)).toEqual([
+      expect.stringMatching(/moved session s2 from day 4 to day 6; plan version 2/),
+      expect.stringMatching(/refused.*s3.*60/),
+    ]);
+    expect(told.map((e) => e.kind)).toEqual(["output", "output"]);
   });
 });
 

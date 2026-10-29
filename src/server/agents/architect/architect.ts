@@ -215,8 +215,9 @@ export function createPlanner({
     store.writeDoc(sessionId, PLAN_DOC, plan);
     return plan;
   };
-  const decide = (summary_ar: string, summary_en: string) =>
-    tracer.emit({ agent: "architect", kind: "decision", summary_ar, summary_en });
+  // An edit's verdict is finished work, so the activity feed does not show the architect working.
+  const report = (summary_ar: string, summary_en: string) =>
+    tracer.emit({ agent: "architect", kind: "output", summary_ar, summary_en });
 
   return {
     // The session's plan, built on the first call.
@@ -238,13 +239,13 @@ export function createPlanner({
       const result = applyEdit(latest, edit, saved.limits);
       const what = describeEdit(latest, edit);
       if (!result.ok) {
-        decide(
+        report(
           `لم يُقبل تعديلك: ${result.violations.map((v) => v.ar).join("، ")}`,
           `Learner edit refused (${what.en}): ${result.violations.map((v) => v.en).join("; ")}`,
         );
         throw new PlanEditRejected(result.violations);
       }
-      decide(
+      report(
         `عدّلتَ خطتك: ${what.ar}`,
         `Learner edit: ${what.en}; plan version ${result.plan.version}`,
       );

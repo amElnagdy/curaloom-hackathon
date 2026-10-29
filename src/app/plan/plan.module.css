@@ -1,4 +1,4 @@
-/* The plan page: course document + the pinned activity column (layout C). */
+/* The plan page: course document + the pinned activity column (layout B). */
 
 .plan {
   display: grid;
@@ -139,13 +139,308 @@
   border-bottom: 1px solid var(--line);
 }
 
-/* Inside a module: groups aligned with the module title, past the chevron */
-.groups {
+.pending {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* Why the plan has this shape */
+.why {
+  margin-top: var(--s-6);
+  font-size: var(--text-md);
+  line-height: var(--lh-read);
+}
+
+/* The committed weeks: one row of seven days per week, a bar per day as long as its sessions */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-6);
+  margin-top: var(--s-4);
+}
+.weekHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.weekHead b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--s-1);
+}
+.day {
+  position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   gap: var(--s-1);
-  padding-bottom: var(--s-3);
-  padding-inline-start: 2rem;
+  height: 4.5rem;
+  padding: var(--s-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--canvas);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.day[data-has="true"] {
+  border-color: var(--accent-200);
+  background: var(--accent-50);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.day i {
+  width: 100%;
+  border-radius: var(--r-xs);
+  background: var(--accent);
+}
+
+/* The road: a numbered node per module on a vertical line */
+.road {
+  margin-top: var(--s-5);
+}
+.node {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: var(--s-4);
+  padding-bottom: var(--s-6);
+}
+.node::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(1.375rem - 1px);
+  top: 2.75rem;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+.node:last-child::before {
+  display: none;
+}
+.num {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.node[data-committed="true"] .num {
+  background: var(--accent);
+  color: #fff;
+}
+.nodeBody {
+  min-width: 0;
+}
+.nodeHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  min-height: 2.75rem;
+}
+.nodeHead h3 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.node:not([data-committed="true"]) .nodeHead h3 {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.nodeMeta {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.nodeHead > :last-child {
+  margin-inline-start: auto;
+}
+.later {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+
+/* A committed module's sessions, each with its day, lesson, length and edits */
+.agenda {
+  margin-top: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.agendaRow {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  padding: var(--s-3) var(--s-4);
+}
+.agendaRow + .agendaRow {
+  border-top: 1px solid var(--line);
+}
+.agendaRow[data-editing="true"] {
+  background: var(--accent-50);
+}
+.dayBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: var(--lh-tight);
+}
+.dayBox small {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.dayBox b {
+  font-size: var(--text-xl);
+}
+.rowTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  font-weight: 600;
+}
+.rowTitle small {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.rowMinutes {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.rowActions {
+  display: flex;
+  gap: var(--s-1);
+}
+
+/* The inline editor under a session: the choices, then the rule check and the buttons */
+.editor {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-4) var(--s-6);
+  padding-top: var(--s-1);
+  animation: var(--motion-arrive);
+}
+.editorLabel {
+  padding: 0;
+  margin-bottom: var(--s-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.chips {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.chips > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+.chip {
+  height: 2rem;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.chip[data-now] {
+  border-style: dashed;
+  background: var(--fill);
+  color: var(--ink-3);
+  cursor: default;
+}
+.chip[data-taken="true"]::after {
+  content: "•" / "";
+  margin-inline-start: 0.3rem;
+  color: var(--accent);
+}
+.chip[data-taken="true"][aria-pressed="true"]::after {
+  color: inherit;
+}
+.editorEnd {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-inline-start: auto;
+}
+.editorCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-inline-end: var(--s-2);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.editorCheck > svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--ready);
+}
+.editorProblem {
+  color: var(--attn-ink);
+}
+.editorProblem > svg {
+  color: var(--attn);
+}
+
+/* While the plan is built */
+.buildFailed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+}
+.skeleton {
+  border-radius: var(--r-sm);
+  background: var(--fill);
+  animation: var(--motion-breathe);
+}
+.skeleton[data-size="why"] {
+  height: 5.5rem;
+  margin-top: var(--s-6);
+}
+.skeleton[data-size="strip"] {
+  height: 6rem;
+}
+.skeleton[data-size="road"] {
+  height: 16rem;
 }
 
 @media (max-width: 1080px) {
@@ -170,7 +465,39 @@
     border-inline-start: 0;
     border-top: 1px solid var(--line);
   }
-  .groups {
-    padding-inline-start: 0;
+  .strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* The day, then the lesson across the row; its length and edits on a line below */
+  .node {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+  .num {
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--text-sm);
+  }
+  .node::before {
+    inset-inline-start: calc(1rem - 1px);
+    top: 2rem;
+  }
+  .agendaRow {
+    display: flex;
+    flex-wrap: wrap;
+    padding: var(--s-3);
+  }
+  .dayBox {
+    flex: none;
+    width: 2.5rem;
+  }
+  .rowTitle {
+    flex: 1 1 calc(100% - 3.5rem);
+  }
+  .rowActions {
+    margin-inline-start: auto;
+  }
+  .editor {
+    flex-basis: 100%;
   }
 }
