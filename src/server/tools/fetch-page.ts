@@ -47,7 +47,7 @@ export type PageFetcherOptions = {
   maxBytes?: number;
 };
 
-const PAGES_DIR = join(import.meta.dirname, "../../../demo/fixtures/pages");
+const PAGES_DIR = join(process.cwd(), "demo/fixtures/pages");
 const TIMEOUT_MS = 20_000;
 const MAX_BYTES = 512 * 1024;
 const MAX_REDIRECTS = 3;

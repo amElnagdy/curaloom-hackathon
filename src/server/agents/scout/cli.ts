@@ -4,7 +4,7 @@
 
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
-import { config, UNSET_TOPIC } from "../../../config.ts";
+import { config, loadConfig } from "../../../config.ts";
 import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type Provider } from "../../providers/provider.ts";
@@ -12,7 +12,8 @@ import { createFileStore } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { runScout, scoutBrief } from "./scout.ts";
 
-if (config.demoTopic === UNSET_TOPIC) {
+// With no topic set, config holds the placeholder default; a paid search for it is wasted.
+if (config.demoTopic === loadConfig({}).demoTopic) {
   console.error(
     "No demo topic is set. Set it in the shell for this run (see config/.env.example).",
   );
