@@ -244,13 +244,13 @@ async function searchLanguage(
     const key = normalUrl(candidate.url);
     const citation = byUrl.get(key);
     if (!citation) {
-      dropped.push({
-        url: candidate.url,
-        title: candidate.title,
-        lang: candidate.lang,
-        reason: "not among the pages the search cited",
-        reason_ar: "لم يرد بين الصفحات التي استشهد بها البحث",
-      });
+      dropped.push(
+        rejection(
+          candidate,
+          "not among the pages the search cited",
+          "لم يرد بين الصفحات التي استشهد بها البحث",
+        ),
+      );
     } else if (!kept.has(key)) {
       kept.add(key);
       cited.push({
@@ -263,16 +263,22 @@ async function searchLanguage(
   }
   for (const [key, { url, title }] of byUrl) {
     if (kept.has(key)) continue;
-    dropped.push({
-      url,
-      title,
-      lang,
-      reason: "the model judged it off the topic",
-      reason_ar: "رأى النموذج أنه لا يتناول الموضوع",
-    });
+    dropped.push(
+      rejection(
+        { url, title, lang },
+        "the model judged it off the topic",
+        "رأى النموذج أنه لا يتناول الموضوع",
+      ),
+    );
   }
   return { cited, dropped };
 }
+
+const rejection = (
+  { url, title, lang }: Pick<Rejection, "url" | "title" | "lang">,
+  reason: string,
+  reason_ar: string,
+): Rejection => ({ url, title, lang, reason, reason_ar });
 
 async function checkPage(
   ctx: AgentContext,
@@ -281,13 +287,7 @@ async function checkPage(
 ): Promise<Checked> {
   const reject = (reason: string, reason_ar: string): Checked => ({
     ok: false,
-    rejection: {
-      url: candidate.url,
-      title: candidate.title,
-      lang: candidate.lang,
-      reason,
-      reason_ar,
-    },
+    rejection: rejection(candidate, reason, reason_ar),
   });
   const fetched = await pages.fetchPage(candidate.url, ctx.trace);
   if (!fetched.ok) return reject(`could not read the page: ${fetched.reason}`, "تعذّرت قراءة صفحته");
