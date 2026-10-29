@@ -82,12 +82,13 @@ src/server/clock/    sim clock, coach scheduler, sim and inbox route handlers (#
 src/server/notifier/ notifier, consent gate, adapters (#22)
 src/server/demo/     dev-only dummy agent and its runner (#15)
 src/server/store/
+src/server/tools/    tools agents call, such as the page fetcher (#17)
 src/server/trace/
 src/config.ts
 contracts/           entity schemas and types (#14)
 config/              .env.example, models.yaml (#12)
 evals/               model evals (#8)
-demo/fixtures/       seeded state and recorded responses
+demo/fixtures/       seeded state, recorded responses and recorded pages
 docs/adr/            decisions
 spikes/              throwaway Day-1 spikes (Python, not in CI)
 ```
@@ -120,7 +121,25 @@ Folders are created by the issue that first puts code in them.
 
 - `createNotifier()` (`src/server/notifier/notifier.ts`) takes a message `{id, to, channel, template, text_ar, cta, sim_ts}` and answers `sent`, `deferred` with `deliver_at`, or `suppressed_opt_out`. The same id is sent once.
 - `gate()` (`gate.ts`) is a pure table of rules over the consent and the sim time. It suppresses a message while consent is missing or withdrawn. During quiet hours, including hours that cross midnight, it defers the message to the end of the window. As the clock passes that time, the scheduler calls `deliverDue()`, which asks the gate again before it delivers.
-- `receive(text)` is the inbound handler. A reply that is only a stop word (`توقف`, `إيقاف`, `stop` and variants, matched after removing case, tashkeel, tatweel, alef forms and punctuation) saves the opt-out at once, cancels held messages and sends one confirmation. A second stop word sends nothing.
+- `receive(text)` is the inbound handler. A reply that is only a stop word (`توقف`, `إيقاف`, `stop` and variants, matched after removing case, tashkeel, tatweel, alef forms, punctuation and polite words such as «من فضلك») saves the opt-out at once, cancels held messages and sends one confirmation. A second stop word sends nothing.
 - `NOTIFIER_ADAPTER` picks the adapter (default `simulated`). The simulated adapter appends to the session's `inbox` document. `whatsapp` and `email` are stubs that throw and list what a real adapter must do. `src/guards.test.ts` fails on `fetch`, sockets or an HTTP module import in `src/server/notifier/`.
 - Notifier traces name the learner by id only, never by number or address, and carry no message text.
 - `/coach` renders the phone from the inbox and the outbox (`phoneThread()`). `POST /api/sessions/{id}/inbox` with `{text}` is the learner's reply and answers `{opted_out, confirmed}`.
+
+## Scout (#17)
+
+The scout finds open-licence learning resources on the learner's topic in English, Russian, Chinese and French. `runScout()` in `src/server/agents/scout/scout.ts` runs it as one orchestrator step:
+
+1. The model writes two search queries per language from a `ScoutBrief`, which holds the topic, goal, level and languages. The brief has no name or contact field, so neither can reach a prompt.
+2. One `provider.webSearch()` runs per language. The prompt allows 4 searches and 6 opened pages. Only the URL citations in the answer count.
+3. The model describes each cited page as a `Candidates` item with relevance, level fit and `why_ar`, and no licence fields. A candidate URL the search did not cite is rejected. So is a cited page the model leaves out as off the topic.
+4. The page fetcher reads each candidate page, and `classifyLicence()` in `licence.ts` maps the page's licence statement to an SPDX id and a use. CC BY, CC BY-SA, CC0, MIT, Apache-2.0 and public domain are `open`. A licence with NC or ND is `personal_study`, which the UI tags «للدراسة الشخصية». The checker rejects every other case: all rights reserved, two different licences, a licence beside "all rights reserved", a licence off the allowlist, and "Creative Commons" without its terms. It also rejects a page cut at the byte cap, because the terms past the cap were never read.
+5. `rank()` in `rank.ts` weighs relevance 0.5, level fit 0.3 and licence 0.2 (`open` 1, `personal_study` 0.5). It takes 0.15 off for each resource already picked in the same language and keeps the top 8.
+
+Every cited page ends as a `Resource` or as an entry in `rejected` with an English and an Arabic reason. Code sets `licence.verified`, `licence.quote` and `licence.evidence_url`. The trace holds the queries for each language, each fetch, each licence check and each rejection with its reason. The last event gives the run's total cost in `summary_en`. It has no `cost_usd` field, because the model-call events already carry their costs.
+
+The step key hashes the topic and the sorted languages. A second run with the same topic and languages returns the saved output without a model call.
+
+Web search picks the URLs, so the page fetcher in `src/server/tools/fetch-page.ts` requests only public addresses on ports 80 and 443. It follows at most 3 redirects itself, and it checks each hop's URL, address and robots.txt before requesting it. The default transport checks the addresses a host resolves to at connect time, so DNS rebinding cannot swap in a private one. A robots.txt that cannot be read, after a network error or a 5xx, blocks its site. The fetcher times out after 20 s, reads at most 512 KiB and retries a network error once. Like the provider, it records to and replays from `demo/fixtures/pages/`, keyed by host and URL hash.
+
+`pnpm scout` runs the scout for the seed learner on the demo session and prints the resources per language, the rejections by reason and the cost. Set the topic in the shell for that run only. To re-record the fixtures, run `rm -rf data/sessions/demo`, then `PROVIDER_PROFILE=record DEMO_TOPIC="<topic>" pnpm scout`, and set `RECORDED_TOPIC` in `scout.test.ts` to the same topic. Re-recording does not delete the old fixtures. The recorded run cost $0.33, and its slowest search took 47 s.
