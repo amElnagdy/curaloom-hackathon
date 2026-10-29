@@ -13,7 +13,7 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude \".claude/**\"",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts",
     "fixtures:record": "RECORD_FIXTURES=1 vitest run smoke.test",

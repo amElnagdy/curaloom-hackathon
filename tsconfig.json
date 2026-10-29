@@ -28,5 +28,5 @@
     "**/*.tsx",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "spikes"]
+  "exclude": ["node_modules", "spikes", ".claude"]
 }
