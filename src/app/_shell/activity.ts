@@ -19,9 +19,9 @@ export type ActivityItem = {
   simAt: SimTime | null;
 };
 
-// Instant bookkeeping of the clock, the coach scheduler and the notifier, not agent work: the clock
-// pill and the coach page show it, and the drawer lists it.
-const SYSTEM_ACTORS = new Set(["clock", "scheduler", "notifier"]);
+// Instant bookkeeping of the clock, the coach scheduler, the notifier and the demo reset, not agent
+// work: the clock pill and the coach page show it, and the drawer lists it.
+const SYSTEM_ACTORS = new Set(["clock", "scheduler", "notifier", "sim"]);
 
 // The English summaries the orchestrator and the tracer write for their own events
 // (src/server/orchestrator/orchestrator.ts, src/server/trace/trace.ts). activity.test.ts drives the

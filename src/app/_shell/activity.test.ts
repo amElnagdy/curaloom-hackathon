@@ -199,11 +199,13 @@ describe("toActivityItem", () => {
     expect(toActivityItem(trace().at(-1) as TraceEvent)?.simAt).toEqual({ day: 2, minute: 540 });
   });
 
-  it("leaves the clock, the coach scheduler and the notifier out of the feed", () => {
+  it("leaves the clock, the coach scheduler, the notifier and a demo reset out of the feed", () => {
     const { store, trace } = setup();
-    createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") }).set(10);
+    const sim = createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") });
+    sim.set(10);
+    sim.reset();
 
-    expect(trace().map((e) => e.agent)).toContain("scheduler");
+    expect(trace().map((e) => e.agent)).toEqual(expect.arrayContaining(["scheduler", "sim"]));
     expect(lines(trace()).every((line) => line === null)).toBe(true);
   });
 });
