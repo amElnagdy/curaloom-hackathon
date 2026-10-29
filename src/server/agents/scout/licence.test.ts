@@ -88,6 +88,36 @@ describe("classifyLicence", () => {
       spdx: "CC-BY-NC-SA-4.0",
       use: "personal_study",
     },
+    {
+      fixture: "content CC BY 4.0, code samples Apache 2.0",
+      text: "Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License.",
+      spdx: "CC-BY-4.0",
+      use: "open",
+    },
+    {
+      fixture: "code under MIT, then the text under CC BY-SA",
+      text: "The code in this book is released under the MIT License. The text is licensed under CC BY-SA 4.0.",
+      spdx: "CC-BY-SA-4.0",
+      use: "open",
+    },
+    {
+      fixture: "an adaptation: the source CC BY, the page CC BY-SA",
+      text: "Adapted from Spreadsheets 101 (CC BY 4.0). This page is shared under a CC BY-SA 4.0 license.",
+      spdx: "CC-BY-SA-4.0",
+      use: "open",
+    },
+    {
+      fixture: "LibreTexts: the source CC BY, the page CC BY-NC-SA",
+      text: "Adapted from Workplace Software and Skills by OpenStax, CC BY 4.0. This page is shared under a CC BY-NC-SA 4.0 license.",
+      spdx: "CC-BY-NC-SA-4.0",
+      use: "personal_study",
+    },
+    {
+      fixture: "text CC BY, exercises CC BY-NC",
+      text: "Text is licensed under CC BY 4.0. Exercises are licensed under CC BY-NC 4.0.",
+      spdx: "CC-BY-NC-4.0",
+      use: "personal_study",
+    },
   ])("accepts $fixture as $spdx ($use)", ({ text, spdx, use }) => {
     const check = classifyLicence(text, URL);
 
@@ -109,7 +139,10 @@ describe("classifyLicence", () => {
     it("rejects a CC BY page that says all rights reserved in the middle", () => {
       const check = classifyLicence(page("© 2026 Example Corp. All rights reserved."), URL);
 
-      expect(check).toMatchObject({ use: "rejected", reason: /all rights reserved/ });
+      expect(check).toMatchObject({
+        use: "rejected",
+        reason: expect.stringMatching(/all rights reserved/),
+      });
     });
 
     it("makes a CC BY page personal study when it says NonCommercial in the middle", () => {
@@ -122,10 +155,21 @@ describe("classifyLicence", () => {
       expect(check.reason).toContain("NonCommercial");
     });
 
-    it("rejects a CC BY page that names a second licence in the middle", () => {
+    it("keeps CC BY for a page whose code samples are MIT in the middle", () => {
       const check = classifyLicence(page("Code samples are licensed under the MIT License."), URL);
 
-      expect(check).toMatchObject({ use: "rejected", reason: /conflicting.*CC-BY-4\.0.*MIT/ });
+      expect(check).toMatchObject({ spdx: "CC-BY-4.0", use: "open" });
+      expect(check.quote).toContain("Creative Commons Attribution 4.0");
+      expect(check.reason).toContain("MIT");
+    });
+
+    it("rejects a CC BY page that names a licence off the allowlist in the middle", () => {
+      const check = classifyLicence(page("Code samples are licensed under the GPLv3."), URL);
+
+      expect(check).toMatchObject({
+        use: "rejected",
+        reason: expect.stringMatching(/GPL is not on the allowlist/),
+      });
     });
   });
 
@@ -154,6 +198,19 @@ describe("classifyLicence", () => {
 
   it.each([
     {
+      text: "The code in this book is released under the MIT License. The text is licensed under CC BY-SA 4.0.",
+      quote: "The text is licensed under CC BY-SA 4.0.",
+    },
+    {
+      text: "Adapted from Workplace Software and Skills by OpenStax, CC BY 4.0. This page is shared under a CC BY-NC-SA 4.0 license.",
+      quote: "This page is shared under a CC BY-NC-SA 4.0 license.",
+    },
+  ])("on a page with several licences, quotes the one it cites: $quote", ({ text, quote }) => {
+    expect(classifyLicence(text, URL).quote).toBe(quote);
+  });
+
+  it.each([
+    {
       fixture: "all rights reserved",
       text: "© 2026 Example Training Ltd. All rights reserved.",
       reason: /all rights reserved/,
@@ -178,10 +235,16 @@ describe("classifyLicence", () => {
       quote: /Creative Commons license/,
     },
     {
-      fixture: "ambiguous: two different licences",
-      text: "Text is licensed under CC BY 4.0. Exercises are licensed under CC BY-NC 4.0.",
-      reason: /conflicting.*CC-BY-4\.0.*CC-BY-NC-4\.0/,
-      quote: /CC BY/,
+      fixture: "CC BY-SA beside a licence off the allowlist (GFDL)",
+      text: "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License and the GNU Free Documentation License.",
+      reason: /GFDL is not on the allowlist/,
+      quote: /GNU Free Documentation License/,
+    },
+    {
+      fixture: "content CC BY, code under MPL 2.0",
+      text: "Content is licensed under CC BY 4.0, and code samples under the Mozilla Public License 2.0.",
+      reason: /MPL-2\.0 is not on the allowlist/,
+      quote: /Mozilla Public License/,
     },
     {
       fixture: "ambiguous: a licence beside all rights reserved",

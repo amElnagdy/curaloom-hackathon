@@ -84,6 +84,11 @@ type LicenceRow = {
   versioned?: true;
   // Says less than any other licence in its family, so a more specific one replaces it.
   generic?: true;
+  // A software licence. Beside a content licence it covers a page's code samples, not its text.
+  code?: true;
+  // How many Creative Commons terms the licence carries (BY is one). Of two content licences on a
+  // page, the one with more binds the reuse of the page.
+  terms?: number;
   patterns: string[];
 };
 type Row =
@@ -104,6 +109,7 @@ function ccRow(terms: CcTerm[]): LicenceRow {
     spdx: `CC-${code}`,
     use: terms.some((term) => CC_TERMS[term].personalOnly) ? "personal_study" : "open",
     versioned: true,
+    terms: terms.length,
     patterns: [
       String.raw`(?:Creative\s*Commons|知识共享|知識共享)\s*[«"“„]?\s*${terms.map(words).join(String.raw`\s*[-–—,]?\s*`)}\s*[»"”]?(?:\s*${VERSION})?`,
       String.raw`${START}CC[-\s]?${short}(?:[-\s]${VERSION})?${END}`,
@@ -114,7 +120,8 @@ function ccRow(terms: CcTerm[]): LicenceRow {
 }
 
 // Allowlist: CC BY, CC BY-SA, CC0, MIT, Apache 2.0 and public domain are open; the CC licences with
-// NC or ND are for personal study. Everything else is rejected.
+// NC or ND are for personal study. A page may name several, all on the allowlist; a page that names
+// anything else is rejected.
 const ROWS: Row[] = [
   ...CC_LICENCES.map(ccRow),
   {
@@ -150,6 +157,7 @@ const ROWS: Row[] = [
     family: "MIT",
     spdx: "MIT",
     use: "open",
+    code: true,
     patterns: [
       "Permission is hereby granted, free of charge, to any person obtaining a copy",
       String.raw`${START}MIT\s+licen[cs]e${END}`,
@@ -162,6 +170,7 @@ const ROWS: Row[] = [
     family: "Apache-2.0",
     spdx: "Apache-2.0",
     use: "open",
+    code: true,
     patterns: [
       String.raw`Apache\s+Licen[cs]e,?\s+(?:Version\s+)?2\.0`,
       String.raw`apache\.org/licenses/LICENSE-2\.0`,
@@ -295,6 +304,17 @@ function namedLicences(findings: Finding[]): Named[] {
   });
 }
 
+type Allowed = Named & { row: LicenceRow };
+const allowed = (n: Named): n is Allowed => n.row.kind === "licence";
+
+// Of the allowed licences a page names, the one its resource cites comes first: a content licence
+// before a code one (docs often license their code samples apart), then a personal-study one
+// before an open one, then the one with more CC terms. A tie keeps the order of the page.
+const citedFirst = (a: Allowed, b: Allowed) =>
+  Number(a.row.code === true) - Number(b.row.code === true) ||
+  Number(b.row.use === "personal_study") - Number(a.row.use === "personal_study") ||
+  (b.row.terms ?? 0) - (a.row.terms ?? 0);
+
 const SENTENCE_END = /^[\s\S]*(?:[.!?;](?=\s)|[。！？；])\s*/u;
 const SENTENCE = /^[\s\S]*?(?:[.!?;](?=\s|$)|[。！？；]|$)/u;
 
@@ -329,45 +349,41 @@ export function classifyLicence(pageText: string, url: string): LicenceCheck {
     reason_ar,
   });
 
-  const [only, ...others] = named.toSorted((a, b) => a.spdx.localeCompare(b.spdx));
-  if (only && others.length) {
-    const ids = [only, ...others].map((n) => n.spdx).join(", ");
+  const offList = named.find((n) => n.row.kind === "not_allowed");
+  if (offList) {
     return rejected(
-      "NOASSERTION",
-      only.findings,
-      `conflicting licence statements: ${ids}`,
-      "تذكر صفحته تراخيص متعارضة",
+      offList.spdx,
+      offList.findings,
+      `${offList.spdx} is not on the allowlist`,
+      `ترخيصه ${offList.spdx} ليس من التراخيص المقبولة`,
     );
   }
-  if (only?.row.kind === "not_allowed") {
-    return rejected(
-      only.spdx,
-      only.findings,
-      `${only.spdx} is not on the allowlist`,
-      `ترخيصه ${only.spdx} ليس من التراخيص المقبولة`,
-    );
-  }
-  if (only && reserved.length) {
+  const [cited, ...others] = named.filter(allowed).toSorted(citedFirst);
+  if (cited && reserved.length) {
     return rejected(
       "NOASSERTION",
-      only.findings,
-      `${only.spdx} stated alongside "all rights reserved"`,
+      cited.findings,
+      `${cited.spdx} stated alongside "all rights reserved"`,
       "تذكر صفحته ترخيصًا مفتوحًا وعبارة «جميع الحقوق محفوظة» معًا",
     );
   }
-  if (only) {
-    const limit = only.row.use === "open" ? restriction : undefined;
+  if (cited) {
+    // Sorted so, the cited licence is personal_study whenever any licence on the page is.
+    const limit = cited.row.use === "open" ? restriction : undefined;
+    const ids = others.map((n) => n.spdx);
     return {
-      spdx: only.spdx,
-      use: limit ? "personal_study" : only.row.use,
+      spdx: cited.spdx,
+      use: limit ? "personal_study" : cited.row.use,
       evidence_url: url,
-      quote: quoteOf(text, only.findings),
-      reason: limit
-        ? `the page states ${only.spdx} but limits reuse elsewhere ("${text.slice(limit.start, limit.end)}")`
-        : `the page states ${only.spdx}`,
-      reason_ar: limit
-        ? `تذكر صفحته ترخيص ${only.spdx}، لكنها تقيّد إعادة الاستخدام في موضع آخر`
-        : `تذكر صفحته ترخيص ${only.spdx}`,
+      quote: quoteOf(text, cited.findings),
+      reason:
+        (limit
+          ? `the page states ${cited.spdx} but limits reuse elsewhere ("${text.slice(limit.start, limit.end)}")`
+          : `the page states ${cited.spdx}`) + (ids.length ? `, and also ${ids.join(", ")}` : ""),
+      reason_ar:
+        (limit
+          ? `تذكر صفحته ترخيص ${cited.spdx}، لكنها تقيّد إعادة الاستخدام في موضع آخر`
+          : `تذكر صفحته ترخيص ${cited.spdx}`) + (ids.length ? `، ومعه ${ids.join("، ")}` : ""),
     };
   }
   if (reserved.length) {
