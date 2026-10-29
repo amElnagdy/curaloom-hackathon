@@ -109,11 +109,15 @@
       "committed": {
         "start": "day0",
         "weeks": 2,
+        "lessons": [
+          { "id": "L1", "title_ar": "الجدول المحوري: تلخيص آلاف الصفوف في دقيقة", "module": 0 }
+        ],
         "sessions": [
           { "id": "s1", "day": 1, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
           { "id": "s2", "day": 3, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] }
         ]
       },
+      "rationale_ar": "خطة تجريبية للبذرة: جلستان قصيرتان في الأسبوع الأول، لأنك تركت دورات طويلة من قبل.",
       "version": 1,
       "reason": "initial"
     }

@@ -18,7 +18,7 @@
     "test": "vitest run --exclude \".claude/**\"",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts",
-    "fixtures:record": "RECORD_FIXTURES=1 vitest run smoke.test intake.test",
+    "fixtures:record": "RECORD_FIXTURES=1 vitest run smoke.test intake.test architect.test",
     "fixtures:prune": "node demo/fixtures/prune.ts",
     "scout": "node --env-file-if-exists=.env src/server/agents/scout/cli.ts"
   },

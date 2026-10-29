@@ -161,13 +161,53 @@ export const ScoutResult = Obj({
   rejected: Type.Array(Rejection),
 });
 
-// Versioned: a re-plan is a new CoursePlan with version n+1, never an edit of the old one.
+// The architect (#18). The model fills PlanDraft; code builds the CoursePlan from it. A lesson sits
+// in its module and a session in its lesson, so the only reference the model writes is a resource
+// id.
+export const PlanDraft = Obj({
+  road: Type.Array(
+    Obj({
+      title_ar: Type.String({ description: "the module's name in Arabic, a few words" }),
+      weeks: Type.Integer({ description: "whole weeks the module takes, at least 1" }),
+      lessons: Type.Array(
+        Obj({
+          title_ar: Type.String({ description: "what the lesson teaches, in Arabic, a few words" }),
+          resource_ids: Type.Array(Type.String(), {
+            description: "ids of the resources the lesson draws on, copied exactly",
+          }),
+          sessions: Type.Array(
+            Obj({
+              day: Type.Integer({ description: "day of the course, from 0" }),
+              minutes: Type.Integer(),
+            }),
+          ),
+        }),
+        {
+          description: "only lessons in the first two weeks; empty for a module that starts later",
+        },
+      ),
+    }),
+  ),
+  rationale_ar: Type.String({
+    description: "why this plan suits the learner, two to four Arabic sentences addressed to them",
+  }),
+});
+
+// Versioned: a re-plan or a learner's edit is a new CoursePlan with version n+1, never an edit of
+// the old one.
 export const CoursePlan = Obj({
   id: Type.String(),
   road: Type.Array(Obj({ module: Type.String(), weeks: Type.Number() })),
   committed: Obj({
     start: Type.String({ description: "simulated day, e.g. day0" }),
     weeks: Type.Integer(),
+    lessons: Type.Array(
+      Obj({
+        id: Type.String(),
+        title_ar: Type.String(),
+        module: Type.Integer({ description: "the index of the lesson's module in road" }),
+      }),
+    ),
     sessions: Type.Array(
       Obj({
         id: Type.String(),
@@ -178,6 +218,7 @@ export const CoursePlan = Obj({
       }),
     ),
   }),
+  rationale_ar: Type.String({ description: "why this plan suits the learner, shown to them" }),
   version: Type.Integer(),
   reason: Type.String(),
 });
@@ -270,6 +311,7 @@ export const CONTRACTS = {
   Candidates,
   Rejection,
   ScoutResult,
+  PlanDraft,
   CoursePlan,
   Lesson,
   GlossaryEntry,
@@ -282,13 +324,14 @@ export type ContractName = keyof typeof CONTRACTS;
 
 // Schemas a model fills in through `provider.structured`; each has a recorded smoke test.
 // Resource and ScoutResult are not: the scout builds them in code from model-filled Candidates.
+// Nor is CoursePlan: the architect builds it from a PlanDraft.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
   "IntakeReply",
   "Diagnostic",
   "ScoutQueries",
   "Candidates",
-  "CoursePlan",
+  "PlanDraft",
   "Lesson",
   "GlossaryEntry",
   "Quiz",
@@ -305,6 +348,7 @@ export type ScoutQueries = Static<typeof ScoutQueries>;
 export type Candidates = Static<typeof Candidates>;
 export type Rejection = Static<typeof Rejection>;
 export type ScoutResult = Static<typeof ScoutResult>;
+export type PlanDraft = Static<typeof PlanDraft>;
 export type CoursePlan = Static<typeof CoursePlan>;
 export type Lesson = Static<typeof Lesson>;
 export type GlossaryEntry = Static<typeof GlossaryEntry>;

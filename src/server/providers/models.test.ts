@@ -28,6 +28,28 @@ describe("parseModels", () => {
     expect(models.roles.curriculum).toEqual({ provider: "meta", model: "muse-wonder-1.0" });
   });
 
+  it("reads a role's cap on output tokens", () => {
+    const yaml = YAML.replace(
+      "{provider: meta, model: muse-wonder-1.0}",
+      "{provider: meta, model: muse-wonder-1.0, max_output_tokens: 8000}",
+    );
+
+    expect(parseModels(yaml).roles.curriculum).toEqual({
+      provider: "meta",
+      model: "muse-wonder-1.0",
+      max_output_tokens: 8000,
+    });
+  });
+
+  it("rejects an output-token cap that is not a positive whole number", () => {
+    const yaml = YAML.replace(
+      "{provider: meta, model: muse-wonder-1.0}",
+      "{provider: meta, model: muse-wonder-1.0, max_output_tokens: 0}",
+    );
+
+    expect(() => parseModels(yaml)).toThrow(/curriculum.*max_output_tokens/);
+  });
+
   it("rejects a role whose provider is unknown", () => {
     const yaml = YAML.replace(
       "{provider: meta, model: muse-wonder-1.0}",

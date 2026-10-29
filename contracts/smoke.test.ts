@@ -54,10 +54,10 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
     role: "agent_default",
     input: `Describe each cited page for this learner; why_ar is in Arabic.\n${SCOUT_LEARNER}\n\nCited pages:\n1. https://en.wikipedia.org/wiki/Spreadsheet | Spreadsheet - Wikipedia\n2. https://en.wikibooks.org/wiki/LibreOffice_Calc | LibreOffice Calc - Wikibooks`,
   },
-  CoursePlan: {
+  PlanDraft: {
     role: "curriculum",
     instructions: ARABIC,
-    input: `${LEARNER} ضع خطة: طريق من 3 وحدات وأسبوعين ملتزمين بجلسات من 45 دقيقة.`,
+    input: `${LEARNER} المصادر: r1 (مقال إنجليزي عن الجداول المحورية)، r2 (كتاب روسي عن الإحصاء الوصفي). ضع طريقًا من 3 وحدات، ودروس الأسبوعين الأولين فقط بجلسات من 40 دقيقة في الأيام 0 إلى 13.`,
   },
   Lesson: {
     role: "agent_default",

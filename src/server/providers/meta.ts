@@ -67,6 +67,7 @@ export function responsesRequest(role: RoleConfig, input: ResponsesInput): WireR
   const json: Record<string, unknown> = { model: role.model, input: input.input };
   if (input.instructions) json.instructions = input.instructions;
   if (role.reasoning) json.reasoning = { effort: role.reasoning };
+  if (role.max_output_tokens) json.max_output_tokens = role.max_output_tokens;
   if (input.tools?.length) json.tools = input.tools;
   if (input.format) {
     json.text = { format: { type: "json_schema", strict: true, ...input.format } };

@@ -18,6 +18,7 @@ const spike = (feature: string, endpoint: string) => {
 const MODELS = parseModels(`
 roles:
   agent_default: {provider: meta, model: muse-spark-1.3, reasoning: low}
+  curriculum:    {provider: meta, model: muse-spark-1.3, max_output_tokens: 8000}
   transcribe:    {provider: meta, model: muse-voice-transcribe-1.0}
   segment:       {provider: meta, model: sam-3.1}
   image_edit:    {provider: meta, model: muse-image-1.0}
@@ -97,6 +98,20 @@ describe("Meta provider normalization", () => {
       reasoning: { effort: "low" },
       text: { format: { type: "json_schema", name: "learner_profile", strict: true, schema } },
     });
+  });
+
+  it("caps output tokens for a role that sets a cap", async () => {
+    const { p, sent } = provider([{ status: 200, body: spike("json_schema", "/responses") }]);
+    const schema = { type: "object", properties: {}, required: [], additionalProperties: false };
+
+    await p.structured({
+      role: "curriculum",
+      trace: TRACE,
+      input: "خطة",
+      schema: { name: "x", schema },
+    });
+
+    expect(sent[0]?.body).toMatchObject({ model: "muse-spark-1.3", max_output_tokens: 8000 });
   });
 
   it("normalizes tool calls and ignores commentary messages", async () => {

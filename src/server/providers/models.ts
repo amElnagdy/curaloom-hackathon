@@ -9,7 +9,13 @@ export type ProviderName = (typeof PROVIDERS)[number];
 export const REASONING_EFFORTS = ["minimal", "low", "medium", "high", "xhigh"] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
-export type RoleConfig = { provider: ProviderName; model: string; reasoning?: ReasoningEffort };
+export type RoleConfig = {
+  provider: ProviderName;
+  model: string;
+  reasoning?: ReasoningEffort;
+  // Caps the reply's tokens, reasoning included, for a role whose output is the main cost.
+  max_output_tokens?: number;
+};
 
 // Token prices are USD per 1M tokens; unit prices are USD per image or per audio hour.
 export type Price =
@@ -38,7 +44,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const ROLE_KEYS = ["provider", "model", "reasoning"];
+const ROLE_KEYS = ["provider", "model", "reasoning", "max_output_tokens"];
 
 // Exported so a caller that routes a model chosen at runtime (the eval CLI) gets the same checks.
 export function parseRole(name: string, raw: unknown, prices: Record<string, Price>): RoleConfig {
@@ -48,15 +54,22 @@ export function parseRole(name: string, raw: unknown, prices: Record<string, Pri
   if (!isRecord(raw)) return fail("must be a mapping");
   const unknown = Object.keys(raw).find((key) => !ROLE_KEYS.includes(key));
   if (unknown) fail(`unknown key "${unknown}"; supported: ${ROLE_KEYS.join(", ")}`);
-  const { provider, model, reasoning } = raw;
+  const { provider, model, reasoning, max_output_tokens } = raw;
   if (!(PROVIDERS as readonly unknown[]).includes(provider)) fail(`unknown provider "${provider}"`);
   if (typeof model !== "string" || model === "") return fail("missing model");
   if (!Object.hasOwn(prices, model)) fail(`no price for "${model}" under prices`);
   if (reasoning !== undefined && !(REASONING_EFFORTS as readonly unknown[]).includes(reasoning)) {
     fail(`unknown reasoning "${reasoning}"`);
   }
+  if (
+    max_output_tokens !== undefined &&
+    !(Number.isInteger(max_output_tokens) && (max_output_tokens as number) > 0)
+  ) {
+    fail(`max_output_tokens must be a positive whole number; got ${max_output_tokens}`);
+  }
   const role: RoleConfig = { provider: provider as ProviderName, model };
   if (reasoning !== undefined) role.reasoning = reasoning as ReasoningEffort;
+  if (max_output_tokens !== undefined) role.max_output_tokens = max_output_tokens as number;
   return role;
 }
 
