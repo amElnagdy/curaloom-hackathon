@@ -6,6 +6,7 @@ import { planResponse } from "./http.ts";
 
 const seed = loadOmarSeed("Pivot tables");
 const SAVED: SavedPlan = {
+  for_profile: "f00d",
   versions: seed.plans,
   resources: seed.resources,
   limits: { budget_minutes: 300, resource_ids: ["r1"] },

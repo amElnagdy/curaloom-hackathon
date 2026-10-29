@@ -22,7 +22,7 @@ import type { CoursePlan, Resource } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
-import { architectBrief, limitsOf, savedPlan } from "../../server/agents/architect/architect.ts";
+import { architectBrief, limitsOf, planFor } from "../../server/agents/architect/architect.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
 import { createFileStore } from "../../server/store/store.ts";
@@ -131,7 +131,8 @@ export default async function PlanPage() {
   const seed = loadOmarSeed(config.demoTopic);
   const learner = savedProfile(store, DEMO_SESSION_ID);
   const profile = learner ?? seed.profile;
-  const saved = savedPlan(store, DEMO_SESSION_ID);
+  // Only a plan built for this learner's profile is theirs; any other waits for a rebuild.
+  const saved = learner && planFor(store, DEMO_SESSION_ID, learner);
   const latest = saved?.versions.at(-1);
   const example = latestPlan(seed);
 

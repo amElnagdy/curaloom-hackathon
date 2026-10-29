@@ -17,6 +17,7 @@ import {
   createPlanner,
   PlanConflict,
   PlanEditRejected,
+  planFor,
   runArchitect,
   savedPlan,
 } from "./architect.ts";
@@ -244,12 +245,13 @@ function plannerSetup() {
   const store = createFileStore(dir);
   const fake = fakeProvider([DRAFT]);
   let searches = 0;
+  let learner = profile;
   const planner = createPlanner({
     orchestrator: createOrchestrator({ store, makeProvider: () => fake.provider }),
     store,
     tracer: createTracer(store, "s1"),
     sessionId: "s1",
-    profile: () => profile,
+    profile: () => learner,
     findResources: async () => {
       searches++;
       return seed.resources;
@@ -258,6 +260,11 @@ function plannerSetup() {
   return {
     planner,
     saved: () => savedPlan(store, "s1"),
+    // The intake saving a new profile, or restarting and saving another.
+    becomes: (next: typeof profile) => {
+      learner = next;
+    },
+    current: () => planFor(store, "s1", learner),
     calls: fake.calls,
     searches: () => searches,
     events: () => store.readTrace<TraceEvent>("s1").filter((e) => e.agent === "architect"),
@@ -286,6 +293,33 @@ describe("planner", () => {
     expect(built.resources).toEqual(seed.resources);
     expect(built.limits).toEqual({ budget_minutes: 300, resource_ids: ["r1", "r2", "r3"] });
     expect([calls.length, searches()]).toEqual([1, 1]);
+  });
+
+  it("builds again for a new learner instead of answering the plan built for another profile", async () => {
+    const { planner, becomes, current, calls } = plannerSetup();
+    const first = await planner.build();
+    planner.edit({ op: "shorten", session_id: "s1", minutes: 20 });
+
+    becomes({ ...profile, name: "منى", hours_per_week: 2 });
+    expect(current()).toBeUndefined();
+    const second = await planner.build();
+
+    expect(second.limits.budget_minutes).toBe(120);
+    expect(second.versions.map((v) => [v.version, v.reason])).toEqual([[1, "initial"]]);
+    expect(current()).toEqual(second);
+    expect(calls).toHaveLength(2);
+    expect(first.limits.budget_minutes).toBe(300);
+  });
+
+  it("refuses an edit to a plan built for another profile", async () => {
+    const { planner, becomes } = plannerSetup();
+    await planner.build();
+
+    becomes({ ...profile, hours_per_week: 2 });
+
+    expect(
+      refusal(() => planner.edit({ op: "shorten", session_id: "s1", minutes: 20 })),
+    ).toBeInstanceOf(PlanConflict);
   });
 
   it("saves an accepted edit as the next version and keeps the one before", async () => {

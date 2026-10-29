@@ -172,9 +172,14 @@ const architect: Agent<ArchitectBrief, typeof CoursePlan> = {
 
 const PLAN_DOC = "plan";
 
-// The session's plan: every version, oldest first, the resources the scout found for it and the
-// limits each version must fit.
-export type SavedPlan = { versions: CoursePlan[]; resources: Resource[]; limits: Limits };
+// The session's plan: the profile it was built for (a content hash), every version, oldest first,
+// the resources the scout found for it and the limits each version must fit.
+export type SavedPlan = {
+  for_profile: string;
+  versions: CoursePlan[];
+  resources: Resource[];
+  limits: Limits;
+};
 
 // An edit before there is a plan to edit.
 export class PlanConflict extends Error {}
@@ -190,6 +195,17 @@ export class PlanEditRejected extends Error {
 
 export function savedPlan(store: Store, sessionId: string): SavedPlan | undefined {
   return store.readDoc<SavedPlan>(sessionId, PLAN_DOC);
+}
+
+// The session's plan if it was built for this profile. A plan built for another one, the seed's
+// before the intake or the learner's before the intake restarted, is not this learner's.
+export function planFor(
+  store: Store,
+  sessionId: string,
+  profile: LearnerProfile,
+): SavedPlan | undefined {
+  const saved = savedPlan(store, sessionId);
+  return saved?.for_profile === contentHash(profile) ? saved : undefined;
 }
 
 export type PlannerDeps = {
@@ -220,22 +236,29 @@ export function createPlanner({
     tracer.emit({ agent: "architect", kind: "output", summary_ar, summary_en });
 
   return {
-    // The session's plan, built on the first call.
+    // The learner's plan, built on the first call for their profile. A new profile gets a new
+    // plan; the saved steps make it free when the scout's and the architect's inputs are unchanged.
     async build(): Promise<SavedPlan> {
-      const existing = savedPlan(store, sessionId);
-      if (existing) return existing;
       const learner = profile();
+      const existing = planFor(store, sessionId, learner);
+      if (existing) return existing;
       const resources = await findResources(learner);
       const brief = architectBrief(learner, resources);
       const plan = await runArchitect({ orchestrator, sessionId, brief });
-      return save({ versions: [plan], resources, limits: limitsOf(brief) });
+      return save({
+        for_profile: contentHash(learner),
+        versions: [plan],
+        resources,
+        limits: limitsOf(brief),
+      });
     },
 
     // Throws PlanEditRejected, with the broken rules, for an edit the plan cannot take.
     edit(edit: PlanEdit): SavedPlan {
-      const saved = savedPlan(store, sessionId);
+      const saved = planFor(store, sessionId, profile());
       const latest = saved?.versions.at(-1);
-      if (!saved || !latest) throw new PlanConflict("There is no plan to edit yet");
+      if (!saved || !latest)
+        throw new PlanConflict("There is no plan for this learner to edit yet");
       const result = applyEdit(latest, edit, saved.limits);
       const what = describeEdit(latest, edit);
       if (!result.ok) {
