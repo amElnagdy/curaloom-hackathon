@@ -200,8 +200,8 @@ function scoutAgent(
 }
 
 // Asks for a paid answer once. It is kept under a hash of the request, so a later run, or the
-// orchestrator's retry of this step, reads it instead of paying again. `call` validates what it
-// returns, so a reply that broke its contract is never kept.
+// orchestrator's retry of this step, reads it instead of paying again. Only what `call` returns is
+// kept, after its validation, so a reply that broke its contract never is.
 async function paidOnce<T>(
   ctx: ScoutContext,
   request: { kind: "plan" | "search"; material: unknown[]; hit: Summary },

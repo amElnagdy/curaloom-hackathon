@@ -1,5 +1,5 @@
-// The licence checker (#17). It reads the licence statement in a page's own text and maps it to an
-// SPDX id and a use. A model's claim about a licence is not evidence, so only this code decides.
+// The licence checker (#17). It reads the licence statements in a page's own text and maps them to
+// one SPDX id and a use. A model's claim about a licence is not evidence, so only this code decides.
 
 import type { Resource } from "../../../../contracts/index.ts";
 
