@@ -4,6 +4,7 @@
 
 import type { ReactNode } from "react";
 import { LiveSimClockPill } from "./activity-feed.tsx";
+import { DemoBar, type DemoMark } from "./demo-bar.tsx";
 import { Rail } from "./rail.tsx";
 import styles from "./shell.module.css";
 import { TopBar } from "./top-bar.tsx";
@@ -15,6 +16,8 @@ export function Shell({
   providerProfile,
   simClock,
   devTools,
+  sessionId,
+  demoMarks,
   children,
 }: {
   appName: string;
@@ -22,6 +25,8 @@ export function Shell({
   providerProfile: string;
   simClock: boolean;
   devTools: boolean;
+  sessionId: string;
+  demoMarks: DemoMark[];
   children: ReactNode;
 }) {
   const clock = simClock ? <LiveSimClockPill /> : null;
@@ -38,6 +43,9 @@ export function Shell({
           <main id="main" tabIndex={-1} className={styles.main}>
             {children}
           </main>
+          {simClock && (
+            <DemoBar sessionId={sessionId} learnerName={learnerName} marks={demoMarks} />
+          )}
         </div>
       </div>
       <TraceDrawer providerProfile={providerProfile} devTools={devTools} />

@@ -4,7 +4,7 @@
   position: sticky;
   top: var(--top-h);
   align-self: start;
-  height: calc(100vh - var(--top-h));
+  height: calc(100vh - var(--top-h) - var(--demo-bar-h));
   background: var(--canvas);
   border-inline-start: 1px solid var(--line);
 }

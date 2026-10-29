@@ -106,6 +106,8 @@
   --rail-w: 4rem;
   --rail-open-w: 15rem;
   --top-h: 3.5rem;
+  /* Room the demo bar takes at the bottom of the page column (demo-bar.module.css). */
+  --demo-bar-h: 0px;
   --feed-w: 27rem;
   --tab-w: 2.5rem;
   /* The trace drawer covers exactly the plan's activity column: one layer replaces the other. */
@@ -115,6 +117,13 @@
   --page-gutter-end: calc(var(--tab-w) + var(--page-gutter));
 
   color-scheme: light;
+}
+
+html[data-demo-bar="open"] {
+  --demo-bar-h: 9rem;
+}
+html[data-demo-bar="collapsed"] {
+  --demo-bar-h: 3.5rem;
 }
 
 @media (max-width: 1280px) {

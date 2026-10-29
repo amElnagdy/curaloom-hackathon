@@ -28,7 +28,8 @@
 .screen {
   display: flex;
   flex-direction: column;
-  height: min(44rem, calc(100vh - var(--top-h) - 6rem));
+  /* Fits under the page header before any scroll, and ends above the demo bar. */
+  height: min(44rem, calc(100vh - var(--top-h) - 14rem - var(--demo-bar-h)));
   min-height: 32rem;
   overflow: hidden;
   border-radius: 2.4rem;

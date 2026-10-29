@@ -1,30 +1,21 @@
 "use client";
 
 // The simulated clock's controls (#23): +1 hour, +1 day, jump to day 2, 5, 10 or 17, and reset,
-// through POST /api/sessions/:id/sim/*. The time shown follows the trace stream, so it is live
-// across tabs; right after a move it shows the route's answer until the stream catches up.
+// through useSimClock, so the time shown is live across tabs.
 
 import { CalendarPlus, FastForward, Info, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { CoachEvent } from "../../../contracts/index.ts";
-import {
-  compareSimTime,
-  formatSimTime,
-  parseSimTime,
-  type SimTime,
-  startOfDay,
-} from "../../server/clock/time.ts";
+import { compareSimTime, startOfDay } from "../../server/clock/time.ts";
 import { Callout, SettingRow, SettingRows } from "../_shell/blocks.tsx";
 import { simDay } from "../_shell/course.ts";
 import { countOf, MESSAGES } from "../_shell/format.ts";
-import { useTrace } from "../_shell/trace-provider.tsx";
 import { buttonClass, SimClockPill } from "../_shell/ui.tsx";
+import { type SimMove, useSimClock } from "../_shell/use-sim-clock.ts";
 import styles from "./settings.module.css";
 
 const JUMP_DAYS = [2, 5, 10, 17];
-
-type Move = { action: "advance" | "set" | "reset"; body?: unknown };
 
 function firedNote(events: CoachEvent[]): ReactNode {
   if (events.length === 0) return "لم يحلّ موعد أي رسالة من المدرب.";
@@ -38,43 +29,15 @@ function firedNote(events: CoachEvent[]): ReactNode {
 }
 
 export function ClockControls({ sessionId }: { sessionId: string }) {
-  const { simNow } = useTrace();
-  const [answered, setAnswered] = useState<SimTime | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { now, busy, move: moveClock } = useSimClock(sessionId);
   const [note, setNote] = useState<ReactNode>(null);
 
-  // The stream's next clock event replaces the route's answer.
-  const streamed = simNow && formatSimTime(simNow);
-  useEffect(() => {
-    if (streamed) setAnswered(null);
-  }, [streamed]);
-  const now = answered ?? simNow;
-
-  async function move({ action, body }: Move) {
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/sim/${action}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body ?? {}),
-      });
-      if (res.status === 409) {
-        setNote("لا تعود الساعة إلى الوراء. أعد الضبط أولًا.");
-        return;
-      }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const result = (await res.json()) as { now: string; events: CoachEvent[] };
-      setAnswered(parseSimTime(result.now));
-      setNote(
-        action === "reset"
-          ? "عادت الجلسة إلى بيانات العرض، والساعة إلى يوم البدء."
-          : firedNote(result.events),
-      );
-    } catch {
-      setNote("تعذّر تحريك الساعة.");
-    } finally {
-      setBusy(false);
-    }
+  async function move(m: SimMove) {
+    const outcome = await moveClock(m);
+    if (outcome.kind === "past") setNote("لا تعود الساعة إلى الوراء. أعد الضبط أولًا.");
+    else if (outcome.kind === "failed") setNote("تعذّر تحريك الساعة.");
+    else if (m.action === "reset") setNote("عادت الجلسة إلى بيانات العرض، والساعة إلى يوم البدء.");
+    else setNote(firedNote(outcome.events));
   }
 
   const disabled = busy || now === null;

@@ -45,6 +45,7 @@ describe("coach scheduler", () => {
     const rule = (key: string, day: number): CoachRule => ({
       key,
       at: startOfDay(day),
+      type: "nudge",
       fire: () => ({
         id: key,
         sim_day: day,

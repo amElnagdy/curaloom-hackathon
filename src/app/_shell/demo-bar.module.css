@@ -1,0 +1,166 @@
+/* Demo bar (demo-bar.tsx): docked at the bottom of the page column, over the page as it scrolls.
+   html[data-demo-bar] sets --demo-bar-h (globals.css) so full-height columns end above it. */
+
+.dock {
+  position: sticky;
+  bottom: var(--s-4);
+  z-index: 25;
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--page-gutter) var(--page-gutter-end);
+  pointer-events: none;
+}
+
+.bar,
+.chip {
+  pointer-events: auto;
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+}
+
+.bar {
+  width: min(56rem, 100%);
+  padding: var(--s-3) var(--s-5) var(--s-4);
+  border-radius: var(--r-lg);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+.title svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--ink-3);
+}
+.now {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.controls {
+  display: flex;
+  gap: var(--s-1);
+  margin-inline-start: auto;
+}
+
+/* Day 0 sits at the inline start (the right edge); --pos and --at run along the inline axis. */
+.track {
+  --at: 0%;
+  position: relative;
+  height: 3.5rem;
+  margin: var(--s-3) var(--s-8) 0;
+  padding: 0;
+  list-style: none;
+}
+.rail {
+  position: absolute;
+  top: 0.875rem;
+  inset-inline: 0;
+  height: 0.25rem;
+  border-radius: var(--r-pill);
+  background: linear-gradient(
+    to left,
+    var(--accent) 0 var(--at),
+    var(--fill-strong) var(--at) 100%
+  );
+  transition: background var(--dur-3) var(--ease-out);
+}
+
+.mark {
+  position: absolute;
+  top: 0;
+  inset-inline-start: var(--pos);
+  translate: 50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+}
+.pin {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.pin:disabled {
+  cursor: default;
+}
+.pin:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--line-strong);
+  box-shadow: 0 0 0 4px var(--surface);
+  transition:
+    background var(--dur-2) var(--ease-out),
+    scale var(--dur-2) var(--ease-out);
+}
+.done .dot {
+  background: var(--ready);
+}
+.pin:not(:disabled):hover .dot {
+  background: var(--accent);
+  scale: 1.15;
+}
+.caption {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.done .caption {
+  color: var(--ink);
+}
+
+.note {
+  margin: var(--s-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--fail-ink);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 2.25rem;
+  padding: 0 var(--s-4);
+  border: 0;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--ink-3);
+}
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sep {
+  width: 1px;
+  height: 0.875rem;
+  background: var(--line-strong);
+}

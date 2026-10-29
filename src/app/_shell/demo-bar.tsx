@@ -1,0 +1,181 @@
+"use client";
+
+// The demo bar (#23, prototype C on prototype/23-demo-bar): a day timeline docked at the bottom
+// of the page column. Each coach rule is a marker that turns ready once the clock passes it; a
+// marker ahead jumps the clock to its day. Demo machinery, so it collapses to a chip.
+
+import { ChevronDown, FlaskConical, Plus, RotateCcw } from "lucide-react";
+import { type CSSProperties, useEffect, useState } from "react";
+import type { CoachEvent } from "../../../contracts/index.ts";
+import { compareSimTime, type SimTime, startOfDay } from "../../server/clock/time.ts";
+import { COACH_TITLE, simDay, simTimeText } from "./course.ts";
+import styles from "./demo-bar.module.css";
+import { buttonClass, cx } from "./ui.tsx";
+import { useSimClock } from "./use-sim-clock.ts";
+
+export type DemoMark = { day: number; type: CoachEvent["type"] };
+
+const SHORT: Record<CoachEvent["type"], string> = {
+  nudge: "تذكير",
+  checkin: "سؤال",
+  replan: "خطة معدّلة",
+  weekly: "ملخص",
+  comeback: "عودة",
+};
+
+const STORAGE_KEY = "demo-bar";
+const MIN_SPAN = 17;
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === "collapsed";
+  } catch {
+    return false;
+  }
+}
+
+function writeCollapsed(collapsed: boolean) {
+  try {
+    localStorage.setItem(STORAGE_KEY, collapsed ? "collapsed" : "open");
+  } catch {}
+}
+
+// How far along the track a time sits, 0 to 100.
+const percent = (t: SimTime, span: number) =>
+  Math.min(100, ((t.day + t.minute / 1440) / span) * 100);
+
+export function DemoBar({
+  sessionId,
+  learnerName,
+  marks,
+}: {
+  sessionId: string;
+  learnerName: string;
+  marks: DemoMark[];
+}) {
+  const { now, busy, move } = useSimClock(sessionId);
+  const [collapsed, setCollapsed] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  useEffect(() => setCollapsed(readCollapsed()), []);
+  useEffect(() => {
+    document.documentElement.dataset.demoBar = collapsed ? "collapsed" : "open";
+    return () => {
+      delete document.documentElement.dataset.demoBar;
+    };
+  }, [collapsed]);
+
+  const toggle = (next: boolean) => {
+    setCollapsed(next);
+    writeCollapsed(next);
+  };
+
+  async function run(m: Parameters<typeof move>[0]) {
+    const outcome = await move(m);
+    setNote(outcome.kind === "failed" ? "تعذّر تحريك الساعة." : null);
+  }
+
+  if (collapsed) {
+    return (
+      <div className={styles.dock}>
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => toggle(false)}
+          aria-label="أظهر أداة العرض"
+        >
+          <FlaskConical aria-hidden />
+          أداة العرض
+          {now && (
+            <>
+              <span className={styles.sep} aria-hidden />
+              {simDay(now.day)}
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  const span = Math.max(MIN_SPAN, now?.day ?? 0, ...marks.map((m) => m.day));
+  const passed = (day: number) => now !== null && compareSimTime(startOfDay(day), now) <= 0;
+  const at = now ? percent(now, span) : 0;
+
+  return (
+    <div className={styles.dock}>
+      <section className={styles.bar} aria-label="أداة العرض">
+        <header className={styles.head}>
+          <h2 className={styles.title}>
+            <FlaskConical aria-hidden />
+            أيام {learnerName} بلا دراسة
+          </h2>
+          {now && (
+            <span className={styles.now} role="timer">
+              {simTimeText(now)}
+            </span>
+          )}
+          <div className={styles.controls}>
+            <button
+              type="button"
+              className={buttonClass("primary", "sm")}
+              disabled={busy || now === null}
+              onClick={() => run({ action: "advance", body: { days: 1 } })}
+            >
+              <Plus aria-hidden />
+              يوم
+            </button>
+            <button
+              type="button"
+              className={buttonClass("ghost", "sm")}
+              disabled={busy || now === null}
+              onClick={() => run({ action: "reset" })}
+            >
+              <RotateCcw aria-hidden />
+              إعادة
+            </button>
+            <button
+              type="button"
+              className={buttonClass("ghost", "sm")}
+              onClick={() => toggle(true)}
+              aria-label="أخفِ أداة العرض"
+            >
+              <ChevronDown aria-hidden />
+            </button>
+          </div>
+        </header>
+        <ol className={styles.track} style={{ "--at": `${at}%` } as CSSProperties}>
+          <li className={styles.rail} aria-hidden />
+          {marks.map((m) => {
+            const done = passed(m.day);
+            const label = `${simDay(m.day)}: ${COACH_TITLE[m.type]}`;
+            return (
+              <li
+                key={`${m.day}-${m.type}`}
+                className={cx(styles.mark, done && styles.done)}
+                style={{ "--pos": `${(m.day / span) * 100}%` } as CSSProperties}
+              >
+                <button
+                  type="button"
+                  className={styles.pin}
+                  disabled={done || busy || now === null}
+                  aria-label={done ? `${label}، حلّ موعدها` : `انتقل إلى ${label}`}
+                  onClick={() => run({ action: "set", body: { day: m.day } })}
+                >
+                  <span className={styles.dot} aria-hidden />
+                </button>
+                <span className={styles.caption} aria-hidden>
+                  {simDay(m.day)}، {SHORT[m.type]}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+        {note && (
+          <p className={styles.note} role="status">
+            {note}
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}

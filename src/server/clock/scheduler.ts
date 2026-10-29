@@ -16,6 +16,8 @@ export type CoachRule = {
   // The ledger key; also the message's template name.
   key: string;
   at: SimTime;
+  // What the fired event will be, so the demo bar can mark it before it fires.
+  type: CoachEvent["type"];
   cta?: Cta;
   fire(ctx: RuleContext): CoachEvent;
 };
@@ -39,6 +41,7 @@ const placeholder = (
 ): CoachRule => ({
   key,
   at: startOfDay(day),
+  type,
   ...(cta && { cta }),
   fire: ({ learner }) => ({
     id,
