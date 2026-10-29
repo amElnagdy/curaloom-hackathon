@@ -7,7 +7,7 @@ import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
-import { createFileStore } from "../../store/store.ts";
+import { createFileCache, createFileStore } from "../../store/store.ts";
 import { createPageFetcher, type FetchOutcome, type PageFetcher } from "../../tools/fetch-page.ts";
 import type { TraceEvent } from "../../trace/trace.ts";
 import { runScout, scoutBrief } from "./scout.ts";
@@ -68,6 +68,8 @@ type FakeOptions = { plan?: ScoutQueries["queries"]; broken?: "ScoutQueries" | "
 
 function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
   const prompts: string[] = [];
+  // One entry per call: the schema name, or "web_search".
+  const log: string[] = [];
   let calls = 0;
   let unbroken = false;
   const breaks = (schema: string) => {
@@ -100,6 +102,7 @@ function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
     async structured(call) {
       const input = String(call.input);
       prompts.push(`${call.instructions}\n${input}`);
+      log.push(call.schema.name);
       if (call.schema.name === "ScoutQueries") {
         return reply({ queries: breaks("ScoutQueries") ? [{ lang: "de", queries: "x" }] : plan });
       }
@@ -119,6 +122,7 @@ function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
     async webSearch(call) {
       const input = String(call.input);
       prompts.push(`${call.instructions}\n${input}`);
+      log.push("web_search");
       const cited = SCRIPT[scripted(input, "query")].cited;
       return reply(null, {
         text: "Pages found.",
@@ -131,7 +135,7 @@ function fakeProvider({ plan = PLAN, broken }: FakeOptions = {}) {
     segment: unused,
     totalCostUsd: () => calls * 0.01,
   };
-  return { provider, prompts, calls: () => calls };
+  return { provider, prompts, log, calls: () => calls };
 }
 
 const dirs: string[] = [];
@@ -159,19 +163,21 @@ function setup(options: FakeOptions = {}) {
       return WEB[url] ?? { ok: false, url, reason: "HTTP 404" };
     },
   };
-  const run = (langs: Lang[], topic = profile.topic) =>
+  const cache = createFileCache(dir);
+  const run = (langs: Lang[], { topic = profile.topic, sessionId = "s1" } = {}) =>
     runScout({
       orchestrator,
-      sessionId: "s1",
+      sessionId,
       brief: scoutBrief({ ...profile, topic, source_langs_ok: langs }),
       pages,
+      cache,
     });
   return {
     run,
     fake,
     fetched,
     providers: () => providers,
-    trace: () => store.readTrace<TraceEvent>("s1").map((e) => e.summary_en),
+    trace: (sessionId = "s1") => store.readTrace<TraceEvent>(sessionId).map((e) => e.summary_en),
   };
 }
 
@@ -301,8 +307,36 @@ describe("scout", () => {
     expect(fake.calls()).toBe(calls);
     expect(providers()).toBe(1);
 
-    await run(["en", "ru"], "Another topic");
+    await run(["en", "ru"], { topic: "Another topic" });
     expect(providers()).toBe(2);
+  });
+
+  it("reads the result from the cache in a new session, with no model call, and traces it", async () => {
+    const { run, fake, trace } = setup();
+
+    const first = await run(["en", "ru"]);
+    const calls = fake.calls();
+    const again = await run(["ru", "en"], { sessionId: "s2" });
+
+    expect(again).toEqual(first);
+    expect(fake.calls()).toBe(calls);
+    expect(trace("s2")).toContainEqual(expect.stringMatching(/^Scout result read from the cache/));
+  });
+
+  it("pays once for each search when the orchestrator retries the step", async () => {
+    const { run, fake, trace } = setup({ broken: "Candidates" });
+
+    await run(["en", "ru"]);
+
+    expect(fake.log.filter((call) => call === "web_search")).toHaveLength(2);
+    expect(fake.log.filter((call) => call === "ScoutQueries")).toHaveLength(1);
+    expect(trace()).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^Queries read from the cache/),
+        expect.stringMatching(/^web_search \(en\) read from the cache/),
+        expect.stringMatching(/^web_search \(ru\) read from the cache/),
+      ]),
+    );
   });
 });
 
@@ -328,8 +362,15 @@ describe("scout, replaying the recorded run", () => {
       },
     });
     const brief = scoutBrief({ ...profile, topic: RECORDED_TOPIC });
+    const cache = createFileCache(dir);
 
-    const { resources, rejected } = await runScout({ orchestrator, sessionId: "s1", brief, pages });
+    const { resources, rejected } = await runScout({
+      orchestrator,
+      sessionId: "s1",
+      brief,
+      pages,
+      cache,
+    });
 
     expect(resources.length).toBeGreaterThanOrEqual(5);
     expect(new Set(resources.map((r) => r.lang)).size).toBeGreaterThanOrEqual(2);

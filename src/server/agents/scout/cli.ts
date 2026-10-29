@@ -1,6 +1,7 @@
 // `pnpm scout` (#17): runs the scout on the demo session and prints its resources per language, its
 // rejections with their reasons, and the run's cost. The topic is config.demoTopic: set it in the
-// shell for one run. A second run with the same topic and languages returns the saved result.
+// shell for one run. A second run with the same topic and languages returns the saved result, from
+// the session or, after `rm -rf data/sessions/demo`, from data/cache/scout.
 
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
@@ -8,7 +9,7 @@ import { config, loadConfig } from "../../../config.ts";
 import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type Provider } from "../../providers/provider.ts";
-import { createFileStore } from "../../store/store.ts";
+import { createFileCache, createFileStore } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { runScout, scoutBrief } from "./scout.ts";
 
@@ -21,6 +22,7 @@ if (config.demoTopic === loadConfig({}).demoTopic) {
 }
 
 let provider: Provider | undefined;
+let modelCalls = 0;
 const orchestrator = createOrchestrator({
   store: createFileStore(),
   makeProvider: (onTrace) => {
@@ -28,7 +30,10 @@ const orchestrator = createOrchestrator({
       models: loadModels(),
       profile: config.providerProfile,
       apiKey: config.modelApiKey,
-      onTrace,
+      onTrace: (event) => {
+        modelCalls++;
+        onTrace(event);
+      },
     });
     return provider;
   },
@@ -47,6 +52,7 @@ const { resources, rejected } = await runScout({
   sessionId: DEMO_SESSION_ID,
   brief,
   pages,
+  cache: createFileCache(),
 });
 
 console.log(`\nResources: ${resources.length}`);
@@ -66,5 +72,7 @@ for (const [reason, count] of [...reasons].sort((a, b) => b[1] - a[1])) {
   console.log(`  ${count} x ${reason}`);
 }
 
-const saved = provider ? "" : " (the saved result from the session store; no model calls)";
-console.log(`\nCost: $${(provider?.totalCostUsd() ?? 0).toFixed(4)}${saved}`);
+const saved = modelCalls ? "" : " (the saved result, from the session or the cache)";
+console.log(
+  `\nCost: $${(provider?.totalCostUsd() ?? 0).toFixed(4)} over ${modelCalls} model calls${saved}`,
+);

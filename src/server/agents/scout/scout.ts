@@ -1,7 +1,7 @@
-// The scout (#17) finds open-licence learning resources for the learner's topic in up to four
-// languages. A model writes the search queries, searches the web and describes the pages it cited;
-// code then fetches each page, decides its licence and ranks the pages that pass. The model sees
-// only the topic, goal, level and languages, and never decides a licence.
+// The scout (#17) finds open-licence learning resources for the learner's topic in the source
+// languages the learner accepts. A model writes the search queries, searches the web and describes
+// the pages it cited; code then fetches each page, decides its licence and ranks the pages that
+// pass. The model sees only the topic, goal, level and languages, and never decides a licence.
 
 import { createHash } from "node:crypto";
 import {
@@ -15,6 +15,7 @@ import {
 } from "../../../../contracts/index.ts";
 import type { Agent, AgentContext, createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import type { Citation } from "../../providers/provider.ts";
+import type { Cache } from "../../store/store.ts";
 import type { PageFetcher } from "../../tools/fetch-page.ts";
 import { classifyLicence, type LicenceCheck } from "./licence.ts";
 import { rank } from "./rank.ts";
@@ -43,21 +44,25 @@ export type ScoutRun = {
   sessionId: string;
   brief: ScoutBrief;
   pages: PageFetcher;
+  // Outlives every session: it keeps each result and each paid search under data/cache/scout.
+  cache: Cache;
 };
 
-// The step key names the topic and the languages, so the session keeps one result per pair and a
-// second run with the same pair returns it without a model call.
+// The topic and the sorted languages name a result, both as the step key in the session and in the
+// cache, so a second run with the same pair returns it without a model call, in any session.
 export function runScout({
   orchestrator,
   sessionId,
   brief,
   pages,
+  cache,
 }: ScoutRun): Promise<ScoutResult> {
-  const material = JSON.stringify([brief.topic, [...brief.langs].sort()]);
-  const key = `scout:${createHash("sha256").update(material).digest("hex").slice(0, 12)}`;
-  return orchestrator.runStep(sessionId, scoutAgent(pages), brief, { key });
+  const key = hash([brief.topic, [...brief.langs].sort()]);
+  const agent = scoutAgent(pages, cache, `result_${key}`);
+  return orchestrator.runStep(sessionId, agent, brief, { key: `scout:${key}` });
 }
 
+const CACHE_AREA = "scout";
 const MAX_RESOURCES = 8;
 const MAX_QUERIES = 2;
 const FETCH_CONCURRENCY = 4;
@@ -90,16 +95,35 @@ type Cleared = LicenceCheck & { use: Resource["licence"]["use"] };
 type Checked =
   | { ok: true; candidate: Candidate; check: Cleared }
   | { ok: false; rejection: Rejection };
+type Planned = { lang: Lang; queries: string[] };
+type Summary = { summary_ar: string; summary_en: string };
 
-function scoutAgent(pages: PageFetcher): Agent<ScoutBrief, typeof ScoutResult> {
+// What every part of one run reads: the orchestrator's context, the brief and the scout's tools.
+type ScoutContext = AgentContext & { brief: ScoutBrief; pages: PageFetcher; cache: Cache };
+
+function scoutAgent(
+  pages: PageFetcher,
+  cache: Cache,
+  resultKey: string,
+): Agent<ScoutBrief, typeof ScoutResult> {
   return {
     name: "scout",
     output: ScoutResult,
-    async run(ctx, brief) {
+    async run(agentCtx, brief) {
+      const saved = cache.read<ScoutResult>(CACHE_AREA, resultKey);
+      if (saved) {
+        agentCtx.trace({
+          kind: "decision",
+          summary_ar: "وجد نتيجة سابقة لهذا الموضوع بهذه اللغات، فلم يبحث من جديد",
+          summary_en: `Scout result read from the cache (${CACHE_AREA}/${resultKey}); no search and no model call`,
+        });
+        return saved;
+      }
+      const ctx: ScoutContext = { ...agentCtx, brief, pages, cache };
       const costBefore = ctx.provider.totalCostUsd();
-      const planned = await planQueries(ctx, brief);
-      const found = await Promise.all(
-        planned.map(({ lang, queries }) => searchLanguage(ctx, brief, lang, queries)),
+      const planned = await planQueries(ctx);
+      const found = await settleAll(
+        planned.map(({ lang, queries }) => searchLanguage(ctx, lang, queries)),
       );
 
       const seen = new Set<string>();
@@ -115,7 +139,7 @@ function scoutAgent(pages: PageFetcher): Agent<ScoutBrief, typeof ScoutResult> {
         }
       }
 
-      const checked = await mapPool(candidates, FETCH_CONCURRENCY, (c) => checkPage(ctx, pages, c));
+      const checked = await mapPool(candidates, FETCH_CONCURRENCY, (c) => checkPage(ctx, c));
       const accepted = checked.flatMap((c) => (c.ok ? [c] : []));
       rejected.push(...checked.flatMap((c) => (c.ok ? [] : [c.rejection])));
       for (const r of rejected) {
@@ -157,27 +181,59 @@ function scoutAgent(pages: PageFetcher): Agent<ScoutBrief, typeof ScoutResult> {
         summary_ar: `انتهى البحث عن المصادر: المختارة ${resources.length}، والمستبعدة ${rejected.length}`,
         summary_en: `Scout chose ${resources.length} resources (${perLang}) and rejected ${rejected.length}; run cost $${cost.toFixed(4)} in total`,
       });
-      return { resources, rejected };
+      // Only a result that meets the contract is kept: none passed means the step fails.
+      if (!resources.length) throw new Error(`No cited page passed the checks (${perLang})`);
+      const result = { resources, rejected };
+      cache.write(CACHE_AREA, resultKey, result);
+      return result;
     },
   };
 }
 
-async function planQueries(
-  ctx: AgentContext,
-  brief: ScoutBrief,
-): Promise<{ lang: Lang; queries: string[] }[]> {
-  const result = await ctx.provider.structured({
-    role: "agent_default",
-    trace: {
-      agent: "scout",
-      summary_ar: "يصوغ عبارات بحث بكل لغة من لغات المصادر",
-      summary_en: `Writing search queries for ${brief.langs.join(", ")}`,
+// Asks for a paid answer once. It is kept under a hash of the request, so a later run, or the
+// orchestrator's retry of this step, reads it instead of paying again. `call` validates what it
+// returns, so a reply that broke its contract is never kept.
+async function paidOnce<T>(
+  ctx: ScoutContext,
+  request: { kind: "plan" | "search"; material: unknown[]; hit: Summary },
+  call: () => Promise<T>,
+): Promise<T> {
+  const key = `${request.kind}_${hash(request.material)}`;
+  const kept = ctx.cache.read<T>(CACHE_AREA, key);
+  if (kept !== undefined) {
+    ctx.trace({ kind: "decision", ...request.hit });
+    return kept;
+  }
+  const answer = await call();
+  ctx.cache.write(CACHE_AREA, key, answer);
+  return answer;
+}
+
+async function planQueries(ctx: ScoutContext): Promise<Planned[]> {
+  const { brief } = ctx;
+  const input = `${learnerLines(brief)}\nLanguages: ${brief.langs.join(", ")}`;
+  const hit = {
+    summary_ar: "يستعمل عبارات البحث التي صاغها من قبل لهذا الطلب",
+    summary_en: `Queries read from the cache for ${brief.langs.join(", ")}`,
+  };
+  const plan = await paidOnce(
+    ctx,
+    { kind: "plan", material: [QUERIES_INSTRUCTIONS, input], hit },
+    async () => {
+      const result = await ctx.provider.structured({
+        role: "agent_default",
+        trace: {
+          agent: "scout",
+          summary_ar: "يصوغ عبارات بحث بكل لغة من لغات المصادر",
+          summary_en: `Writing search queries for ${brief.langs.join(", ")}`,
+        },
+        instructions: QUERIES_INSTRUCTIONS,
+        input: withFeedback(ctx, input),
+        schema: { name: "ScoutQueries", schema: ScoutQueries },
+      });
+      return validate(ScoutQueries, result.json);
     },
-    instructions: QUERIES_INSTRUCTIONS,
-    input: withFeedback(ctx, `${learnerLines(brief)}\nLanguages: ${brief.langs.join(", ")}`),
-    schema: { name: "ScoutQueries", schema: ScoutQueries },
-  });
-  const plan = validate(ScoutQueries, result.json);
+  );
   return brief.langs.map((lang) => {
     const written = plan.queries
       .filter((q) => q.lang === lang)
@@ -199,21 +255,33 @@ async function planQueries(
 // the search never cited is dropped, as a page the search did not open is not evidence of anything,
 // and so is a cited page the model left out; each gets a reason.
 async function searchLanguage(
-  ctx: AgentContext,
-  brief: ScoutBrief,
+  ctx: ScoutContext,
   lang: Lang,
   queries: string[],
 ): Promise<{ cited: Candidate[]; dropped: Rejection[] }> {
-  const search = await ctx.provider.webSearch({
-    role: "agent_default",
-    trace: {
-      agent: "scout",
-      summary_ar: `يبحث في الويب عن مصادر ${LANGUAGE[lang].ar}`,
-      summary_en: `web_search (${lang}): ${queries.join(" | ")}`,
+  const { brief } = ctx;
+  const input = `Language: ${LANGUAGE[lang].en}\n${learnerLines(brief)}\nSearch queries to try: ${queries.join("; ")}`;
+  const hit = {
+    summary_ar: `يستعمل نتيجة بحث سابقة ${LANGUAGE[lang].ar}`,
+    summary_en: `web_search (${lang}) read from the cache: ${queries.join(" | ")}`,
+  };
+  const search = await paidOnce(
+    ctx,
+    { kind: "search", material: [SEARCH_INSTRUCTIONS, input], hit },
+    async () => {
+      const { text, citations } = await ctx.provider.webSearch({
+        role: "agent_default",
+        trace: {
+          agent: "scout",
+          summary_ar: `يبحث في الويب عن مصادر ${LANGUAGE[lang].ar}`,
+          summary_en: `web_search (${lang}): ${queries.join(" | ")}`,
+        },
+        instructions: SEARCH_INSTRUCTIONS,
+        input,
+      });
+      return { text, citations };
     },
-    instructions: SEARCH_INSTRUCTIONS,
-    input: `Language: ${LANGUAGE[lang].en}\n${learnerLines(brief)}\nSearch queries to try: ${queries.join("; ")}`,
-  });
+  );
   if (!search.citations.length) {
     ctx.trace({
       kind: "decision",
@@ -283,16 +351,12 @@ const rejection = (
   reason_ar: string,
 ): Rejection => ({ url, title, lang, reason, reason_ar });
 
-async function checkPage(
-  ctx: AgentContext,
-  pages: PageFetcher,
-  candidate: Candidate,
-): Promise<Checked> {
+async function checkPage(ctx: ScoutContext, candidate: Candidate): Promise<Checked> {
   const reject = (reason: string, reason_ar: string): Checked => ({
     ok: false,
     rejection: rejection(candidate, reason, reason_ar),
   });
-  const fetched = await pages.fetchPage(candidate.url, ctx.trace);
+  const fetched = await ctx.pages.fetchPage(candidate.url, ctx.trace);
   if (!fetched.ok) return reject(`could not read the page: ${fetched.reason}`, "تعذّرت قراءة صفحته");
   // Terms past the byte cap were never read, so a cut page cannot be cleared.
   if (fetched.page.truncated) {
@@ -324,6 +388,20 @@ function normalUrl(url: string): string {
 }
 
 const hostOf = (url: string) => URL.parse(url)?.host ?? url;
+
+const hash = (material: unknown) =>
+  createHash("sha256").update(JSON.stringify(material)).digest("hex").slice(0, 12);
+
+// Like Promise.all, but fails only once every call has ended, so each paid search that did finish
+// is in the cache before the orchestrator retries.
+async function settleAll<T>(work: Promise<T>[]): Promise<T[]> {
+  const settled = await Promise.allSettled(work);
+  const failed = settled.flatMap((s) => (s.status === "rejected" ? [s.reason] : []));
+  if (failed.length) {
+    throw new Error(failed.map((e) => (e instanceof Error ? e.message : String(e))).join("; "));
+  }
+  return settled.map((s) => (s as PromiseFulfilledResult<T>).value);
+}
 
 // Model scores are bounded by the prompt, not the schema.
 const unit = (n: number) => (Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0);
