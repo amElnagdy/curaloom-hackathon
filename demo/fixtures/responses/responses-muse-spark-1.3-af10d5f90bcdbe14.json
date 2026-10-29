@@ -1,0 +1,298 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: spreadsheet basics\nStill missing: hours_per_week, source_langs_ok, history_notes\n\nConversation so far:\nInterviewer: أهلًا عمر! ما الذي تريد أن تصل إليه، وما عملك الآن؟\nLearner: أنا محاسب بالرياض وأبي أصير محلل بيانات، وعندي خمس ساعات بالأسبوع",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "IntakeReply",
+          "schema": {
+            "type": "object",
+            "required": [
+              "heard",
+              "dialect",
+              "reply_ar"
+            ],
+            "properties": {
+              "heard": {
+                "type": "object",
+                "required": [
+                  "goal",
+                  "background",
+                  "hours_per_week",
+                  "source_langs_ok",
+                  "history_notes"
+                ],
+                "properties": {
+                  "goal": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "the role or outcome the learner wants, as a short Arabic phrase"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "background": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "the learner's job and skills as short lowercase English tags, e.g. excel"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hours_per_week": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "description": "hours a week the learner can study"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "source_langs_ok": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "en",
+                            "ru",
+                            "zh",
+                            "fr"
+                          ]
+                        },
+                        "description": "the languages the learner accepts sources in"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history_notes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "a short English note on courses the learner dropped and why, and anything the coach should respect"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "dialect": {
+                "type": "string",
+                "enum": [
+                  "msa",
+                  "gulf",
+                  "egyptian",
+                  "levantine",
+                  "maghrebi",
+                  "other"
+                ],
+                "description": "the dialect the learner writes in"
+              },
+              "reply_ar": {
+                "type": "string",
+                "description": "your next message to the learner"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "IntakeReply",
+        "schema": {
+          "required": [
+            "heard",
+            "dialect",
+            "reply_ar"
+          ],
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dialect": {
+              "description": "the dialect the learner writes in",
+              "enum": [
+                "msa",
+                "gulf",
+                "egyptian",
+                "levantine",
+                "maghrebi",
+                "other"
+              ],
+              "type": "string"
+            },
+            "heard": {
+              "additionalProperties": false,
+              "properties": {
+                "background": {
+                  "anyOf": [
+                    {
+                      "description": "the learner's job and skills as short lowercase English tags, e.g. excel",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "goal": {
+                  "anyOf": [
+                    {
+                      "description": "the role or outcome the learner wants, as a short Arabic phrase",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "history_notes": {
+                  "anyOf": [
+                    {
+                      "description": "a short English note on courses the learner dropped and why, and anything the coach should respect",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "hours_per_week": {
+                  "anyOf": [
+                    {
+                      "description": "hours a week the learner can study",
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_langs_ok": {
+                  "anyOf": [
+                    {
+                      "description": "the languages the learner accepts sources in",
+                      "items": {
+                        "enum": [
+                          "en",
+                          "ru",
+                          "zh",
+                          "fr"
+                        ],
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "goal",
+                "background",
+                "hours_per_week",
+                "source_langs_ok",
+                "history_notes"
+              ],
+              "type": "object"
+            },
+            "reply_ar": {
+              "description": "your next message to the learner",
+              "type": "string"
+            }
+          }
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae363541de9322d4160438a",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793286996,
+    "completed_at": 1793286996,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae363541de9322d4160438a:rs_d668f24e-e7e8-4dff-81cc-100cdec6553b",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_f4331c85-9c8b-4a90-8033-5cc91ae6b093",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"dialect\": \"gulf\", \"heard\": {\"background\": [\"accountant\"], \"goal\": \"محلل بيانات\", \"history_notes\": null, \"hours_per_week\": 5, \"source_langs_ok\": null}, \"reply_ar\": \"ممتاز يا عمر! خمس ساعات بالأسبوع ممتازة. سؤالين سريعين: بأي لغة تفضّل مصادر التعلم؟ إنجليزي، روسي، صيني، أو فرنسي؟ وهل جرّبت دورات قبل وتركتها؟ وش السبب؟\"}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": null,
+    "usage": {
+      "input_tokens": 79,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1660,
+      "output_tokens_details": {
+        "reasoning_tokens": 1532
+      },
+      "total_tokens": 1739
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 7069
+}

@@ -22,9 +22,9 @@ const Reply = Type.Object(
   { additionalProperties: false },
 );
 
-class BadRequest extends Error {}
+export class BadRequest extends Error {}
 
-function parse<S extends TSchema>(schema: S, value: unknown): Static<S> {
+export function parse<S extends TSchema>(schema: S, value: unknown): Static<S> {
   const errors = contractErrors(schema, value);
   if (errors.length) throw new BadRequest(`Invalid body: ${errors.join("; ")}`);
   return value as Static<S>;
@@ -41,7 +41,7 @@ const ACTIONS: Record<string, (sim: Sim, body: unknown) => SimResult> = {
   },
 };
 
-async function jsonBody(request: Request): Promise<unknown> {
+export async function jsonBody(request: Request): Promise<unknown> {
   const text = await request.text();
   if (!text.trim()) return {};
   try {

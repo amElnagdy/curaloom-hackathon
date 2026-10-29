@@ -1,0 +1,299 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's name: عمر\nStill missing before the latest message: hours_per_week (how many hours a week they can study); source_langs_ok (whether they accept sources in English, Russian, Chinese and French, which reach them in Arabic); history_notes (whether they started courses before and dropped them, and why)\nIf the latest message gives everything still missing, ask nothing more: thank the learner and say that a quick check of three questions on the topic comes next.\n\nConversation so far:\nInterviewer: أهلًا عمر! سأسألك بضعة أسئلة قصيرة لأبني لك خطة تناسبك. ما الذي تريد أن تصل إليه، وما عملك الآن؟\nLearner: هلا والله. أنا محاسب بشركة في الرياض من خمس سنين، وأبي أتحول لمحلل بيانات.\nInterviewer: ممتاز يا عمر، خبرتك كمحاسب ستفيدك كثيرا في تحليل البيانات. كم ساعة تستطيع الدراسة في الأسبوع؟ وهل جربت دورات قبل ذلك وتركتها لأي سبب؟\nLearner: أشتغل على الإكسل كل يوم، بس عمري ما سويت تحليل بيانات صدق. وقتي ضيق، تقريبًا خمس ساعات بالأسبوع.",
+      "instructions": "You interview a new learner for a service that builds them a free personal course in Arabic from openly licensed resources in English, Russian, Chinese and French; every source reaches the learner in Arabic. The learner writes Arabic, often in a dialect such as Gulf or Egyptian. In heard, give everything the conversation so far tells you about the learner, and null for what it does not say yet: never guess. A learner who accepts any language, or does not mind as long as it reaches them in Arabic, accepts all four source languages. history_notes stays null until the learner has said whether they dropped courses before. reply_ar is your next message: clear, warm Modern Standard Arabic that a dialect speaker reads easily, at most three short sentences. Acknowledge the latest message in a few words, then ask only about what is still missing, at most two things at a time, in plain words. Never ask about something the learner already said, and never ask for contact details.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "IntakeReply",
+          "schema": {
+            "type": "object",
+            "required": [
+              "heard",
+              "dialect",
+              "reply_ar"
+            ],
+            "properties": {
+              "heard": {
+                "type": "object",
+                "required": [
+                  "goal",
+                  "background",
+                  "hours_per_week",
+                  "source_langs_ok",
+                  "history_notes"
+                ],
+                "properties": {
+                  "goal": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "the role or outcome the learner wants, as a short Arabic phrase"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "background": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "the learner's job and skills as short lowercase English tags, e.g. excel"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hours_per_week": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "description": "hours a week the learner can study"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "source_langs_ok": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "en",
+                            "ru",
+                            "zh",
+                            "fr"
+                          ]
+                        },
+                        "description": "the languages the learner accepts sources in"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history_notes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "a short English note on courses the learner dropped and why, and anything the coach should respect"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "dialect": {
+                "type": "string",
+                "enum": [
+                  "msa",
+                  "gulf",
+                  "egyptian",
+                  "levantine",
+                  "maghrebi",
+                  "other"
+                ],
+                "description": "the dialect the learner writes in"
+              },
+              "reply_ar": {
+                "type": "string",
+                "description": "your next message to the learner"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "IntakeReply",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dialect": {
+              "description": "the dialect the learner writes in",
+              "enum": [
+                "msa",
+                "gulf",
+                "egyptian",
+                "levantine",
+                "maghrebi",
+                "other"
+              ],
+              "type": "string"
+            },
+            "heard": {
+              "additionalProperties": false,
+              "properties": {
+                "background": {
+                  "anyOf": [
+                    {
+                      "description": "the learner's job and skills as short lowercase English tags, e.g. excel",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "goal": {
+                  "anyOf": [
+                    {
+                      "description": "the role or outcome the learner wants, as a short Arabic phrase",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "history_notes": {
+                  "anyOf": [
+                    {
+                      "description": "a short English note on courses the learner dropped and why, and anything the coach should respect",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "hours_per_week": {
+                  "anyOf": [
+                    {
+                      "description": "hours a week the learner can study",
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source_langs_ok": {
+                  "anyOf": [
+                    {
+                      "description": "the languages the learner accepts sources in",
+                      "items": {
+                        "enum": [
+                          "en",
+                          "ru",
+                          "zh",
+                          "fr"
+                        ],
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "goal",
+                "background",
+                "hours_per_week",
+                "source_langs_ok",
+                "history_notes"
+              ],
+              "type": "object"
+            },
+            "reply_ar": {
+              "description": "your next message to the learner",
+              "type": "string"
+            }
+          },
+          "required": [
+            "heard",
+            "dialect",
+            "reply_ar"
+          ]
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae36320b01a2282c4a84c11",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793286944,
+    "completed_at": 1793286944,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae36320b01a2282c4a84c11:rs_02aaf541-5f9c-4cd4-89b1-0e1c9b7b4319",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_d142b545-2c6c-40c0-ab4e-5fc20b4ef9d8",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"dialect\": \"gulf\", \"heard\": {\"background\": [\"accountant\", \"excel\"], \"goal\": \"محلل بيانات\", \"history_notes\": null, \"hours_per_week\": 5, \"source_langs_ok\": null}, \"reply_ar\": \"تمام، خمس ساعات في الأسبوع واضحة. هل يناسبك أن أستخدم مصادر بالإنجليزية والروسية والصينية والفرنسية وتصلك بالعربية؟ وهل تركت أي دورة من قبل وما السبب؟\"}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You interview a new learner for a service that builds them a free personal course in Arabic from openly licensed resources in English, Russian, Chinese and French; every source reaches the learner in Arabic. The learner writes Arabic, often in a dialect such as Gulf or Egyptian. In heard, give everything the conversation so far tells you about the learner, and null for what it does not say yet: never guess. A learner who accepts any language, or does not mind as long as it reaches them in Arabic, accepts all four source languages. history_notes stays null until the learner has said whether they dropped courses before. reply_ar is your next message: clear, warm Modern Standard Arabic that a dialect speaker reads easily, at most three short sentences. Acknowledge the latest message in a few words, then ask only about what is still missing, at most two things at a time, in plain words. Never ask about something the learner already said, and never ask for contact details.",
+    "usage": {
+      "input_tokens": 788,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1381,
+      "output_tokens_details": {
+        "reasoning_tokens": 1265
+      },
+      "total_tokens": 2169
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 4591
+}

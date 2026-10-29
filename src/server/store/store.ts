@@ -18,6 +18,7 @@ import { dirname, join } from "node:path";
 export type Store = {
   readDoc<T = unknown>(sessionId: string, name: string): T | undefined;
   writeDoc(sessionId: string, name: string, value: unknown): void;
+  deleteDoc(sessionId: string, name: string): void;
   // Deletes every document of the session, keeping its trace and blobs: readers fall back to the
   // seed, so this restores the seeded state.
   clearDocs(sessionId: string): void;
@@ -87,6 +88,9 @@ export function createFileStore(root: string = DATA_DIR): Store {
     readDoc: (sessionId, name) => readJson(docPath(sessionId, name)),
     writeDoc(sessionId, name, value) {
       writeAtomic(forWrite(docPath(sessionId, name)), `${JSON.stringify(value, null, 2)}\n`);
+    },
+    deleteDoc(sessionId, name) {
+      rmSync(docPath(sessionId, name), { force: true });
     },
     clearDocs(sessionId) {
       const dir = sessionPath(sessionId);

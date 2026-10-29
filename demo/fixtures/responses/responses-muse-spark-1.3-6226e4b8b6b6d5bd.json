@@ -1,0 +1,159 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis",
+      "instructions": "Write three multiple-choice questions in Arabic that check what a learner already knows about the topic, from basic to harder, so that their starting level can be set. Each question has four short options and exactly one right answer; copy the answer exactly from options_ar. Write a technical term in Arabic with the English term in parentheses after it. Do not add an option such as «I don't know»: the app adds it.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Diagnostic",
+          "schema": {
+            "type": "object",
+            "required": [
+              "questions"
+            ],
+            "properties": {
+              "questions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "prompt_ar",
+                    "options_ar",
+                    "answer"
+                  ],
+                  "properties": {
+                    "prompt_ar": {
+                      "type": "string"
+                    },
+                    "options_ar": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "four short options"
+                    },
+                    "answer": {
+                      "type": "string",
+                      "description": "exactly one of options_ar, copied exactly"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Diagnostic",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "questions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "answer": {
+                    "description": "exactly one of options_ar, copied exactly",
+                    "type": "string"
+                  },
+                  "options_ar": {
+                    "description": "four short options",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "prompt_ar": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt_ar",
+                  "options_ar",
+                  "answer"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "questions"
+          ]
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3632d10b821833b064017",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793286957,
+    "completed_at": 1793286957,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3632d10b821833b064017:rs_0089e2eb-1341-4359-abb4-e512cffef085",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_ec8a8fa4-69fa-4dec-8e37-6b5e91231581",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"questions\": [{\"answer\": \"تلخيص البيانات وتحليلها\", \"options_ar\": [\"تلخيص البيانات وتحليلها\", \"تنسيق الخطوط والألوان\", \"رسم الصور والأشكال\", \"تدقيق الإملاء\"], \"prompt_ar\": \"ما هي الوظيفة الأساسية للجدول المحوري (PivotTable) في إكسل؟\"}, {\"answer\": \"منطقة القيم\", \"options_ar\": [\"منطقة القيم\", \"منطقة الصفوف\", \"منطقة الأعمدة\", \"منطقة التصفية\"], \"prompt_ar\": \"أين تسحب حقل الأرقام مثل المبيعات لحساب المجموع في الجدول المحوري (PivotTable)؟\"}, {\"answer\": \"زر التحديث\", \"options_ar\": [\"زر التحديث\", \"نسخ الجدول ولصقه\", \"تغيير لون الخلايا\", \"حذف الجدول وإنشاؤه\"], \"prompt_ar\": \"بعد إضافة بيانات جديدة للمصدر، كيف تُحدّث نتائج الجدول المحوري (PivotTable)؟\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "Write three multiple-choice questions in Arabic that check what a learner already knows about the topic, from basic to harder, so that their starting level can be set. Each question has four short options and exactly one right answer; copy the answer exactly from options_ar. Write a technical term in Arabic with the English term in parentheses after it. Do not add an option such as «I don't know»: the app adds it.",
+    "usage": {
+      "input_tokens": 211,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1398,
+      "output_tokens_details": {
+        "reasoning_tokens": 1151
+      },
+      "total_tokens": 1609
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 5601
+}

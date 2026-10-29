@@ -15,13 +15,14 @@ const Nullable = <T extends TSchema>(schema: T) => Type.Union([schema, Type.Null
 
 export const SOURCE_LANGS = ["en", "ru", "zh", "fr"] as const;
 const SourceLang = StringEnum(SOURCE_LANGS);
+const DIALECTS = ["msa", "gulf", "egyptian", "levantine", "maghrebi", "other"] as const;
 const Score = Type.Number({ description: "0 to 1" });
 
 export const LearnerProfile = Obj({
   id: Type.String(),
   name: Type.String(),
   locale: StringEnum(["ar"]),
-  dialect: StringEnum(["msa", "gulf", "egyptian", "levantine", "maghrebi", "other"]),
+  dialect: StringEnum(DIALECTS),
   goal: Type.String(),
   topic: Type.String(),
   hours_per_week: Type.Number(),
@@ -32,6 +33,45 @@ export const LearnerProfile = Obj({
     scores: Type.Array(Obj({ question_id: Type.String(), score: Score })),
   }),
   history_notes: Type.String(),
+});
+
+// The intake (#16). The model fills IntakeReply on each learner message and Diagnostic once per
+// topic; code builds the LearnerProfile from them. A field the learner has not given yet is null.
+export const IntakeReply = Obj({
+  heard: Obj({
+    goal: Nullable(
+      Type.String({
+        description: "the role or outcome the learner wants, as a short Arabic phrase",
+      }),
+    ),
+    background: Nullable(
+      Type.Array(Type.String(), {
+        description: "the learner's job and skills as short lowercase English tags, e.g. excel",
+      }),
+    ),
+    hours_per_week: Nullable(Type.Number({ description: "hours a week the learner can study" })),
+    source_langs_ok: Nullable(
+      Type.Array(SourceLang, { description: "the languages the learner accepts sources in" }),
+    ),
+    history_notes: Nullable(
+      Type.String({
+        description:
+          "a short English note on courses the learner dropped and why, and anything the coach should respect",
+      }),
+    ),
+  }),
+  dialect: StringEnum(DIALECTS, { description: "the dialect the learner writes in" }),
+  reply_ar: Type.String({ description: "your next message to the learner" }),
+});
+
+export const Diagnostic = Obj({
+  questions: Type.Array(
+    Obj({
+      prompt_ar: Type.String(),
+      options_ar: Type.Array(Type.String(), { description: "four short options" }),
+      answer: Type.String({ description: "exactly one of options_ar, copied exactly" }),
+    }),
+  ),
 });
 
 export const Consent = Obj({
@@ -219,6 +259,8 @@ export const CoachEvent = Obj({
 
 export const CONTRACTS = {
   LearnerProfile,
+  IntakeReply,
+  Diagnostic,
   Consent,
   Resource,
   ScoutQueries,
@@ -239,6 +281,8 @@ export type ContractName = keyof typeof CONTRACTS;
 // Resource and ScoutResult are not: the scout builds them in code from model-filled Candidates.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
+  "IntakeReply",
+  "Diagnostic",
   "ScoutQueries",
   "Candidates",
   "CoursePlan",
@@ -250,6 +294,8 @@ export const AGENT_OUTPUTS = [
 ] as const satisfies readonly ContractName[];
 
 export type LearnerProfile = Static<typeof LearnerProfile>;
+export type IntakeReply = Static<typeof IntakeReply>;
+export type Diagnostic = Static<typeof Diagnostic>;
 export type Consent = Static<typeof Consent>;
 export type Resource = Static<typeof Resource>;
 export type ScoutQueries = Static<typeof ScoutQueries>;

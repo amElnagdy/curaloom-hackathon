@@ -36,6 +36,16 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
     instructions: ARABIC,
     input: `${LEARNER} قال بلهجته: «أبي أتعلم تحليل البيانات، بس لا تطرشون لي رسايل الصبح». املأ ملفه.`,
   },
+  IntakeReply: {
+    role: "agent_default",
+    input:
+      "Topic: spreadsheet basics\nStill missing: hours_per_week, source_langs_ok, history_notes\n\nConversation so far:\nInterviewer: أهلًا عمر! ما الذي تريد أن تصل إليه، وما عملك الآن؟\nLearner: أنا محاسب بالرياض وأبي أصير محلل بيانات، وعندي خمس ساعات بالأسبوع",
+  },
+  Diagnostic: {
+    role: "agent_default",
+    input:
+      "Write three multiple-choice questions in Arabic, four options each, that check what a learner knows about: spreadsheet basics",
+  },
   ScoutQueries: {
     role: "agent_default",
     input: `Write two web search queries per language for open learning resources.\n${SCOUT_LEARNER}\nLanguages: en, ru, zh, fr`,

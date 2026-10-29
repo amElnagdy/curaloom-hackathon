@@ -1,0 +1,158 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Write three multiple-choice questions in Arabic, four options each, that check what a learner knows about: spreadsheet basics",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Diagnostic",
+          "schema": {
+            "type": "object",
+            "required": [
+              "questions"
+            ],
+            "properties": {
+              "questions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "prompt_ar",
+                    "options_ar",
+                    "answer"
+                  ],
+                  "properties": {
+                    "prompt_ar": {
+                      "type": "string"
+                    },
+                    "options_ar": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "four short options"
+                    },
+                    "answer": {
+                      "type": "string",
+                      "description": "exactly one of options_ar, copied exactly"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Diagnostic",
+        "schema": {
+          "properties": {
+            "questions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "answer": {
+                    "description": "exactly one of options_ar, copied exactly",
+                    "type": "string"
+                  },
+                  "options_ar": {
+                    "description": "four short options",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "prompt_ar": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt_ar",
+                  "options_ar",
+                  "answer"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "questions"
+          ],
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae36358e4230bcb4c994176",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793287000,
+    "completed_at": 1793287000,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae36358e4230bcb4c994176:rs_2eebb6ec-9ef4-4ddd-90fe-b7d70f542603",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_89fe6216-b937-45be-b857-0dfd070f60a9",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"questions\": [{\"answer\": \"تقاطع صف مع عمود\", \"options_ar\": [\"تقاطع صف مع عمود\", \"مجموعة من الأوراق\", \"نوع من الرسم البياني\", \"شريط الأدوات العلوي\"], \"prompt_ar\": \"ما هي الخلية في برنامج جداول البيانات؟\"}, {\"answer\": \"جمع مجموعة من الأرقام\", \"options_ar\": [\"جمع مجموعة من الأرقام\", \"حساب المتوسط\", \"إيجاد أكبر قيمة\", \"عد الخلايا الفارغة\"], \"prompt_ar\": \"ما وظيفة الصيغة SUM في جداول البيانات؟\"}, {\"answer\": \".xlsx\", \"options_ar\": [\".xlsx\", \".docx\", \".pptx\", \".txt\"], \"prompt_ar\": \"ما هو امتداد الملف الافتراضي لجداول بيانات إكسل الحديثة؟\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": null,
+    "usage": {
+      "input_tokens": 30,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 864,
+      "output_tokens_details": {
+        "reasoning_tokens": 668
+      },
+      "total_tokens": 894
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 4062
+}

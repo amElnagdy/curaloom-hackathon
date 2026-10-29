@@ -127,6 +127,23 @@ Folders are created by the issue that first puts code in them.
 - Notifier traces name the learner by id only, never by number or address, and carry no message text.
 - `/coach` renders the phone from the inbox and the outbox (`phoneThread()`). `POST /api/sessions/{id}/inbox` with `{text}` is the learner's reply and answers `{opted_out, confirmed}`.
 
+## Intake (#16)
+
+The intake profiles a new learner in a short Arabic chat, then sets their level with a quick check of three questions. `createIntake()` in `src/server/agents/intake/intake.ts` keeps the interview in the session document `intake`, whose `status` goes from `interview` to `diagnostic` to `done`.
+
+1. `start()` greets the learner by name with a fixed message that asks for their goal and current work. It makes no model call.
+2. Each learner message is one orchestrator step, `intake:<run>:message:<n>`. The model reads the whole conversation and fills `IntakeReply`: what it now knows of the goal, background, weekly hours, accepted source languages and dropout history, each null until the learner says it, plus the dialect and the next reply. The reply asks only for what is still missing, at most two things at a time. Code keeps a field once heard. A source language counts as accepted when the learner takes sources in it, delivered in Arabic, so a learner who accepts any language accepts all four. The scout searches only those languages.
+3. Once nothing is missing, or after the 4th message, the model asks nothing more and says the quick check follows. The step `intake:<run>:diagnostic` writes three multiple-choice questions on the topic (`Diagnostic`). Code checks that each has four different options and one answer among them (`diagnostic.ts`), shuffles the options and adds «لا أعرف بعد». The questions are cached per topic in `data/cache/intake/`.
+4. `answer()` scores each answer 1 or 0. Below half right is `beginner`, below 85% `intermediate`, otherwise `advanced`. The step `intake:<run>:profile` builds the `LearnerProfile` in code; a field never answered gets a default (all four languages, 3 hours a week) and `history_notes` names it. The profile is saved as the session document `profile`, and a closing reply gives the level.
+
+So the interviewer speaks at most 6 times. `<run>` is a random id per interview: after `reset()`, which deletes the `intake` and `profile` documents, a new interview never resumes the old one's steps. The trace names the fields each message gave, never the learner's words.
+
+`POST /api/sessions/{id}/intake/{start,message,answers,reset}` takes `{}`, `{text}`, `{answers: {q1: "<option>", …}}` or `{}`, and answers `{view}`: the turns, the fields heard and the questions without their answers. It answers 400 for a bad body or answers that skip a question, 409 for a call out of turn or while the session's last message is still being answered, and 502 when the model fails the step twice. The session's learner (id and name) comes from the seed until accounts exist.
+
+Voice input (Muse Voice Transcribe) is not built; the issue makes it optional.
+
+The replay test in `intake.test.ts` runs Omar's recorded interview in Gulf dialect, on the scout's sample topic: three messages, a valid profile with 5 hours a week, five interviewer turns. Re-record it with `RECORD_FIXTURES=1 pnpm vitest run intake.test` (live, about $0.05). Each reply took 5 to 9 s live.
+
 ## Scout (#17)
 
 The scout finds open-licence learning resources on the learner's topic in the source languages that the learner's profile accepts (`source_langs_ok`, in the profile's order). Omar's seed accepts English, Russian, Chinese and French. `scoutBrief()` refuses a profile that accepts none. `runScout()` in `src/server/agents/scout/scout.ts` runs the scout as one orchestrator step:

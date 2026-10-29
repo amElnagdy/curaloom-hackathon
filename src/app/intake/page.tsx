@@ -59,6 +59,7 @@ const DIALECT: Record<LearnerProfile["dialect"], string> = {
 // Background tags the intake agent records, in Arabic; a tag not listed shows as written.
 const BACKGROUND: Record<string, string> = {
   accounting: "المحاسبة",
+  accountant: "المحاسبة",
   excel: "Excel",
   finance: "المالية",
   sql: "SQL",

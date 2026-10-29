@@ -46,6 +46,8 @@ describe("contracts", () => {
         "Candidates",
         "Rejection",
         "ScoutResult",
+        "IntakeReply",
+        "Diagnostic",
       ].sort(),
     );
   });
