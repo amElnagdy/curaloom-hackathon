@@ -1,6 +1,7 @@
-// Coach messages (#15 slot; the notifier and coach are #22 and #25): Omar's seeded coach event on a
-// simulated phone, labelled as a simulated channel (ADR-004), beside the queue and the limits the
-// coach keeps (quiet hours, weekly time, «توقف»).
+// Coach messages (#15 slot; the coach is #25): the coach events the scheduler fired on the sim
+// clock (#23), delivered by the notifier (#22) to a simulated phone, labelled as a simulated channel
+// (ADR-004), beside the queue and the limits the coach keeps (quiet hours, weekly time, «توقف»).
+// The learner replies from the phone, and «توقف» stops the messages.
 
 import {
   BatteryFull,
@@ -15,10 +16,15 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Fragment } from "react";
-import type { CoachEvent } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
+import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
+import { createSim } from "../../server/clock/sim.ts";
+import { hhmm, parseSimTime } from "../../server/clock/time.ts";
+import { phoneThread, readInbox, type ThreadItem } from "../../server/notifier/adapters.ts";
+import { createFileStore } from "../../server/store/store.ts";
 import {
   ChannelTag,
   EmptyState,
@@ -29,45 +35,90 @@ import {
   Panel,
   Stack,
 } from "../_shell/blocks.tsx";
-import { COACH_STATUS, COACH_TITLE, simDay } from "../_shell/course.ts";
+import { COACH_STATUS, COACH_TITLE, simDay, simTimeText } from "../_shell/course.ts";
 import { clockTime, countOf, HOURS } from "../_shell/format.ts";
 import { BidiText, buttonClass, cx, Meta, StatusPill } from "../_shell/ui.tsx";
 import styles from "./coach.module.css";
+import { RefreshOnCoachEvents, ReplyBox } from "./phone.tsx";
 
 export const metadata: Metadata = { title: "رسائل المدرب" };
 
-// One coach event in the phone thread, as its status allows.
-function ThreadEvent({ event }: { event: CoachEvent }) {
-  if (event.status === "suppressed_quiet_hours") {
-    return <li className={styles.system}>أُجّلت رسالة لأن موعدها وقع في ساعات الهدوء.</li>;
+// "day 2 12:00" as «١٢:٠٠ ظهرًا».
+const timeOf = (simTs: string) => clockTime(hhmm(parseSimTime(simTs).minute));
+
+// One line of the phone thread.
+function ThreadLine({ item }: { item: ThreadItem }) {
+  switch (item.kind) {
+    case "suppressed":
+      return <li className={styles.system}>لم تُرسل رسالة، لأن الرسائل متوقفة بطلبك.</li>;
+    case "sent":
+      return (
+        <li className={cx(styles.bubble, styles.mine)}>
+          <p>
+            <BidiText text={item.text} />
+          </p>
+          <p className={styles.bubbleMeta}>{timeOf(item.at)}</p>
+        </li>
+      );
+    case "held":
+      return (
+        <li className={cx(styles.bubble, styles.queued)}>
+          <p>
+            <BidiText text={item.text} />
+          </p>
+          <p className={styles.bubbleMeta}>
+            <Clock aria-hidden />
+            {`في ساعات الهدوء، تصل ${timeOf(item.until)}`}
+          </p>
+        </li>
+      );
+    case "received":
+      return (
+        <li className={styles.bubble}>
+          <p>
+            <BidiText text={item.text} />
+          </p>
+          {item.cta && (
+            <Link
+              href="/lesson"
+              className={buttonClass("primary", "sm", { className: styles.cta })}
+            >
+              {item.cta.label_ar}
+            </Link>
+          )}
+          <p className={styles.bubbleMeta}>
+            <Check aria-hidden />
+            <Meta
+              parts={
+                item.held_from
+                  ? [timeOf(item.at), `أُجّلت من ${timeOf(item.held_from)} لساعات الهدوء`]
+                  : [timeOf(item.at)]
+              }
+            />
+          </p>
+        </li>
+      );
   }
-  if (event.status === "suppressed_opt_out") {
-    return <li className={styles.system}>لم تُرسل رسالة، لأن الرسائل متوقفة بطلبك.</li>;
-  }
-  const queued = event.status === "queued";
-  return (
-    <li className={cx(styles.bubble, queued && styles.queued)}>
-      <p>
-        <BidiText text={event.message_ar} />
-      </p>
-      <p className={styles.bubbleMeta}>
-        {queued ? <Clock aria-hidden /> : <Check aria-hidden />}
-        {queued ? "مجدولة، لم تُرسل بعد" : "أُرسلت"}
-      </p>
-    </li>
-  );
 }
 
-export default function CoachPage() {
+export default async function CoachPage() {
+  // The phone reads the session store, so the page renders on each request.
+  await connection();
   const seed = loadOmarSeed(config.demoTopic);
-  const { consent, profile } = seed;
-  const events = [...seed.coach_events].sort((a, b) => a.sim_day - b.sim_day);
+  const { profile } = seed;
+  const store = createFileStore();
+  const sim = createSim({ store, sessionId: DEMO_SESSION_ID, seed });
+  const consent = sim.consent();
+  const now = sim.now();
+  const events = [...sim.coachEvents()].sort((a, b) => a.sim_day - b.sim_day);
+  const thread = phoneThread(readInbox(store, DEMO_SESSION_ID), sim.outbox());
   const quiet = consent.quiet_hours;
   const quietText = quiet
     ? `لا رسائل من ${clockTime(quiet.start)} حتى ${clockTime(quiet.end)}`
     : "لم تحدد ساعات هدوء";
   const consentDay = consent.granted_sim_day ?? 0;
-  const days = [...new Set(events.map((e) => e.sim_day))];
+  const dayOf = (item: ThreadItem) => parseSimTime(item.at).day;
+  const days = [...new Set(thread.map(dayOf))];
 
   return (
     <Page>
@@ -109,8 +160,8 @@ export default function CoachPage() {
               </MarkList>
             )}
             <p className={styles.note}>
-              تُرسل الرسالة حين تبلغ الساعة المحاكاة يومها. الساعة لم تبدأ بعد، وتجدها في{" "}
-              <Link href="/settings">الإعدادات</Link>.
+              تُرسل الرسالة حين تبلغ الساعة المحاكاة يومها. الساعة الآن {simTimeText(now)}، وتحرّكها
+              من <Link href="/settings">الإعدادات</Link>.
             </p>
           </Panel>
 
@@ -137,7 +188,11 @@ export default function CoachPage() {
               <MarkItem
                 mark={<OctagonX />}
                 title="كلمة «توقف»"
-                detail="أرسلها في أي وقت، فتتوقف الرسائل فورًا."
+                detail={
+                  consent.opted_out
+                    ? `أرسلتها في ${simDay(consent.opted_out_sim_day ?? now.day)}، فتوقفت الرسائل.`
+                    : "أرسلها في أي وقت، فتتوقف الرسائل فورًا."
+                }
               />
               <MarkItem
                 mark={<Smartphone />}
@@ -151,8 +206,7 @@ export default function CoachPage() {
         <section className={styles.phone} aria-label={`هاتف ${profile.name} المحاكى`}>
           <div className={styles.screen}>
             <div className={styles.statusBar} aria-hidden>
-              {/* The phone shows the simulated clock, which has not started (#23). */}
-              <span>لم تبدأ</span>
+              <span>{clockTime(hhmm(now.minute))}</span>
               <span className={styles.statusIcons}>
                 <Signal />
                 <Wifi />
@@ -170,36 +224,31 @@ export default function CoachPage() {
                 </small>
               </span>
             </div>
-            <ol className={styles.thread} aria-label="الرسائل">
-              <li className={styles.day}>{simDay(consentDay)}</li>
-              <li className={styles.system}>
-                {consent.granted
-                  ? `وافق ${profile.name} على رسائل المدرب. ${quietText}.`
-                  : `لم يوافق ${profile.name} على رسائل المدرب بعد.`}
-              </li>
-              {days.map((d) => (
-                <Fragment key={d}>
-                  {d !== consentDay && <li className={styles.day}>{simDay(d)}</li>}
-                  {events
-                    .filter((e) => e.sim_day === d)
-                    .map((event) => (
-                      <ThreadEvent key={event.id} event={event} />
-                    ))}
-                </Fragment>
-              ))}
-            </ol>
-            <div className={styles.compose}>
-              <button type="button" className={styles.stop} disabled aria-describedby="reply-note">
-                <OctagonX aria-hidden />
-                توقف
-              </button>
-              <span className={styles.field} id="reply-note">
-                الرد من هذا الهاتف غير متاح بعد
-              </span>
+            <div className={styles.thread}>
+              <ol className={styles.messages} aria-label="الرسائل">
+                <li className={styles.day}>{simDay(consentDay)}</li>
+                <li className={styles.system}>
+                  {consent.granted
+                    ? `وافق ${profile.name} على رسائل المدرب. ${quietText}.`
+                    : `لم يوافق ${profile.name} على رسائل المدرب بعد.`}
+                </li>
+                {days.map((d) => (
+                  <Fragment key={d}>
+                    {d !== consentDay && <li className={styles.day}>{simDay(d)}</li>}
+                    {thread
+                      .filter((item) => dayOf(item) === d)
+                      .map((item) => (
+                        <ThreadLine key={item.id} item={item} />
+                      ))}
+                  </Fragment>
+                ))}
+              </ol>
             </div>
+            <ReplyBox sessionId={DEMO_SESSION_ID} optedOut={consent.opted_out} />
           </div>
         </section>
       </div>
+      <RefreshOnCoachEvents />
     </Page>
   );
 }

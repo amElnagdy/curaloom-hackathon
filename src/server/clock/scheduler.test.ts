@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
-import { readInbox } from "../notifier/adapters";
+import { phoneThread, readInbox } from "../notifier/adapters";
 import { createFileStore } from "../store/store";
 import type { TraceEvent } from "../trace/trace";
 import { type CoachRule, fillTemplate } from "./scheduler";
@@ -160,5 +160,34 @@ describe("coach messages through the notifier", () => {
         .filter((e) => e.direction === "out")
         .map((e) => e.template),
     ).toEqual(["nudge_day2", "checkin_day5", "opt_out_confirmation"]);
+  });
+
+  it("shows the phone thread in sim time order, with held and stopped messages", () => {
+    const { store, sim } = setup();
+    const thread = () =>
+      phoneThread(readInbox(store, "s_1"), sim().outbox()).map((item) => [
+        item.kind,
+        item.at,
+        item.kind === "received" ? item.held_from : item.kind === "held" ? item.until : null,
+      ]);
+
+    sim().set(10);
+    sim().advance({ minutes: 60 });
+    sim().reply("سأبدأ غدًا");
+    const afterReply = thread();
+    sim().reply("توقف");
+
+    expect(afterReply).toEqual([
+      ["received", "day 2 12:00", "day 2 09:00"],
+      ["received", "day 5 12:00", "day 5 09:00"],
+      ["held", "day 10 09:00", "day 10 12:00"],
+      ["sent", "day 10 10:00", null],
+    ]);
+    expect(thread().slice(2)).toEqual([
+      ["suppressed", "day 10 09:00", null],
+      ["sent", "day 10 10:00", null],
+      ["sent", "day 10 10:00", null],
+      ["received", "day 10 10:00", null],
+    ]);
   });
 });

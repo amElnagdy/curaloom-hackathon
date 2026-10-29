@@ -3,8 +3,9 @@
 // codebase makes no network sends to learners (ADR-004).
 
 import type { NotifierAdapterName } from "../../config.ts";
+import { parseSimTime, toMinutes } from "../clock/time.ts";
 import type { Store } from "../store/store.ts";
-import type { Cta, InboundReply, NotifierAdapter } from "./notifier.ts";
+import type { Cta, InboundReply, NotifierAdapter, OutboxEntry } from "./notifier.ts";
 
 // One line on the simulated phone: a message the learner received, or one he sent.
 export type InboxEntry = {
@@ -81,4 +82,48 @@ export function createAdapter(
   sessionId: string,
 ): NotifierAdapter {
   return ADAPTERS[name](store, sessionId);
+}
+
+// The simulated phone's conversation, by sim time: messages received (noting any that quiet hours
+// held back), the learner's replies, messages still held, and messages that never went.
+export type ThreadItem =
+  | {
+      kind: "received";
+      id: string;
+      text: string;
+      cta: Cta | null;
+      at: string;
+      held_from: string | null;
+    }
+  | { kind: "sent"; id: string; text: string; at: string }
+  | { kind: "held"; id: string; text: string; at: string; until: string }
+  | { kind: "suppressed"; id: string; at: string };
+
+export function phoneThread(inbox: InboxEntry[], outbox: OutboxEntry[]): ThreadItem[] {
+  const sentAt = new Map(outbox.map((e) => [e.message.id, e.message.sim_ts]));
+  const items = inbox.map((e): ThreadItem => {
+    if (e.direction === "in") return { kind: "sent", id: e.id, text: e.text, at: e.sim_ts };
+    const from = sentAt.get(e.id);
+    return {
+      kind: "received",
+      id: e.id,
+      text: e.text,
+      cta: e.cta,
+      at: e.sim_ts,
+      held_from: from !== undefined && from !== e.sim_ts ? from : null,
+    };
+  });
+  for (const entry of outbox) {
+    const { id, text_ar, sim_ts } = entry.message;
+    if (entry.status === "deferred") {
+      items.push({ kind: "held", id, text: text_ar, at: sim_ts, until: entry.deliver_at });
+    } else if (entry.status !== "sent") {
+      items.push({ kind: "suppressed", id, at: sim_ts });
+    }
+  }
+  const minutes = (item: ThreadItem) => toMinutes(parseSimTime(item.at));
+  return items
+    .map((item, order) => ({ item, order }))
+    .sort((a, b) => minutes(a.item) - minutes(b.item) || a.order - b.order)
+    .map(({ item }) => item);
 }

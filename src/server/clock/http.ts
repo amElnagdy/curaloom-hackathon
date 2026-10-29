@@ -1,5 +1,6 @@
-// HTTP view of a session's simulated time: POST /api/sessions/:id/sim/{advance,set,reset}, each
-// answering {now, events} with the coach events the move fired.
+// HTTP views of a session's simulated time and phone: POST /api/sessions/:id/sim/{advance,set,reset},
+// each answering {now, events} with the coach events the move fired, and POST
+// /api/sessions/:id/inbox {text}, the learner's reply, answering {opted_out, confirmed}.
 
 import Type, { type Static, type TSchema } from "typebox";
 import { contractErrors } from "../../../contracts/index.ts";
@@ -16,6 +17,10 @@ const Advance = Type.Object(
 );
 const SetDay = Type.Object({ day: Type.Integer({ minimum: 0 }) }, { additionalProperties: false });
 const Empty = Type.Object({}, { additionalProperties: false });
+const Reply = Type.Object(
+  { text: Type.String({ maxLength: 1000, pattern: "\\S" }) },
+  { additionalProperties: false },
+);
 
 class BadRequest extends Error {}
 
@@ -46,6 +51,19 @@ async function jsonBody(request: Request): Promise<unknown> {
   }
 }
 
+// 409 for a clock move into the past, 400 for a bad body or session id.
+async function answer(work: () => Promise<unknown>): Promise<Response> {
+  try {
+    return Response.json(await work());
+  } catch (e) {
+    if (e instanceof ClockError) return Response.json({ error: e.message }, { status: 409 });
+    if (e instanceof BadRequest || e instanceof InvalidNameError) {
+      return Response.json({ error: e.message }, { status: 400 });
+    }
+    throw e;
+  }
+}
+
 export type SimDeps = { store: Store; seed: SimSeed; enabled: boolean };
 
 export async function simResponse(
@@ -56,14 +74,16 @@ export async function simResponse(
 ): Promise<Response> {
   const run = ACTIONS[action];
   if (!enabled || !run) return new Response(null, { status: 404 });
-  try {
-    const body = await jsonBody(request);
-    return Response.json(run(createSim({ store, sessionId, seed }), body));
-  } catch (e) {
-    if (e instanceof ClockError) return Response.json({ error: e.message }, { status: 409 });
-    if (e instanceof BadRequest || e instanceof InvalidNameError) {
-      return Response.json({ error: e.message }, { status: 400 });
-    }
-    throw e;
-  }
+  return answer(async () => run(createSim({ store, sessionId, seed }), await jsonBody(request)));
+}
+
+export function inboxResponse(
+  request: Request,
+  sessionId: string,
+  { store, seed }: Omit<SimDeps, "enabled">,
+): Promise<Response> {
+  return answer(async () => {
+    const { text } = parse(Reply, await jsonBody(request));
+    return createSim({ store, sessionId, seed }).reply(text);
+  });
 }

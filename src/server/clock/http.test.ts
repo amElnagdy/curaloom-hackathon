@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
 import { createFileStore } from "../store/store";
-import { simResponse } from "./http";
+import { inboxResponse, simResponse } from "./http";
 
 function setup(enabled = true) {
   const deps = {
@@ -22,10 +22,16 @@ function setup(enabled = true) {
       action,
       deps,
     );
-  return { post };
+  const reply = (body: unknown) =>
+    inboxResponse(
+      new Request("http://localhost/x", { method: "POST", body: JSON.stringify(body) }),
+      "s_1",
+      deps,
+    );
+  return { post, reply };
 }
 
-describe("sim routes", () => {
+describe("sim and inbox routes", () => {
   it("answer the new time and the coach events each move fired", async () => {
     const { post } = setup();
 
@@ -49,6 +55,18 @@ describe("sim routes", () => {
     expect((await post("advance", {})).status).toBe(400);
     expect((await post("set", { day: "ten" })).status).toBe(400);
     expect((await post("set", { day: 11 }, "../etc")).status).toBe(400);
+  });
+
+  it("take the learner's reply: a stop word opts out once, a blank reply is a 400", async () => {
+    const { reply } = setup();
+
+    const stop = await (await reply({ text: "توقف" })).json();
+    const again = await (await reply({ text: "STOP" })).json();
+
+    expect(stop).toEqual({ opted_out: true, confirmed: true });
+    expect(again).toEqual({ opted_out: true, confirmed: false });
+    expect((await reply({ text: "   " })).status).toBe(400);
+    expect((await reply({})).status).toBe(400);
   });
 
   it("answer 404 for an unknown move and while SIM_CLOCK is off", async () => {
