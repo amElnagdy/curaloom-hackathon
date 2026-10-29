@@ -16,7 +16,7 @@
     "test": "vitest run",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts",
-    "fixtures:record": "RECORD_FIXTURES=1 vitest run contracts/smoke.test.ts"
+    "fixtures:record": "RECORD_FIXTURES=1 vitest run smoke.test"
   },
   "dependencies": {
     "lucide-react": "1.56.0",
