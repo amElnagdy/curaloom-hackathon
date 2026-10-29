@@ -24,8 +24,10 @@
   border-radius: var(--r-lg);
 }
 
+/* Wraps on a phone, so the controls take their own row instead of widening the page. */
 .head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-3);
 }
