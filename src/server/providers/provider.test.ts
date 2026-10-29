@@ -271,6 +271,43 @@ describe("retries, cost and trace", () => {
     expect(p.totalCostUsd()).toBeCloseTo(0.0035235, 6);
   });
 
+  // A reply cut off at the role's output cap: OpenAI's shape, which Meta's Responses API follows.
+  const cutOff = (text: string) => {
+    const body = structuredClone(spike("json_schema", "/responses")) as {
+      status?: string;
+      incomplete_details?: { reason: string };
+      output: { type: string; content?: { text: string }[] }[];
+      usage: { output_tokens: number };
+    };
+    body.status = "incomplete";
+    body.incomplete_details = { reason: "max_output_tokens" };
+    body.usage.output_tokens = 8000;
+    const message = body.output.find((o) => o.type === "message");
+    if (message?.content?.[0]) message.content[0].text = text;
+    return body;
+  };
+
+  it("fails a reply cut off at the output cap as cut off, counting its cost, without retrying", async () => {
+    const { p, sent, events } = provider([{ status: 200, body: cutOff('{"answer": "par') }]);
+
+    await expect(
+      p.structured({ role: "agent_default", trace: TRACE, input: "x", schema }),
+    ).rejects.toThrow(/cut off \(max_output_tokens\) after 8000 output tokens/);
+    expect(sent).toHaveLength(1);
+    expect(events).toMatchObject([
+      { ok: false, usage: { out: 8000 }, cost_usd: expect.any(Number) },
+    ]);
+    expect(events[0]?.cost_usd).toBeGreaterThan(0);
+  });
+
+  it("does not answer a chat with the part of a reply that was cut off", async () => {
+    const { p } = provider([{ status: 200, body: cutOff("The first half of an ans") }]);
+
+    await expect(p.chat({ role: "agent_default", trace: TRACE, input: "x" })).rejects.toThrow(
+      /cut off/,
+    );
+  });
+
   it("gives up after three failed attempts", async () => {
     const { p, sent } = provider([
       new Error("network"),

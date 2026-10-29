@@ -26,6 +26,8 @@ export type Normalized = {
   citations: Citation[];
   image: { b64: string; format: string } | null;
   usage: Usage;
+  // Why a Responses reply stopped before it was complete (e.g. "max_output_tokens"); null if it is.
+  incomplete: string | null;
 };
 
 type ResponsesInput = {
@@ -52,6 +54,8 @@ type Annotation = {
   end_index?: number;
 };
 type ResponsesBody = {
+  status?: string;
+  incomplete_details?: { reason?: string } | null;
   output?: OutputItem[];
   usage?: {
     input_tokens?: number;
@@ -139,6 +143,7 @@ const EMPTY: Normalized = {
   citations: [],
   image: null,
   usage: {},
+  incomplete: null,
 };
 
 // The final answer is the last `message` without a `phase`; interim ones are "commentary".
@@ -169,6 +174,11 @@ export function normalizeResponses(raw: unknown): Normalized {
   const usage = body.usage ?? {};
   return {
     ...EMPTY,
+    // Any status but "completed" fails closed: the reply may be partial.
+    incomplete:
+      body.status && body.status !== "completed"
+        ? (body.incomplete_details?.reason ?? body.status)
+        : null,
     text,
     tool_calls,
     citations: [...citations.values()],

@@ -251,6 +251,12 @@ export function createProvider(options: ProviderOptions): Provider {
     const usage = { in: normalized.usage.input ?? 0, out: normalized.usage.output ?? 0 };
     const outcome = { attempt, latency_ms: res.latency_ms, usage, cost_usd: cost };
 
+    if (normalized.incomplete) {
+      const cap = role.max_output_tokens ? `; the role caps it at ${role.max_output_tokens}` : "";
+      const error = `reply from ${role.model} was cut off (${normalized.incomplete}) after ${usage.out} output tokens${cap}`;
+      trace({ ...outcome, ok: false, error });
+      throw new Error(error);
+    }
     let json: unknown = null;
     if (parseJson) {
       try {
