@@ -89,6 +89,40 @@ describe("fetchPage", () => {
     );
   });
 
+  it("records only what it has no fixture for, like the provider", async () => {
+    const web = fakeWeb({
+      [ROBOTS]: { type: "text/plain", body: "User-agent: *\nDisallow: /private/" },
+      [PAGE]: { body: HTML },
+    });
+    const first = fetcher({ profile: "record", transport: web.transport });
+    const recorded = await first.pages.fetchPage(PAGE, first.trace);
+
+    const again = fetcher({
+      profile: "record",
+      transport: noNetwork,
+      fixturesDir: first.fixturesDir,
+    });
+
+    expect(await again.pages.fetchPage(PAGE, again.trace)).toEqual(recorded);
+  });
+
+  it("records again a page whose fixture holds a passing network failure", async () => {
+    const down: Transport = async () => {
+      throw new TypeError("fetch failed");
+    };
+    const first = fetcher({ profile: "record", transport: down });
+    expect((await first.pages.fetchPage(PAGE, first.trace)).ok).toBe(false);
+
+    const web = fakeWeb({ [PAGE]: { body: HTML } });
+    const again = fetcher({
+      profile: "record",
+      transport: web.transport,
+      fixturesDir: first.fixturesDir,
+    });
+
+    expect((await again.pages.fetchPage(PAGE, again.trace)).ok).toBe(true);
+  });
+
   it("fails loudly in replay when a page was never recorded", async () => {
     const { pages, trace } = fetcher({ profile: "replay", transport: noNetwork });
 

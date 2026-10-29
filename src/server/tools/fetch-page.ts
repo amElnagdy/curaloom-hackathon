@@ -124,6 +124,12 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
       }
       return JSON.parse(readFileSync(path, "utf8")) as Observation;
     }
+    // Recording keeps a page it already has, as the provider keeps a response, so a re-record
+    // fetches only new pages. A passing network failure is fetched again.
+    if (profile === "record" && existsSync(path)) {
+      const saved = JSON.parse(readFileSync(path, "utf8")) as Observation;
+      if (!(saved.response.kind === "failed" && saved.response.transient)) return saved;
+    }
     // performance.now() measures a duration, not the time of day, so ADR-004's clock rule does
     // not apply.
     const started = performance.now();
