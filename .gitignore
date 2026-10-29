@@ -24,3 +24,6 @@ data/
 
 # Partial eval runs (--only)
 evals/**/results-*-partial.*
+
+# Agent worktrees made by Claude Code
+.claude/worktrees/
