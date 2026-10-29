@@ -1,14 +1,22 @@
 "use client";
 
-// The plan's client side (#18). BuildPlan asks the server for the plan once the intake is done and
-// shows the page again when it is ready. Road draws the modules in order; a module in the committed
+// The plan's client side (#18). Building asks the server for the plan once the intake is done and
+// shows the page again when it is ready; the page's lede, status and body read from it whether the
+// build failed. Road draws the modules in order; a module in the committed
 // weeks lists its sessions and their sources, and the learner can move a session to another day of
 // its module or make it shorter. The editor checks a change with the plan's own rules before it is sent, and the server
 // checks it again.
 
 import { CalendarClock, Check, Hourglass, RotateCcw, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 import type { CoursePlan, Resource } from "../../../contracts/index.ts";
 import {
   applyEdit,
@@ -41,7 +49,10 @@ const post = (sessionId: string, action: string, body: object, signal?: AbortSig
 // While another request builds the plan the server answers 409; this one waits and asks again.
 const BUSY_RETRY_MS = 3000;
 
-export function BuildPlan({ sessionId }: { sessionId: string }) {
+const BuildFailed = createContext({ failed: false, retry: () => {} });
+
+// The page keys it by the learner's profile, so a new profile starts a new build.
+export function Building({ sessionId, children }: { sessionId: string; children: ReactNode }) {
   const router = useRouter();
   const [failed, setFailed] = useState(false);
   const [, startTransition] = useTransition();
@@ -65,16 +76,53 @@ export function BuildPlan({ sessionId }: { sessionId: string }) {
     return () => abort.abort();
   }, [failed, sessionId, router]);
 
-  if (!failed) return null;
+  return <BuildFailed value={{ failed, retry: () => setFailed(false) }}>{children}</BuildFailed>;
+}
+
+export function BuildingLede({ name }: { name: string }) {
+  const { failed } = useContext(BuildFailed);
+  if (failed) return <b>لم نتمكن من بناء خطتك هذه المرة يا {name}.</b>;
   return (
-    <div className={styles.buildFailed}>
-      <Callout icon={TriangleAlert} tone="attention">
-        تعذّر بناء خطتك هذه المرة. حاول مرة أخرى بعد قليل.
-      </Callout>
-      <button type="button" className={buttonClass("secondary")} onClick={() => setFailed(false)}>
-        <RotateCcw aria-hidden />
-        حاول مرة أخرى
-      </button>
+    <>
+      <b>نبني خطتك الآن يا {name}.</b> يبحث الكشّاف عن مصادر مفتوحة الترخيص، ثم يقسّم المعماري الطريق
+      على وقتك. قد يستغرق ذلك دقيقتين.
+    </>
+  );
+}
+
+export function BuildingStatus() {
+  const { failed } = useContext(BuildFailed);
+  return failed ? (
+    <StatusPill status="failed">تعذّر البناء</StatusPill>
+  ) : (
+    <StatusPill status="building">تُبنى الآن</StatusPill>
+  );
+}
+
+export function BuildingBody() {
+  const { failed, retry } = useContext(BuildFailed);
+  if (failed) {
+    return (
+      <div className={styles.buildFailed}>
+        <Callout icon={TriangleAlert} tone="attention">
+          تعذّر بناء خطتك هذه المرة. حاول مرة أخرى بعد قليل.
+        </Callout>
+        <button type="button" className={buttonClass("secondary")} onClick={retry}>
+          <RotateCcw aria-hidden />
+          حاول مرة أخرى
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div aria-busy="true">
+      <div className={styles.skeleton} data-size="why" />
+      <section className={styles.section} aria-label="أسبوعاك الأولان">
+        <div className={styles.skeleton} data-size="strip" />
+      </section>
+      <section className={styles.section} aria-label="الطريق">
+        <div className={styles.skeleton} data-size="road" />
+      </section>
     </div>
   );
 }
@@ -158,7 +206,9 @@ export function Road({
                                   <span key={id} className={styles.rowSource}>
                                     <span className="sr-only">، </span>
                                     <LangBadge lang={source.lang} />
-                                    <bdi lang={source.lang}>{source.title}</bdi>
+                                    <bdi lang={source.lang} title={source.title}>
+                                      {source.title}
+                                    </bdi>
                                   </span>
                                 )
                               );
@@ -302,6 +352,9 @@ function Editor({
       }
       const body: { violations?: Violation[] } = await res.json().catch(() => ({}));
       setRefused(body.violations?.map((v) => v.ar) ?? [SAVE_FAILED]);
+      // A conflict may mean the plan is no longer the learner's: their profile changed since the
+      // page was drawn. The page drawn again shows what is theirs now.
+      if (res.status === 409) startTransition(() => router.refresh());
     } catch {
       setRefused([SAVE_FAILED]);
     } finally {

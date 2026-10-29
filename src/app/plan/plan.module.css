@@ -515,4 +515,18 @@
   .editor {
     flex-basis: 100%;
   }
+  /* Each source on its own line, its title on up to two, so two titles that start alike differ. */
+  .rowSource {
+    display: flex;
+    margin-inline-start: 0;
+    margin-top: var(--s-1);
+  }
+  .rowSource bdi {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }

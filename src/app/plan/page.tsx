@@ -25,7 +25,7 @@ import { config } from "../../config.ts";
 import { architectBrief, limitsOf, planFor } from "../../server/agents/architect/architect.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
-import { createFileStore } from "../../server/store/store.ts";
+import { contentHash, createFileStore } from "../../server/store/store.ts";
 import { ActivityFeed, LiveStatusPill } from "../_shell/activity-feed.tsx";
 import { Callout } from "../_shell/blocks.tsx";
 import { latestPlan, sessionsOf, simDay } from "../_shell/course.ts";
@@ -50,7 +50,7 @@ import {
   StatusPill,
 } from "../_shell/ui.tsx";
 import styles from "./plan.module.css";
-import { BuildPlan, Road } from "./road.tsx";
+import { Building, BuildingBody, BuildingLede, BuildingStatus, Road } from "./road.tsx";
 
 export const metadata: Metadata = { title: "الخطة" };
 
@@ -156,9 +156,9 @@ export default async function PlanPage() {
   const firstLesson =
     shown && !shown.editable && seed.lessons.find((l) => l.id === first?.lesson_id);
 
-  return (
+  const page = (
     <div className={styles.plan}>
-      <article className={styles.doc} aria-labelledby="plan-title" aria-busy={!shown}>
+      <article className={styles.doc} aria-labelledby="plan-title">
         <div className={styles.docInner}>
           <header>
             <h1 className={styles.title} id="plan-title">
@@ -166,10 +166,7 @@ export default async function PlanPage() {
             </h1>
             <p className={styles.lede}>
               {!shown ? (
-                <>
-                  <b>نبني خطتك الآن يا {profile.name}.</b> يبحث الكشّاف عن مصادر مفتوحة الترخيص، ثم
-                  يقسّم المعماري الطريق على وقتك. قد يستغرق ذلك دقيقتين.
-                </>
+                <BuildingLede name={profile.name} />
               ) : shown.editable ? (
                 <>
                   <b>خطتك جاهزة يا {profile.name}.</b> الطريق {countOf(totalWeeks, WEEKS)} في{" "}
@@ -199,7 +196,7 @@ export default async function PlanPage() {
               </Prop>
               <Prop icon={CircleDashed} label="الحالة">
                 {!shown ? (
-                  <StatusPill status="building">تُبنى الآن</StatusPill>
+                  <BuildingStatus />
                 ) : shown.editable ? (
                   <LiveStatusPill status="ready" label="الخطة جاهزة" />
                 ) : (
@@ -210,16 +207,7 @@ export default async function PlanPage() {
           </header>
 
           {!shown || !plan ? (
-            <>
-              <BuildPlan sessionId={DEMO_SESSION_ID} />
-              <div className={styles.skeleton} data-size="why" />
-              <section className={styles.section} aria-label="أسبوعاك الأولان">
-                <div className={styles.skeleton} data-size="strip" />
-              </section>
-              <section className={styles.section} aria-label="الطريق">
-                <div className={styles.skeleton} data-size="road" />
-              </section>
-            </>
+            <BuildingBody />
           ) : (
             <>
               <div className={styles.why}>
@@ -318,5 +306,12 @@ export default async function PlanPage() {
         </div>
       </ActivityFeed>
     </div>
+  );
+  if (shown) return page;
+  // Keyed by the profile, so a page refreshed after the profile changed builds for the new one.
+  return (
+    <Building key={contentHash(profile)} sessionId={DEMO_SESSION_ID}>
+      {page}
+    </Building>
   );
 }
