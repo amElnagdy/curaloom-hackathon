@@ -1,7 +1,7 @@
 import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { parseModels } from "./models";
 import { createProvider, type ProviderOptions, type ProviderTraceEvent } from "./provider";
 
@@ -112,6 +112,27 @@ describe("Meta provider normalization", () => {
     });
 
     expect(sent[0]?.body).toMatchObject({ model: "muse-spark-1.3", max_output_tokens: 8000 });
+  });
+
+  // Fake timers do not drive AbortSignal.timeout, so the test reads the timeout each call asks for.
+  it("gives a capped role time to write its whole reply", async () => {
+    const timeouts = vi.spyOn(AbortSignal, "timeout");
+    const { p } = provider([
+      { status: 200, body: spike("json_schema", "/responses") },
+      { status: 200, body: spike("json_schema", "/responses") },
+    ]);
+    const schema = { type: "object", properties: {}, required: [], additionalProperties: false };
+
+    await p.structured({
+      role: "curriculum",
+      trace: TRACE,
+      input: "خطة",
+      schema: { name: "x", schema },
+    });
+    await p.chat({ role: "agent_default", trace: TRACE, input: "x" });
+
+    expect(timeouts.mock.calls.map(([ms]) => ms)).toEqual([160_000, 120_000]);
+    timeouts.mockRestore();
   });
 
   it("normalizes tool calls and ignores commentary messages", async () => {

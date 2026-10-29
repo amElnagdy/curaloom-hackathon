@@ -122,10 +122,12 @@ export function createProvider(options: ProviderOptions): Provider {
   const fixturesDir = options.fixturesDir ?? FIXTURES_DIR;
   const doFetch = options.fetch ?? fetch;
   const sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
-  const timeoutMs = options.timeoutMs ?? 120_000;
+  // A capped role gets 20 ms per output token it may write, so a long reply is not cut short.
+  const timeoutFor = (role: RoleConfig) =>
+    options.timeoutMs ?? Math.max(120_000, (role.max_output_tokens ?? 0) * 20);
   let totalCost = 0;
 
-  async function sendLive(req: WireRequest): Promise<WireResponse> {
+  async function sendLive(req: WireRequest, timeoutMs: number): Promise<WireResponse> {
     if (!options.apiKey) {
       throw new Error("MODEL_API_KEY is not set; copy config/.env.example to .env");
     }
@@ -168,7 +170,7 @@ export function createProvider(options: ProviderOptions): Provider {
     };
   }
 
-  async function send(req: WireRequest): Promise<WireResponse> {
+  async function send(req: WireRequest, timeoutMs: number): Promise<WireResponse> {
     const { material, name } = fixtureKey(req);
     const path = join(fixturesDir, name);
     const recorded = existsSync(path);
@@ -183,7 +185,7 @@ export function createProvider(options: ProviderOptions): Provider {
       const fixture = JSON.parse(readFileSync(path, "utf8")) as Fixture;
       return { status: 200, body: fixture.body, latency_ms: fixture.latency_ms };
     }
-    const res = await sendLive(req);
+    const res = await sendLive(req, timeoutMs);
     if (profile === "record" && res.status < 300) {
       mkdirSync(fixturesDir, { recursive: true });
       const fixture: Fixture = { request: material, body: res.body, latency_ms: res.latency_ms };
@@ -195,6 +197,7 @@ export function createProvider(options: ProviderOptions): Provider {
   // Sends with retries: network errors, timeouts, 429 and 5xx are retried with backoff.
   async function sendWithRetry(
     req: WireRequest,
+    timeoutMs: number,
     onFailure: (attempt: number, error: string, latencyMs: number) => void,
   ) {
     for (let attempt = 1; ; attempt++) {
@@ -203,7 +206,7 @@ export function createProvider(options: ProviderOptions): Provider {
       // does not apply.
       const started = performance.now();
       try {
-        const res = await send(req);
+        const res = await send(req, timeoutMs);
         if (res.status < 300) return { res, attempt };
         const detail = JSON.stringify(res.body).slice(0, 300);
         error = new HttpError(
@@ -242,8 +245,10 @@ export function createProvider(options: ProviderOptions): Provider {
         ...outcome,
       });
 
-    const { res, attempt } = await sendWithRetry(build(role), (attempt, error, latency_ms) =>
-      trace({ attempt, ok: false, latency_ms, cost_usd: 0, error }),
+    const { res, attempt } = await sendWithRetry(
+      build(role),
+      timeoutFor(role),
+      (attempt, error, latency_ms) => trace({ attempt, ok: false, latency_ms, cost_usd: 0, error }),
     );
     const normalized = normalize(res.body);
     const cost = costUsd(models, role.model, normalized.usage);
