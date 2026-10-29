@@ -69,7 +69,6 @@
         "type": "json_schema",
         "name": "Diagnostic",
         "schema": {
-          "type": "object",
           "additionalProperties": false,
           "properties": {
             "questions": {
@@ -103,7 +102,8 @@
           },
           "required": [
             "questions"
-          ]
+          ],
+          "type": "object"
         },
         "strict": true
       }
@@ -111,28 +111,28 @@
     "tools": [],
     "tool_choice": "auto",
     "truncation": "disabled",
-    "id": "resp_6ae3632d10b821833b064017",
+    "id": "resp_6ae36a9213b2a12caa344177",
     "object": "response",
     "status": "completed",
-    "created_at": 1793286957,
-    "completed_at": 1793286957,
+    "created_at": 1793288850,
+    "completed_at": 1793288850,
     "error": null,
     "incomplete_details": null,
     "output": [
       {
         "type": "reasoning",
-        "id": "rs_6ae3632d10b821833b064017:rs_0089e2eb-1341-4359-abb4-e512cffef085",
+        "id": "rs_6ae36a9213b2a12caa344177:rs_64632fb1-9054-4d29-9a7b-8a247966e9c3",
         "summary": [],
         "status": "completed"
       },
       {
         "type": "message",
-        "id": "msg_ec8a8fa4-69fa-4dec-8e37-6b5e91231581",
+        "id": "msg_6e4ac130-adf8-4c94-b730-eaf92cbcd9c0",
         "role": "assistant",
         "content": [
           {
             "type": "output_text",
-            "text": "{\"questions\": [{\"answer\": \"تلخيص البيانات وتحليلها\", \"options_ar\": [\"تلخيص البيانات وتحليلها\", \"تنسيق الخطوط والألوان\", \"رسم الصور والأشكال\", \"تدقيق الإملاء\"], \"prompt_ar\": \"ما هي الوظيفة الأساسية للجدول المحوري (PivotTable) في إكسل؟\"}, {\"answer\": \"منطقة القيم\", \"options_ar\": [\"منطقة القيم\", \"منطقة الصفوف\", \"منطقة الأعمدة\", \"منطقة التصفية\"], \"prompt_ar\": \"أين تسحب حقل الأرقام مثل المبيعات لحساب المجموع في الجدول المحوري (PivotTable)؟\"}, {\"answer\": \"زر التحديث\", \"options_ar\": [\"زر التحديث\", \"نسخ الجدول ولصقه\", \"تغيير لون الخلايا\", \"حذف الجدول وإنشاؤه\"], \"prompt_ar\": \"بعد إضافة بيانات جديدة للمصدر، كيف تُحدّث نتائج الجدول المحوري (PivotTable)؟\"}]}",
+            "text": "{\"questions\": [{\"answer\": \"تلخيص البيانات\", \"options_ar\": [\"تلخيص البيانات\", \"تنسيق الخط\", \"إدراج الصور\", \"تشغيل الفيديو\"], \"prompt_ar\": \"ما الهدف الأساسي من الجداول المحورية (PivotTables) في إكسل؟\"}, {\"answer\": \"منطقة القيم\", \"options_ar\": [\"منطقة القيم\", \"شريط العنوان\", \"شريط الصيغة\", \"قائمة الخطوط\"], \"prompt_ar\": \"أين تسحب حقل المبيعات لحساب مجموعه في الجدول المحوري (PivotTable)؟\"}, {\"answer\": \"تجميع الحقل حسب الأشهر\", \"options_ar\": [\"تجميع الحقل حسب الأشهر\", \"فرز تنازلي\", \"إخفاء الأعمدة\", \"دمج الخلايا\"], \"prompt_ar\": \"لديك حقل التاريخ (Date Field) في جدول محوري (PivotTable) وتريد عرض المبيعات حسب الأشهر، ماذا تفعل؟\"}]}",
             "annotations": [],
             "logprobs": []
           }
@@ -144,16 +144,16 @@
     "usage": {
       "input_tokens": 211,
       "input_tokens_details": {
-        "cached_tokens": 0
+        "cached_tokens": 113
       },
-      "output_tokens": 1398,
+      "output_tokens": 907,
       "output_tokens_details": {
-        "reasoning_tokens": 1151
+        "reasoning_tokens": 674
       },
-      "total_tokens": 1609
+      "total_tokens": 1118
     },
     "parallel_tool_calls": true,
     "store": true
   },
-  "latency_ms": 5601
+  "latency_ms": 5394
 }

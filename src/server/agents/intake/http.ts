@@ -41,7 +41,7 @@ export async function intakeResponse(
   action: string,
   intake: Intake,
 ): Promise<Response> {
-  const run = ACTIONS[action];
+  const run = Object.hasOwn(ACTIONS, action) ? ACTIONS[action] : undefined;
   if (!run) return new Response(null, { status: 404 });
   if (busy.has(sessionId)) {
     return Response.json({ error: "The interview is still answering" }, { status: 409 });

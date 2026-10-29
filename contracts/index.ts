@@ -56,12 +56,15 @@ export const IntakeReply = Obj({
     history_notes: Nullable(
       Type.String({
         description:
-          "a short English note on courses the learner dropped and why, and anything the coach should respect",
+          "a short Arabic note on courses the learner dropped and why, and anything the coach should respect",
       }),
     ),
   }),
   dialect: StringEnum(DIALECTS, { description: "the dialect the learner writes in" }),
-  reply_ar: Type.String({ description: "your next message to the learner" }),
+  ack_ar: Type.String({ description: "a few words acknowledging the learner's latest message" }),
+  ask_ar: Type.String({
+    description: "your questions about what is still missing; empty when nothing is missing",
+  }),
 });
 
 export const Diagnostic = Obj({

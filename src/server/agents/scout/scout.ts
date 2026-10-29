@@ -13,9 +13,14 @@ import {
   ScoutResult,
   validate,
 } from "../../../../contracts/index.ts";
-import type { Agent, AgentContext, createOrchestrator } from "../../orchestrator/orchestrator.ts";
+import {
+  type Agent,
+  type AgentContext,
+  type createOrchestrator,
+  withFeedback,
+} from "../../orchestrator/orchestrator.ts";
 import type { Citation } from "../../providers/provider.ts";
-import type { Cache } from "../../store/store.ts";
+import { type Cache, contentHash } from "../../store/store.ts";
 import type { PageFetcher } from "../../tools/fetch-page.ts";
 import { classifyLicence, type LicenceCheck } from "./licence.ts";
 import { rank } from "./rank.ts";
@@ -57,7 +62,7 @@ export function runScout({
   pages,
   cache,
 }: ScoutRun): Promise<ScoutResult> {
-  const key = hash([brief.topic, [...brief.langs].sort()]);
+  const key = contentHash([brief.topic, [...brief.langs].sort()]);
   const agent = scoutAgent(pages, cache, `result_${key}`);
   return orchestrator.runStep(sessionId, agent, brief, { key: `scout:${key}` });
 }
@@ -93,11 +98,6 @@ const DESCRIBE_INSTRUCTIONS =
 
 const learnerLines = (brief: ScoutBrief) =>
   `Topic: ${brief.topic}\nThe learner's goal: ${brief.goal}\nLevel: ${brief.level}`;
-
-// A model reply that breaks its contract fails the attempt (validate() throws). On the
-// orchestrator's one retry, the model is told why.
-const withFeedback = (ctx: AgentContext, input: string) =>
-  ctx.feedback ? `${input}\n\nThe previous attempt failed: ${ctx.feedback.join("; ")}` : input;
 
 type Cleared = LicenceCheck & { use: Resource["licence"]["use"] };
 type Checked =
@@ -207,7 +207,7 @@ async function paidOnce<T>(
   request: { kind: "plan" | "search"; material: unknown[]; hit: Summary },
   call: () => Promise<T>,
 ): Promise<T> {
-  const key = `${request.kind}_${hash(request.material)}`;
+  const key = `${request.kind}_${contentHash(request.material)}`;
   const kept = ctx.cache.read<T>(CACHE_AREA, key);
   if (kept !== undefined) {
     ctx.trace({ kind: "decision", ...request.hit });
@@ -447,9 +447,6 @@ function normalUrl(url: string): string {
 }
 
 const hostOf = (url: string) => URL.parse(url)?.host ?? url;
-
-const hash = (material: unknown) =>
-  createHash("sha256").update(JSON.stringify(material)).digest("hex").slice(0, 12);
 
 // Like Promise.all, but fails only once every call has ended, so each paid search that did finish
 // is in the cache before the orchestrator retries.

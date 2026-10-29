@@ -3,8 +3,8 @@
     "path": "/responses",
     "json": {
       "model": "muse-spark-1.3",
-      "input": "Topic: Excel pivot tables for data analysis\nThe learner's name: عمر\nStill missing before the latest message: hours_per_week (how many hours a week they can study); source_langs_ok (whether they accept sources in English, Russian, Chinese and French, which reach them in Arabic); history_notes (whether they started courses before and dropped them, and why)\nIf the latest message gives everything still missing, ask nothing more: thank the learner and say that a quick check of three questions on the topic comes next.\n\nConversation so far:\nInterviewer: أهلًا عمر! سأسألك بضعة أسئلة قصيرة لأبني لك خطة تناسبك. ما الذي تريد أن تصل إليه، وما عملك الآن؟\nLearner: هلا والله. أنا محاسب بشركة في الرياض من خمس سنين، وأبي أتحول لمحلل بيانات.\nInterviewer: ممتاز يا عمر، خبرتك كمحاسب ستفيدك كثيرا في تحليل البيانات. كم ساعة تستطيع الدراسة في الأسبوع؟ وهل جربت دورات قبل ذلك وتركتها لأي سبب؟\nLearner: أشتغل على الإكسل كل يوم، بس عمري ما سويت تحليل بيانات صدق. وقتي ضيق، تقريبًا خمس ساعات بالأسبوع.",
-      "instructions": "You interview a new learner for a service that builds them a free personal course in Arabic from openly licensed resources in English, Russian, Chinese and French; every source reaches the learner in Arabic. The learner writes Arabic, often in a dialect such as Gulf or Egyptian. In heard, give everything the conversation so far tells you about the learner, and null for what it does not say yet: never guess. A learner who accepts any language, or does not mind as long as it reaches them in Arabic, accepts all four source languages. history_notes stays null until the learner has said whether they dropped courses before. reply_ar is your next message: clear, warm Modern Standard Arabic that a dialect speaker reads easily, at most three short sentences. Acknowledge the latest message in a few words, then ask only about what is still missing, at most two things at a time, in plain words. Never ask about something the learner already said, and never ask for contact details.",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's name: عمر\nStill missing before the latest message: goal (the role or outcome they want); background (their current work and skills); hours_per_week (how many hours a week they can study); source_langs_ok (whether they accept sources in English, Russian, Chinese and French, which reach them in Arabic); history_notes (whether they started courses before and dropped them, and why)\n\nConversation so far:\nInterviewer: أهلًا عمر! سأسألك بضعة أسئلة قصيرة لأبني لك خطة تناسبك. ما الذي تريد أن تصل إليه، وما عملك الآن؟\nLearner: هلا والله. أنا محاسب بشركة في الرياض من خمس سنين، وأبي أتحول لمحلل بيانات.",
+      "instructions": "You interview a new learner for a service that builds them a free personal course in Arabic from openly licensed resources in English, Russian, Chinese and French; every source reaches the learner in Arabic. The learner writes Arabic, often in a dialect such as Gulf or Egyptian. In heard, give everything the conversation so far tells you about the learner, and null for what it does not say yet: never guess. A learner who accepts any language, or does not mind as long as it reaches them in Arabic, accepts all four source languages. history_notes stays null until the learner has said whether they dropped courses before. Write ack_ar and ask_ar in clear, warm Modern Standard Arabic that a dialect speaker reads easily. ack_ar acknowledges the latest message in a few words. ask_ar asks only about what is still missing after the latest message, at most two things at a time, in plain words, in one or two short sentences; leave it empty when nothing is missing. Never ask about something the learner already said, and never ask for contact details.",
       "reasoning": {
         "effort": "medium"
       },
@@ -18,7 +18,8 @@
             "required": [
               "heard",
               "dialect",
-              "reply_ar"
+              "ack_ar",
+              "ask_ar"
             ],
             "properties": {
               "heard": {
@@ -91,7 +92,7 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "description": "a short English note on courses the learner dropped and why, and anything the coach should respect"
+                        "description": "a short Arabic note on courses the learner dropped and why, and anything the coach should respect"
                       },
                       {
                         "type": "null"
@@ -113,9 +114,13 @@
                 ],
                 "description": "the dialect the learner writes in"
               },
-              "reply_ar": {
+              "ack_ar": {
                 "type": "string",
-                "description": "your next message to the learner"
+                "description": "a few words acknowledging the learner's latest message"
+              },
+              "ask_ar": {
+                "type": "string",
+                "description": "your questions about what is still missing; empty when nothing is missing"
               }
             },
             "additionalProperties": false
@@ -139,9 +144,23 @@
         "type": "json_schema",
         "name": "IntakeReply",
         "schema": {
-          "type": "object",
+          "required": [
+            "heard",
+            "dialect",
+            "ack_ar",
+            "ask_ar"
+          ],
           "additionalProperties": false,
+          "type": "object",
           "properties": {
+            "ack_ar": {
+              "description": "a few words acknowledging the learner's latest message",
+              "type": "string"
+            },
+            "ask_ar": {
+              "description": "your questions about what is still missing; empty when nothing is missing",
+              "type": "string"
+            },
             "dialect": {
               "description": "the dialect the learner writes in",
               "enum": [
@@ -185,7 +204,7 @@
                 "history_notes": {
                   "anyOf": [
                     {
-                      "description": "a short English note on courses the learner dropped and why, and anything the coach should respect",
+                      "description": "a short Arabic note on courses the learner dropped and why, and anything the coach should respect",
                       "type": "string"
                     },
                     {
@@ -233,17 +252,8 @@
                 "history_notes"
               ],
               "type": "object"
-            },
-            "reply_ar": {
-              "description": "your next message to the learner",
-              "type": "string"
             }
-          },
-          "required": [
-            "heard",
-            "dialect",
-            "reply_ar"
-          ]
+          }
         },
         "strict": true
       }
@@ -251,28 +261,28 @@
     "tools": [],
     "tool_choice": "auto",
     "truncation": "disabled",
-    "id": "resp_6ae36320b01a2282c4a84c11",
+    "id": "resp_6ae36a7fb801868f707248b4",
     "object": "response",
     "status": "completed",
-    "created_at": 1793286944,
-    "completed_at": 1793286944,
+    "created_at": 1793288831,
+    "completed_at": 1793288831,
     "error": null,
     "incomplete_details": null,
     "output": [
       {
         "type": "reasoning",
-        "id": "rs_6ae36320b01a2282c4a84c11:rs_02aaf541-5f9c-4cd4-89b1-0e1c9b7b4319",
+        "id": "rs_6ae36a7fb801868f707248b4:rs_6b9a5242-6405-41db-970f-793eb0e1202c",
         "summary": [],
         "status": "completed"
       },
       {
         "type": "message",
-        "id": "msg_d142b545-2c6c-40c0-ab4e-5fc20b4ef9d8",
+        "id": "msg_b5ee3a69-adc2-48d4-abef-5740e658a54a",
         "role": "assistant",
         "content": [
           {
             "type": "output_text",
-            "text": "{\"dialect\": \"gulf\", \"heard\": {\"background\": [\"accountant\", \"excel\"], \"goal\": \"محلل بيانات\", \"history_notes\": null, \"hours_per_week\": 5, \"source_langs_ok\": null}, \"reply_ar\": \"تمام، خمس ساعات في الأسبوع واضحة. هل يناسبك أن أستخدم مصادر بالإنجليزية والروسية والصينية والفرنسية وتصلك بالعربية؟ وهل تركت أي دورة من قبل وما السبب؟\"}",
+            "text": "{\"ack_ar\": \"ممتاز يا عمر، خبرتك كمحاسب ستفيدك كثيرا.\", \"ask_ar\": \"كم ساعة في الأسبوع تقدر تخصص للدراسة؟ وهل يناسبك أستخدم مصادر بالإنجليزية والروسية والصينية والفرنسية وتصلك بالعربية؟\", \"dialect\": \"gulf\", \"heard\": {\"background\": [\"accountant\"], \"goal\": \"التحول إلى محلل بيانات\", \"history_notes\": null, \"hours_per_week\": null, \"source_langs_ok\": null}}",
             "annotations": [],
             "logprobs": []
           }
@@ -280,20 +290,20 @@
         "status": "completed"
       }
     ],
-    "instructions": "You interview a new learner for a service that builds them a free personal course in Arabic from openly licensed resources in English, Russian, Chinese and French; every source reaches the learner in Arabic. The learner writes Arabic, often in a dialect such as Gulf or Egyptian. In heard, give everything the conversation so far tells you about the learner, and null for what it does not say yet: never guess. A learner who accepts any language, or does not mind as long as it reaches them in Arabic, accepts all four source languages. history_notes stays null until the learner has said whether they dropped courses before. reply_ar is your next message: clear, warm Modern Standard Arabic that a dialect speaker reads easily, at most three short sentences. Acknowledge the latest message in a few words, then ask only about what is still missing, at most two things at a time, in plain words. Never ask about something the learner already said, and never ask for contact details.",
+    "instructions": "You interview a new learner for a service that builds them a free personal course in Arabic from openly licensed resources in English, Russian, Chinese and French; every source reaches the learner in Arabic. The learner writes Arabic, often in a dialect such as Gulf or Egyptian. In heard, give everything the conversation so far tells you about the learner, and null for what it does not say yet: never guess. A learner who accepts any language, or does not mind as long as it reaches them in Arabic, accepts all four source languages. history_notes stays null until the learner has said whether they dropped courses before. Write ack_ar and ask_ar in clear, warm Modern Standard Arabic that a dialect speaker reads easily. ack_ar acknowledges the latest message in a few words. ask_ar asks only about what is still missing after the latest message, at most two things at a time, in plain words, in one or two short sentences; leave it empty when nothing is missing. Never ask about something the learner already said, and never ask for contact details.",
     "usage": {
-      "input_tokens": 788,
+      "input_tokens": 728,
       "input_tokens_details": {
         "cached_tokens": 0
       },
-      "output_tokens": 1381,
+      "output_tokens": 1148,
       "output_tokens_details": {
-        "reasoning_tokens": 1265
+        "reasoning_tokens": 1020
       },
-      "total_tokens": 2169
+      "total_tokens": 1876
     },
     "parallel_tool_calls": true,
     "store": true
   },
-  "latency_ms": 4591
+  "latency_ms": 5019
 }

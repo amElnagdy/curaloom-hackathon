@@ -28,6 +28,10 @@ type SessionState = { steps: Record<string, StepRecord> };
 
 export class StepFailed extends Error {}
 
+// A model prompt for an agent: on the orchestrator's retry, it says why the last attempt failed.
+export const withFeedback = (ctx: AgentContext, input: string) =>
+  ctx.feedback ? `${input}\n\nThe previous attempt failed: ${ctx.feedback.join("; ")}` : input;
+
 export type OrchestratorOptions = {
   store: Store;
   makeProvider(onTrace: (event: ProviderTraceEvent) => void): Provider;

@@ -37,6 +37,10 @@ export type Cache = {
 
 export const DATA_DIR = join(process.cwd(), "data");
 
+// Names content by a short hash of it: a cache key, or a step key that changes with its input.
+export const contentHash = (material: unknown) =>
+  createHash("sha256").update(JSON.stringify(material)).digest("hex").slice(0, 12);
+
 const SAFE_NAME = /^[A-Za-z0-9_-]{1,64}$/;
 
 // A session id or document name the store refuses: a client error, not a server fault.

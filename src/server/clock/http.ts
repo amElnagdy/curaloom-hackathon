@@ -72,7 +72,7 @@ export async function simResponse(
   action: string,
   { store, seed, enabled }: SimDeps,
 ): Promise<Response> {
-  const run = ACTIONS[action];
+  const run = Object.hasOwn(ACTIONS, action) ? ACTIONS[action] : undefined;
   if (!enabled || !run) return new Response(null, { status: 404 });
   return answer(async () => run(createSim({ store, sessionId, seed }), await jsonBody(request)));
 }

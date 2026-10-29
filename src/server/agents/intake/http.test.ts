@@ -14,8 +14,10 @@ const VIEW: IntakeView = {
     source_langs_ok: null,
     history_notes: null,
   },
+  dialect: null,
   questions: null,
   picked: null,
+  result: null,
 };
 
 // An intake that records what it was asked and fails as told.

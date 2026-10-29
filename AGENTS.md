@@ -17,7 +17,7 @@ Read `docs/architecture.md` for the component map and layout, and the ADRs in `d
 
 - **Config:** read settings only through `src/config.ts`. The product name and demo topic are not final; take them from `config.appName` and `config.demoTopic`. `src/guards.test.ts` enforces this.
 - **Models:** call models only through `createProvider()` in `src/server/providers/` (ADR-002), by a role from `config/models.yaml`. Feature code imports no model SDK and never calls the Meta API itself; `src/guards.test.ts` enforces this. Recorded responses for `replay` live in `demo/fixtures/responses/`.
-- **Contracts:** entity shapes and types come from `contracts/index.ts` (ADR-006). Pass a contract to `provider.structured` and check model output with `validate()`. After changing an agent-output contract, run `pnpm fixtures:record` (live, about $0.10).
+- **Contracts:** entity shapes and types come from `contracts/index.ts` (ADR-006). Pass a contract to `provider.structured` and check model output with `validate()`. After changing an agent-output contract, run `pnpm fixtures:record` (live, about $0.15).
 - **Time:** take time only from the clock module (ADR-004).
 - **Agents:** an agent is `{name, output: <contract>, run(ctx, input)}`, run through `orchestrator.runStep` (pass a `key` such as `lesson:L2` when an agent runs more than once per session), which validates the output, retries once, saves it and traces the step. Read and write session state through `ctx.store`.
 - **Trace:** every model call and tool call emits a trace event with `summary_ar` and `summary_en`. Model calls are traced by the provider; other tool calls and decisions go through `ctx.trace`. Keep big payloads in a blob (`payload_ref`).

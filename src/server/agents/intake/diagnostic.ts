@@ -41,6 +41,9 @@ export function diagnosticErrors({ questions }: Diagnostic): string[] {
       problems.push("repeats an option");
     }
     if (!q.options_ar.includes(q.answer)) problems.push("its answer is not one of its options");
+    // The app adds «لا أعرف بعد» last; a second copy would score as a wrong answer.
+    if (q.options_ar.some((o) => o.trim() === DONT_KNOW))
+      problems.push(`has ${DONT_KNOW} as an option`);
     return problems.map((p) => `question ${i + 1}: ${p}`);
   });
 }

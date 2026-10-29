@@ -72,6 +72,7 @@ export function Panel({
   sub,
   aside,
   flush = false,
+  className,
   children,
 }: {
   id: string;
@@ -79,10 +80,11 @@ export function Panel({
   sub?: ReactNode;
   aside?: ReactNode;
   flush?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <section className={cx(styles.panel, flush && styles.flush)} aria-labelledby={id}>
+    <section className={cx(styles.panel, flush && styles.flush, className)} aria-labelledby={id}>
       <div className={styles.panelHead}>
         <div className={styles.panelHeadText}>
           <h2 className={styles.panelTitle} id={id}>

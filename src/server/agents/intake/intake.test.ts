@@ -9,7 +9,7 @@ import {
   LearnerProfile,
 } from "../../../../contracts/index.ts";
 import { loadConfig } from "../../../config.ts";
-import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
+import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
 import { createFileCache, createFileStore } from "../../store/store.ts";
@@ -33,8 +33,10 @@ const EVERYTHING: Heard = {
   background: ["accounting", "excel"],
   hours_per_week: 5,
   source_langs_ok: ["en", "ru", "zh", "fr"],
-  history_notes: "dropped MOOCs that were too long",
+  history_notes: "ترك دورات طويلة",
 };
+// What the fake model asks for the fields still missing, unless told otherwise.
+const MODEL_ASK = "سؤال النموذج";
 
 const question = (n: number) => ({
   prompt_ar: `سؤال ${n}`,
@@ -43,20 +45,33 @@ const question = (n: number) => ({
 });
 const DIAGNOSTIC: Diagnostic = { questions: [question(1), question(2), question(3)] };
 
-// The model's replies, in order: each message the learner sends takes the next `heard`.
-function fakeProvider(script: Heard[]) {
+type Script = {
+  // What the model hears from each message the learner sends, in order.
+  heard: Heard[];
+  // What it asks after each message, in order; MODEL_ASK once these run out.
+  asks?: string[];
+  // How many quick checks it writes with too few questions before a usable one.
+  brokenDiagnostics?: number;
+};
+
+function fakeProvider({ heard, asks = [], brokenDiagnostics = 0 }: Script) {
   const inputs: Record<string, string[]> = { IntakeReply: [], Diagnostic: [] };
-  const replies = [...script];
+  const replies = [...heard];
+  const questions = [...asks];
+  let broken = brokenDiagnostics;
   const provider: Provider = {
     async structured(call) {
       inputs[call.schema.name]?.push(String(call.input));
       const json =
         call.schema.name === "Diagnostic"
-          ? DIAGNOSTIC
+          ? broken-- > 0
+            ? { questions: DIAGNOSTIC.questions.slice(1) }
+            : DIAGNOSTIC
           : ({
               heard: replies.shift() ?? NOTHING,
               dialect: "gulf",
-              reply_ar: `الرد ${inputs.IntakeReply?.length}`,
+              ack_ar: `الرد ${inputs.IntakeReply?.length}.`,
+              ask_ar: questions.shift() ?? MODEL_ASK,
             } satisfies IntakeReply);
       return {
         text: "",
@@ -88,12 +103,12 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function setup(script: Heard[] = [EVERYTHING]) {
+function setup(heard: Heard[] = [EVERYTHING], script: Omit<Script, "heard"> = {}) {
   const dir = mkdtempSync(join(tmpdir(), "intake-"));
   dirs.push(dir);
   const store = createFileStore(dir);
   const cache = createFileCache(dir);
-  const fake = fakeProvider(script);
+  const fake = fakeProvider({ heard, ...script });
   const orchestrator = createOrchestrator({ store, makeProvider: () => fake.provider });
   const intake = (sessionId = "s1") =>
     createIntake({ orchestrator, store, cache, sessionId, learner: LEARNER, topic: TOPIC });
@@ -124,6 +139,28 @@ describe("intake", () => {
     expect(view.questions?.[0]?.options_ar).toContain(DONT_KNOW);
   });
 
+  it("moves on in its own words, even when the model asked something more", async () => {
+    const { intake } = setup([EVERYTHING]);
+    intake().start();
+
+    const view = await intake().message("أنا محاسب وأبي أصير محلل بيانات");
+
+    const last = view.turns.at(-1)?.text_ar;
+    expect(last).toMatch(/^الرد 1\. .*ثلاثة أسئلة سريعة/);
+    expect(last).not.toContain(MODEL_ASK);
+  });
+
+  it("asks for the first missing field itself when the model asked nothing", async () => {
+    const { intake } = setup([{ ...NOTHING, goal: "محلل بيانات" }, NOTHING], { asks: [""] });
+    intake().start();
+
+    const first = await intake().message("أبي أصير محلل بيانات");
+    const second = await intake().message("ما أدري");
+
+    expect(first.turns.at(-1)?.text_ar).toMatch(/^الرد 1\. ما عملك الآن/);
+    expect(second.turns.at(-1)?.text_ar).toBe(`الرد 2. ${MODEL_ASK}`);
+  });
+
   it("asks again while a field is missing, keeping what earlier messages gave", async () => {
     const { intake } = setup([
       { ...NOTHING, goal: "محلل بيانات مبتدئ", background: ["accounting"] },
@@ -136,6 +173,10 @@ describe("intake", () => {
 
     expect(view.status).toBe("interview");
     expect(view.turns).toHaveLength(5);
+    expect(view.turns.flatMap((t) => (t.role === "learner" ? [t.heard] : []))).toEqual([
+      ["goal", "background"],
+      ["hours_per_week"],
+    ]);
     expect(view.heard).toEqual({
       ...NOTHING,
       goal: "محلل بيانات مبتدئ",
@@ -144,8 +185,8 @@ describe("intake", () => {
     });
   });
 
-  it("stops asking after the fourth message and tells the model to ask nothing more", async () => {
-    const { intake, fake } = setup([]);
+  it("stops asking after the fourth message, with fields still missing", async () => {
+    const { intake } = setup([]);
     intake().start();
 
     for (const text of ["ما أدري", "يمكن", "مدري", "خلاص"]) await intake().message(text);
@@ -153,7 +194,23 @@ describe("intake", () => {
 
     expect(view?.status).toBe("diagnostic");
     expect(view?.turns.filter((t) => t.role === "interviewer")).toHaveLength(5);
-    expect(fake.inputs.IntakeReply?.at(-1)).toMatch(/last message .* ask nothing more/i);
+    expect(view?.turns.at(-1)?.text_ar).toMatch(/ثلاثة أسئلة سريعة/);
+    expect(view?.turns.at(-1)?.text_ar).not.toContain(MODEL_ASK);
+  });
+
+  it("asks the model afresh when a different message follows a failed quick check", async () => {
+    const { intake, fake } = setup([EVERYTHING, EVERYTHING], { brokenDiagnostics: 2 });
+    intake().start();
+
+    await expect(intake().message("أنا محاسب")).rejects.toThrow(StepFailed);
+    const view = await intake().message("أنا محاسب وأبي أصير محلل بيانات");
+
+    expect(fake.inputs.IntakeReply).toHaveLength(2);
+    expect(fake.inputs.IntakeReply?.[1]).toContain("أبي أصير محلل بيانات");
+    expect(view.status).toBe("diagnostic");
+    expect(view.turns.filter((t) => t.role === "learner").map((t) => t.text_ar)).toEqual([
+      "أنا محاسب وأبي أصير محلل بيانات",
+    ]);
   });
 
   it("closes with the level and saves a valid profile for the other pages", async () => {
@@ -164,6 +221,7 @@ describe("intake", () => {
     const view = await intake().answer({ q1: "صحيح 1", q2: "صحيح 2", q3: DONT_KNOW });
 
     expect(view.status).toBe("done");
+    expect(view.result?.level).toBe("intermediate");
     expect(view.turns.at(-1)).toEqual({
       role: "interviewer",
       text_ar: expect.stringContaining("متوسط"),
@@ -188,7 +246,7 @@ describe("intake", () => {
           { question_id: "q3", score: 0 },
         ],
       },
-      history_notes: "dropped MOOCs that were too long",
+      history_notes: "ترك دورات طويلة",
     });
   });
 
@@ -206,7 +264,7 @@ describe("intake", () => {
     const profile = savedProfile(store, "s1");
     expect(profile?.source_langs_ok).toEqual(["en", "ru", "zh", "fr"]);
     expect(profile?.hours_per_week).toBeGreaterThan(0);
-    expect(profile?.history_notes).toMatch(/hours_per_week.*source_langs_ok/);
+    expect(profile?.history_notes).toMatch(/وقتك في الأسبوع.*لغات المصادر/);
   });
 
   it("refuses a message during the quick check, and answers before it", async () => {
@@ -265,7 +323,7 @@ describe("intake", () => {
 
 // The recorded conversation's topic, the same sample topic as the scout's recording: the demo topic
 // is not decided. RECORD_FIXTURES is a test-only switch, as in contracts/smoke.test.ts: re-record
-// with `RECORD_FIXTURES=1 pnpm vitest run intake.test` (live, about $0.05).
+// with `pnpm fixtures:record`.
 const RECORDED_TOPIC = "Excel pivot tables for data analysis";
 const recording = process.env.RECORD_FIXTURES === "1";
 if (recording) process.loadEnvFile(".env");
@@ -319,6 +377,6 @@ describe("intake, replaying Omar's recorded interview", () => {
       background: expect.arrayContaining(["excel"]),
       diagnostic: { level: "beginner" },
     });
-    expect(profile?.history_notes).toMatch(/morning/i);
+    expect(profile?.history_notes).toMatch(/صباح/);
   }, 300_000);
 });

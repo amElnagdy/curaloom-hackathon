@@ -93,6 +93,18 @@ describe("diagnosticErrors", () => {
     ]);
   });
 
+  it("names a question that offers «don't know» itself, since the app adds it", () => {
+    const errors = diagnosticErrors({
+      questions: [
+        question(1),
+        question(2),
+        { ...question(3), options_ar: ["صحيح 3", "خطأ 3أ", "خطأ 3ب", DONT_KNOW] },
+      ],
+    });
+
+    expect(errors).toEqual([expect.stringMatching(/^question 3: /)]);
+  });
+
   it("wants exactly three questions with four options each", () => {
     expect(diagnosticErrors({ questions: [question(1), question(2)] })).toEqual([
       expect.stringMatching(/3 questions/),
