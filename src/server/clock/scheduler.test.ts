@@ -101,6 +101,19 @@ describe("coach scheduler", () => {
     expect(sim().coachEvents()).toEqual(seed.coach_events);
     expect(keyed(sim().set(10).events)).toEqual(["c1@2", "c2@5", "c3@10"]);
   });
+
+  it("says in the trace that reset restored the seed, including a withdrawn consent", () => {
+    const { store, seed, sim } = setup();
+    sim().set(2);
+    sim().reply("توقف");
+
+    sim().reset();
+
+    expect(sim().consent()).toEqual(seed.consent);
+    const last = store.readTrace<TraceEvent>("s_1").at(-1);
+    expect(last?.summary_en).toMatch(/reset to the seed.*consent/i);
+    expect(last?.summary_ar).toMatch(/الموافقة/);
+  });
 });
 
 describe("coach messages through the notifier", () => {

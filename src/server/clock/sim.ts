@@ -71,10 +71,20 @@ export function createSim({
       scheduler.syncStatuses();
       return result;
     },
-    // Back to the seeded demo state: every session document goes, the trace stays.
+    // Back to the seeded demo state: every session document goes and readers fall back to the
+    // seed (ADR-003). The trace stays, and says what came back.
     reset(): SimResult {
       store.clearDocs(sessionId);
-      return { now: formatSimTime(clock.reset()), events: [] };
+      const now = clock.reset();
+      tracer.emit({
+        agent: "sim",
+        kind: "decision",
+        at: now,
+        summary_ar:
+          "أُعيد العرض إلى بدايته: الموافقة ورسائل المدرب والهاتف كما في البيانات التجريبية",
+        summary_en: "Session reset to the seed: consent, coach events, inbox and outbox",
+      });
+      return { now: formatSimTime(now), events: [] };
     },
   };
 }

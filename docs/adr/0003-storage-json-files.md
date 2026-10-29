@@ -11,7 +11,7 @@ Each learner session has a profile, a plan, lessons, quizzes, mastery records, c
 - Store each session as JSON documents under `data/sessions/<session_id>/`, which is gitignored. Write a temp file, then rename it, so a crash never leaves a half-written file.
 - Append trace events to `data/sessions/<session_id>/trace.jsonl`.
 - Feature code uses a small `Store` interface (#13), never `fs` directly.
-- Reset copies the seed from `demo/fixtures/` over the session.
+- Reset deletes the session's documents, and each reader falls back to the seed from `demo/fixtures/`, so the seed stays the one copy of the starting state. The trace is kept and records the reset. (Amended 2026-10-29 for #23: the first version copied the seed over the session.)
 
 ## Consequences
 
