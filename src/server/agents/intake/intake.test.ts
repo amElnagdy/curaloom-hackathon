@@ -13,7 +13,11 @@ import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
 import { createFileCache, createFileStore } from "../../store/store.ts";
-import type { TraceEvent } from "../../trace/trace.ts";
+import { createPageFetcher } from "../../tools/fetch-page.ts";
+import { createTracer, type TraceEvent } from "../../trace/trace.ts";
+import { createPlanner } from "../architect/architect.ts";
+import { planViolations } from "../architect/rules.ts";
+import { runScout, scoutBrief } from "../scout/scout.ts";
 import { DONT_KNOW } from "./diagnostic.ts";
 import { createIntake, IntakeConflict, savedProfile } from "./intake.ts";
 
@@ -335,37 +339,44 @@ const OMAR = [
   "عادي عندي أي لغة دامها توصلني بالعربي. سجلت بكورسات كورسيرا قبل وما كملتها، كانت طويلة وأملّ بسرعة. وبعد لا تطرشون لي رسايل الصبح.",
 ];
 
+// Omar's recorded interview, up to the profile it saves.
+async function interview() {
+  const dir = mkdtempSync(join(tmpdir(), "intake-replay-"));
+  dirs.push(dir);
+  const store = createFileStore(dir);
+  const cache = createFileCache(dir);
+  const orchestrator = createOrchestrator({
+    store,
+    makeProvider: (onTrace) =>
+      createProvider({
+        models: loadModels(),
+        profile: recording ? "record" : "replay",
+        apiKey: recording ? loadConfig(process.env).modelApiKey : undefined,
+        onTrace,
+      }),
+  });
+  const intake = createIntake({
+    orchestrator,
+    store,
+    cache,
+    sessionId: "s1",
+    learner: LEARNER,
+    topic: RECORDED_TOPIC,
+  });
+
+  let view = intake.start();
+  for (const text of OMAR) {
+    if (view.status !== "interview") break;
+    view = await intake.message(text);
+  }
+  expect(view.status).toBe("diagnostic");
+  view = await intake.answer({ q1: DONT_KNOW, q2: DONT_KNOW, q3: DONT_KNOW });
+  return { store, cache, orchestrator, view };
+}
+
 describe("intake, replaying Omar's recorded interview", () => {
   it("profiles him from Gulf dialect in at most 6 interviewer turns", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "intake-replay-"));
-    dirs.push(dir);
-    const store = createFileStore(dir);
-    const orchestrator = createOrchestrator({
-      store,
-      makeProvider: (onTrace) =>
-        createProvider({
-          models: loadModels(),
-          profile: recording ? "record" : "replay",
-          apiKey: recording ? loadConfig(process.env).modelApiKey : undefined,
-          onTrace,
-        }),
-    });
-    const intake = createIntake({
-      orchestrator,
-      store,
-      cache: createFileCache(dir),
-      sessionId: "s1",
-      learner: LEARNER,
-      topic: RECORDED_TOPIC,
-    });
-
-    let view = intake.start();
-    for (const text of OMAR) {
-      if (view.status !== "interview") break;
-      view = await intake.message(text);
-    }
-    expect(view.status).toBe("diagnostic");
-    view = await intake.answer({ q1: DONT_KNOW, q2: DONT_KNOW, q3: DONT_KNOW });
+    const { store, view } = await interview();
 
     expect(view.turns.filter((t) => t.role === "interviewer").length).toBeLessThanOrEqual(6);
     const profile = savedProfile(store, "s1");
@@ -379,4 +390,58 @@ describe("intake, replaying Omar's recorded interview", () => {
     });
     expect(profile?.history_notes).toMatch(/صباح/);
   }, 300_000);
+
+  // The demo's path: the plan page builds on the profile the interview saved, not on the seed's.
+  it("plans his course from the profile his interview saved", async () => {
+    const { store, cache, orchestrator } = await interview();
+    const pages = createPageFetcher({
+      profile: recording ? "record" : "replay",
+      userAgent: `${loadConfig(process.env).appName}-scout/0.1 (checks the licence of open learning resources)`,
+      transport: recording
+        ? undefined
+        : async () => {
+            throw new Error("replay must not touch the network");
+          },
+    });
+    const planner = createPlanner({
+      orchestrator,
+      store,
+      tracer: createTracer(store, "s1"),
+      sessionId: "s1",
+      profile: () => {
+        const profile = savedProfile(store, "s1");
+        if (!profile) throw new Error("the interview saved no profile");
+        return profile;
+      },
+      findResources: async (learner) =>
+        (
+          await runScout({
+            orchestrator,
+            sessionId: "s1",
+            brief: scoutBrief(learner),
+            pages,
+            cache,
+          })
+        ).resources,
+    });
+
+    const { versions, resources, limits } = await planner.build();
+
+    const [plan] = versions;
+    if (!plan) throw new Error("no plan");
+    expect(limits.budget_minutes).toBe(5 * 60);
+    expect(planViolations(plan, limits)).toEqual([]);
+    expect(plan.committed.sessions.length).toBeGreaterThan(0);
+    const found = new Set(resources.map((r) => r.id));
+    for (const session of plan.committed.sessions) {
+      expect(session.resource_ids.length).toBeGreaterThan(0);
+      for (const id of session.resource_ids) expect(found).toContain(id);
+    }
+    const models = store
+      .readTrace<TraceEvent>("s1")
+      .filter((e) => e.agent === "architect" && e.kind === "model_call")
+      .map((e) => e.model);
+    // Wonder's first recorded reply broke the rules (no lesson at all); the retry kept them.
+    expect(models).toEqual(["muse-wonder-1.0", "muse-wonder-1.0"]);
+  }, 600_000);
 });

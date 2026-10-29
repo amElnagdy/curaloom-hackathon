@@ -1,0 +1,161 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nLanguages: en, ru, zh, fr",
+      "instructions": "You plan web searches for free, openly licensed learning resources. For each language listed, write two short search queries in that language that find pages teaching the topic at the learner's level, from open sources such as Wikipedia, Wikibooks, Wikiversity, open textbooks and open courseware. Give each language once, by its code.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "ScoutQueries",
+          "schema": {
+            "type": "object",
+            "required": [
+              "queries"
+            ],
+            "properties": {
+              "queries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "lang",
+                    "queries"
+                  ],
+                  "properties": {
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "queries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "two short web search queries, written in that language"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "ScoutQueries",
+        "schema": {
+          "additionalProperties": false,
+          "required": [
+            "queries"
+          ],
+          "properties": {
+            "queries": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "queries": {
+                    "description": "two short web search queries, written in that language",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "lang",
+                  "queries"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3cd93171cd38512ae43d9",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314195,
+    "completed_at": 1793314195,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd93171cd38512ae43d9:rs_0ca24476-3676-44d3-bb4f-859f8fb579e5",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_0227eded-e4bf-4a2d-b878-42d44635dbac",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"queries\": [{\"lang\": \"en\", \"queries\": [\"Excel pivot tables for beginners open textbook\", \"Excel pivot tables tutorial Wikibooks\"]}, {\"lang\": \"ru\", \"queries\": [\"сводные таблицы Excel для начинающих учебник\", \"сводные таблицы Excel самоучитель Викиучебник\"]}, {\"lang\": \"zh\", \"queries\": [\"Excel 数据透视表 入门 开放教程\", \"Excel 数据透视表 初学者 维基教科书\"]}, {\"lang\": \"fr\", \"queries\": [\"tableaux croisés dynamiques Excel débutant cours ouvert\", \"tableaux croisés dynamiques Excel initiation Wikilivres\"]}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You plan web searches for free, openly licensed learning resources. For each language listed, write two short search queries in that language that find pages teaching the topic at the learner's level, from open sources such as Wikipedia, Wikibooks, Wikiversity, open textbooks and open courseware. Give each language once, by its code.",
+    "usage": {
+      "input_tokens": 214,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1258,
+      "output_tokens_details": {
+        "reasoning_tokens": 1108
+      },
+      "total_tokens": 1472
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 5127
+}

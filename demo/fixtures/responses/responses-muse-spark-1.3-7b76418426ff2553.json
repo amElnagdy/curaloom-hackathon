@@ -1,0 +1,325 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Language: English\nTopic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nSearch queries to try: Excel pivot tables for beginners open textbook; Excel pivot tables tutorial Wikibooks",
+      "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "tools": [
+        {
+          "type": "web_search"
+        }
+      ]
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "tools": [
+      {
+        "type": "web_search"
+      }
+    ],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3cd9498a3ad5423d247e9",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314196,
+    "completed_at": 1793314211,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd9498a3ad5423d247e9:rs_1162357e-510b-4d92-84dd-f1ec1df91331",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_f9bb5eac-10fe-4629-bea9-62f5d8a8901b",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Finding open lessons on Excel pivot tables — gathering beginner-friendly picks for your data analyst path.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_f1d82471-24e7-4e0d-aa51-844a4611c16e",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel pivot tables for beginners open textbook"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_a282f722-4500-4804-908f-1964e029b362",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel pivot tables tutorial Wikibooks"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd9498a3ad5423d247e9:rs_2e6296c6-88ce-4d44-8b4c-7ac7f1c4681c",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_30638f34-cc87-4ab5-bd14-140ccfe0bea0",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "First results look useful — now I'll round out the list with a couple more open sources.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_4c7ba4d2-c91a-44f6-8297-eba823b1ad26",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Pivot table Wikipedia"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_981af4a8-574f-4072-944a-373c7d60eac2",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel pivot tables open courseware beginners"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd9498a3ad5423d247e9:rs_37f1f392-54fb-4d1c-b248-e12936b89ec4",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_7c6717a5-58e8-4452-b577-b6af8cabc2b6",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "I've pinpointed strong open-licensed candidates — now opening them to verify the content.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_4867437a-0799-41f7-9b8e-6ba2804a5111",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://en.wikipedia.org/wiki/Pivot_table"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_22c1ab4d-b212-484d-a5c2-597ef18ec650",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_b28f3d13-d7d5-4d3e-b925-c960e7f4bf90",
+        "status": "failed",
+        "action": {
+          "type": "open_page",
+          "url": "https://openwa.pressbooks.pub/ms_excel_bootcamp/chapter/chapter-18-pivot-tables/"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_cb0a4081-8864-48c3-af55-a5dc0d2367ac",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://en.wikibooks.org/wiki/Introduction_to_Computer_Information_Systems/Application_Software"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd9498a3ad5423d247e9:rs_6e8dab43-3326-482f-b0fb-b291aa864497",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_4f423f66-4441-44c3-bef4-ee09951cd2cb",
+        "status": "completed",
+        "action": {
+          "type": "find_in_page",
+          "url": "https://en.wikibooks.org/wiki/Introduction_to_Computer_Information_Systems/Application_Software",
+          "pattern": "Pivot Tables"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd9498a3ad5423d247e9:rs_12b6c041-1046-4a03-9293-dc71d4388afd",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_c98062ae-bce7-4d20-85dc-4382edb51c35",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Two solid pages confirmed — now tracking down that open textbook chapter that failed to load.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_f2700983-646b-4f67-90ba-7222b9676e43",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd9498a3ad5423d247e9:rs_67a7246e-9dde-4aac-8181-8214c4d34a05",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_67d9d219-fad4-432b-80ee-49047a36ed6d",
+        "status": "failed",
+        "action": {
+          "type": "find_in_page",
+          "url": "https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/",
+          "pattern": "Creative Commons"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_298a9182-6f8c-4238-b45e-c8ec6fcb6731",
+        "status": "failed",
+        "action": {
+          "type": "find_in_page",
+          "url": "https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/",
+          "pattern": "license"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_a5b7edf5-0808-4124-a3de-2d9aacdbebdf",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd9498a3ad5423d247e9:rs_976843cf-1fad-47de-959e-97dedcf64a0f",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_96bc618b-68d4-4a9b-8dba-c2dfc4806eed",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "- **Pivot table — Wikipedia**\n  - URL: https://en.wikipedia.org/wiki/Pivot_table\n  - Teaches what a pivot table is as an aggregation of grouped values from a larger table.\n\n- **Microsoft Office/Create a Pivot Table — Wikibooks**\n  - URL: https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table\n  - Teaches beginners to create a simple pivot table by placing it on a new sheet and dragging headers to Row and Data areas.\n\n- **Chapter 18: Pivot Tables – MS Excel Bootcamp**\n  - URL: https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/\n  - Teaches beginners to create, format, chart and filter pivot tables using Rows, Columns, Values and Filters.\n\n- **Introduction to Computer Information Systems/Application Software — Wikibooks**\n  - URL: https://en.wikibooks.org/wiki/Introduction_to_Computer_Information_Systems/Application_Software\n  - Teaches that pivot tables in Excel manipulate large amounts of raw data by click-and-drag.\n",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url": "http://en.wikipedia.org/wiki/Pivot_table",
+                "start_index": 83,
+                "end_index": 171,
+                "title": "Pivot table - Wikipedia"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table",
+                "start_index": 308,
+                "end_index": 431,
+                "title": "Microsoft Office/Create a Pivot Table"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/",
+                "start_index": 574,
+                "end_index": 683,
+                "title": "Chapter 18: Pivot Tables – MS Excel Bootcamp"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://en.wikibooks.org/wiki/Introduction_to_Computer_Information_Systems/Application_Software",
+                "start_index": 876,
+                "end_index": 968,
+                "title": "Introduction to Computer Information Systems/Application Software"
+              }
+            ],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+    "usage": {
+      "input_tokens": 151937,
+      "input_tokens_details": {
+        "cached_tokens": 77561
+      },
+      "output_tokens": 3127,
+      "output_tokens_details": {
+        "reasoning_tokens": 1901
+      },
+      "total_tokens": 155064
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 16143
+}

@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nLanguage searched: en\n\nSearch answer:\n- **Pivot table — Wikipedia**\n  - URL: https://en.wikipedia.org/wiki/Pivot_table\n  - Teaches what a pivot table is as an aggregation of grouped values from a larger table.\n\n- **Microsoft Office/Create a Pivot Table — Wikibooks**\n  - URL: https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table\n  - Teaches beginners to create a simple pivot table by placing it on a new sheet and dragging headers to Row and Data areas.\n\n- **Chapter 18: Pivot Tables – MS Excel Bootcamp**\n  - URL: https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/\n  - Teaches beginners to create, format, chart and filter pivot tables using Rows, Columns, Values and Filters.\n\n- **Introduction to Computer Information Systems/Application Software — Wikibooks**\n  - URL: https://en.wikibooks.org/wiki/Introduction_to_Computer_Information_Systems/Application_Software\n  - Teaches that pivot tables in Excel manipulate large amounts of raw data by click-and-drag.\n\n\nCited pages:\n1. http://en.wikipedia.org/wiki/Pivot_table | Pivot table - Wikipedia\n2. https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table | Microsoft Office/Create a Pivot Table\n3. https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/ | Chapter 18: Pivot Tables – MS Excel Bootcamp\n4. https://en.wikibooks.org/wiki/Introduction_to_Computer_Information_Systems/Application_Software | Introduction to Computer Information Systems/Application Software",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "candidates"
+          ],
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3cdab99af4ecbca044005",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314219,
+    "completed_at": 1793314219,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cdab99af4ecbca044005:rs_cbb8852d-4edd-4912-9cb6-d4c31d9cf9ad",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_6640d121-39c9-4832-a7ac-e9ac62423374",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": [{\"lang\": \"en\", \"level_fit\": 0.75, \"relevance\": 0.85, \"title\": \"Pivot table - Wikipedia\", \"type\": \"article\", \"url\": \"http://en.wikipedia.org/wiki/Pivot_table\", \"why_ar\": \"هذه الصفحة مثالية لبدايتك كمحلل بيانات لأنها تشرح بوضوح مفهوم الجدول المحوري وكيفية تجميعه للبيانات الكبيرة.\"}, {\"lang\": \"en\", \"level_fit\": 0.95, \"relevance\": 0.9, \"title\": \"Microsoft Office/Create a Pivot Table\", \"type\": \"article\", \"url\": \"https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table\", \"why_ar\": \"هذا الدرس يناسب مستواك المبتدئ لأنه يرشدك خطوة بخطوة لإنشاء جدولك المحوري الأول بسحب الحقول إلى الصفوف والبيانات.\"}, {\"lang\": \"en\", \"level_fit\": 0.95, \"relevance\": 0.98, \"title\": \"Chapter 18: Pivot Tables \\u2013 MS Excel Bootcamp\", \"type\": \"book\", \"url\": \"https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/\", \"why_ar\": \"هذا الفصل سيساعدك على التحول إلى محلل بيانات لأنه يعلمك عمليا إنشاء الجداول المحورية وتنسيقها وتصفيتها ورسمها بيانيا.\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 676,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1923,
+      "output_tokens_details": {
+        "reasoning_tokens": 1575
+      },
+      "total_tokens": 2599
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 7896
+}

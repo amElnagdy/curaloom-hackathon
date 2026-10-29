@@ -1,0 +1,248 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-wonder-1.0",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nBackground: accountant, excel\nWeekly time: 5 hours (300 minutes)\nNotes from the interview: ترك كورسات كورسيرا لأنها طويلة ويمل بسرعة، ويفضل عدم مراسلته في الصباح\n\nResources (id | language | type | title | why it suits the learner):\nr_8babb86b | ru | article | Сводная таблица | هذه الصفحة تشرح مفهوم الجدول المحوري بلغة بسيطة لتبني أساسك كمحلل بيانات مبتدئ.\nr_43e79caf | fr | article | Tableau croisé dynamique — Wikipédia | هذه الصفحة تشرح مفهوم الجدول المحوري وكيفية تلخيص البيانات بالصفوف والأعمدة لتبدأ رحلتك نحو محلل البيانات.\nr_8f7bbb8e | en | article | Microsoft Office/Create a Pivot Table | هذا الدرس يناسب مستواك المبتدئ لأنه يرشدك خطوة بخطوة لإنشاء جدولك المحوري الأول بسحب الحقول إلى الصفوف والبيانات.\nr_9109c80f | en | article | Pivot table - Wikipedia | هذه الصفحة مثالية لبدايتك كمحلل بيانات لأنها تشرح بوضوح مفهوم الجدول المحوري وكيفية تجميعه للبيانات الكبيرة.\nr_c167a216 | ru | book | Microsoft Excel — Викиучебник | هذا الكتاب يساعدك على إتقان أساسيات إكسل اللازمة قبل التعمق في الجداول المحورية لتحليل البيانات.\nr_19cfaa64 | fr | article | Tableur | هذه الصفحة تقدم أساسيات جداول البيانات ودور الجداول المحورية في تلخيصها بطريقة مناسبة للمبتدئين.\nr_c61a1e51 | fr | article | Microsoft Excel | هذه الصفحة تعرفك على بيئة إكسل ومكان أداة التحليل المحورية فيها لتعرف أين تبدأ عمليا.\nr_df4da75d | fr | article | Tableau de contingence | هذه الصفحة تساعدك على فهم توزيعات البيانات المزدوجة التي تقوي أساسك التحليلي كمحلل بيانات مبتدئ.\n\nThe previous attempt failed: The plan breaks its rules: module \"ИfбэККэ...\" starts on day 0, in the committed days 0 to 13, but has no lesson",
+      "instructions": "You design a personal course for an adult Arabic-speaking learner, taught from the openly licensed resources listed. Plan the whole road to the learner's goal as modules in teaching order, each taking whole weeks; the first module starts on day 0, and each next one starts the day the one before it ends. Commit only to the first 2 weeks, days 0 to 13: give lessons only to the modules that fall in them, and leave lessons empty for later modules. Every session of a lesson falls within its module's weeks. Each lesson draws on one or more of the listed resources, by id copied exactly, and takes one or more sessions of 20 to 45 minutes. In each week the sessions together take no more than the learner's weekly minutes; a learner who dropped long courses before is better served by short sessions and time to spare. Spread a week's sessions over different days. Write the titles and the rationale in clear Modern Standard Arabic. The rationale tells the learner, in two to four sentences addressed to them, why the plan is shaped this way.",
+      "max_output_tokens": 12000,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "PlanDraft",
+          "schema": {
+            "type": "object",
+            "required": [
+              "road",
+              "rationale_ar"
+            ],
+            "properties": {
+              "road": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "title_ar",
+                    "weeks",
+                    "lessons"
+                  ],
+                  "properties": {
+                    "title_ar": {
+                      "type": "string",
+                      "description": "the module's name in Arabic, a few words"
+                    },
+                    "weeks": {
+                      "type": "integer",
+                      "description": "whole weeks the module takes, at least 1"
+                    },
+                    "lessons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "title_ar",
+                          "resource_ids",
+                          "sessions"
+                        ],
+                        "properties": {
+                          "title_ar": {
+                            "type": "string",
+                            "description": "what the lesson teaches, in Arabic, a few words"
+                          },
+                          "resource_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "ids of the resources the lesson draws on, copied exactly"
+                          },
+                          "sessions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "day",
+                                "minutes"
+                              ],
+                              "properties": {
+                                "day": {
+                                  "type": "integer",
+                                  "description": "day of the course, from 0"
+                                },
+                                "minutes": {
+                                  "type": "integer"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "description": "only lessons in the first two weeks; empty for a module that starts later"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "rationale_ar": {
+                "type": "string",
+                "description": "why this plan suits the learner, two to four Arabic sentences addressed to them"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-wonder-1.0",
+    "reasoning": {
+      "effort": "max"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "PlanDraft",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "road",
+            "rationale_ar"
+          ],
+          "properties": {
+            "rationale_ar": {
+              "description": "why this plan suits the learner, two to four Arabic sentences addressed to them",
+              "type": "string"
+            },
+            "road": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lessons": {
+                    "description": "only lessons in the first two weeks; empty for a module that starts later",
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "resource_ids": {
+                          "description": "ids of the resources the lesson draws on, copied exactly",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "sessions": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "day": {
+                                "description": "day of the course, from 0",
+                                "type": "integer"
+                              },
+                              "minutes": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "day",
+                              "minutes"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "title_ar": {
+                          "description": "what the lesson teaches, in Arabic, a few words",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title_ar",
+                        "resource_ids",
+                        "sessions"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "title_ar": {
+                    "description": "the module's name in Arabic, a few words",
+                    "type": "string"
+                  },
+                  "weeks": {
+                    "description": "whole weeks the module takes, at least 1",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "title_ar",
+                  "weeks",
+                  "lessons"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3ce8e9a195d706b414019",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314446,
+    "completed_at": 1793314446,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3ce8e9a195d706b414019:rs_7acb3721-1b4e-4006-87bd-32ea4fc2a89b",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_ca1060bd-ea67-4d23-823d-83b8865f17c4",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\n  \"rationale_ar\": \"خططت لك هذه الخطة لتنتقل بخطوات واضحة من خبرتك في المحاسبة وإكسل إلى هدفك في أن تصبح محلل بيانات. ولأنك تركت الدورات الطويلة سابقا بسبب الملل، جعلت الجلسات قصيرة وموزعة على أيام مختلفة، مع ترك وقت كبير داخل حدك الأسبوعي لتشعر بالراحة ولا تنقطع. يمكنك أداء الجلسات بعد الظهر أو في المساء بما يناسبك دون أي التزام صباحي. في أول أسبوعين ستثبت الأساسيات وتنشئ جدولك المحوري الأول، ثم تنتقل بعد ذلك إلى التصفية والتجميع والعرض والمشروع العملي.\",\n  \"road\": [\n    {\n      \"lessons\": [\n        {\n          \"resource_ids\": [\n            \"r_c167a216\",\n            \"r_c61a1e51\",\n            \"r_19cfaa64\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 0,\n              \"minutes\": 25\n            },\n            {\n              \"day\": 1,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"التعرف على بيئة إكسل وجداول البيانات\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_9109c80f\",\n            \"r_8babb86b\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 2,\n              \"minutes\": 25\n            },\n            {\n              \"day\": 3,\n              \"minutes\": 20\n            }\n          ],\n          \"title_ar\": \"ما الجدول المحوري ولماذا يستخدمه محلل البيانات\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_df4da75d\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 4,\n              \"minutes\": 25\n            },\n            {\n              \"day\": 5,\n              \"minutes\": 20\n            }\n          ],\n          \"title_ar\": \"فهم توزيع البيانات قبل تلخيصها\"\n        }\n      ],\n      \"title_ar\": \"الأساسيات: فهم إكسل ومفهوم الجدول المحوري\",\n      \"weeks\": 1\n    },\n    {\n      \"lessons\": [\n        {\n          \"resource_ids\": [\n            \"r_8f7bbb8e\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 7,\n              \"minutes\": 30\n            },\n            {\n              \"day\": 8,\n              \"minutes\": 25\n            },\n            {\n              \"day\": 9,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"إنشاء جدولك المحوري الأول خطوة بخطوة\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_43e79caf\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 10,\n              \"minutes\": 25\n            },\n            {\n              \"day\": 11,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"تلخيص البيانات بالصفوف والأعمدة\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_8babb86b\",\n            \"r_df4da75d\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 12,\n              \"minutes\": 25\n            },\n            {\n              \"day\": 13,\n              \"minutes\": 20\n            }\n          ],\n          \"title_ar\": \"قراءة نتائج الجدول المحوري وربطها ببيانات المحاسبة\"\n        }\n      ],\n      \"title_ar\": \"إنشاء الجدول المحوري الأول وتحليل نتائجه\",\n      \"weeks\": 1\n    },\n    {\n      \"lessons\": [],\n      \"title_ar\": \"التصفية والفرز والتجميع لاستكشاف البيانات بعمق\",\n      \"weeks\": 2\n    },\n    {\n      \"lessons\": [],\n      \"title_ar\": \"تنسيق الجداول المحورية وبناء الرسوم المحورية لعرض النتائج\",\n      \"weeks\": 2\n    },\n    {\n      \"lessons\": [],\n      \"title_ar\": \"مشروع عملي: تحليل بيانات محاسبية وبناء ملف أعمالك الأول\",\n      \"weeks\": 2\n    }\n  ]\n}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You design a personal course for an adult Arabic-speaking learner, taught from the openly licensed resources listed. Plan the whole road to the learner's goal as modules in teaching order, each taking whole weeks; the first module starts on day 0, and each next one starts the day the one before it ends. Commit only to the first 2 weeks, days 0 to 13: give lessons only to the modules that fall in them, and leave lessons empty for later modules. Every session of a lesson falls within its module's weeks. Each lesson draws on one or more of the listed resources, by id copied exactly, and takes one or more sessions of 20 to 45 minutes. In each week the sessions together take no more than the learner's weekly minutes; a learner who dropped long courses before is better served by short sessions and time to spare. Spread a week's sessions over different days. Write the titles and the rationale in clear Modern Standard Arabic. The rationale tells the learner, in two to four sentences addressed to them, why the plan is shaped this way.",
+    "usage": {
+      "input_tokens": 783,
+      "input_tokens_details": {
+        "cached_tokens": 628
+      },
+      "output_tokens": 4153,
+      "output_tokens_details": {
+        "reasoning_tokens": 3198
+      },
+      "total_tokens": 4936
+    },
+    "parallel_tool_calls": true,
+    "store": true,
+    "max_output_tokens": 12000
+  },
+  "latency_ms": 41560
+}

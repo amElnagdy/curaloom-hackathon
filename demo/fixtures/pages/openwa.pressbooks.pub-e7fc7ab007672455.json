@@ -1,0 +1,11 @@
+{
+  "url": "https://openwa.pressbooks.pub/robots.txt",
+  "latency_ms": 444,
+  "response": {
+    "kind": "page",
+    "status": 403,
+    "content_type": "text/html",
+    "truncated": false,
+    "text": ""
+  }
+}

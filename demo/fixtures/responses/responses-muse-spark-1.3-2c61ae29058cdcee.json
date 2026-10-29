@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nLanguage searched: ru\n\nSearch answer:\nРесурсы для начинающего на пути к **аналитику данных** — тема: сводные таблицы Excel:\n\n1. **Сводная таблица — Википедия**\n   - URL: https://ru.wikipedia.org/wiki/Сводная_таблица\n   - Учит тому, что такое сводная таблица как инструмент обобщения данных.\n\n2. **Microsoft Excel — Викиучебник**\n   - URL: https://ru.wikibooks.org/wiki/Microsoft_Excel\n   - Учит основам работы в табличном процессоре Microsoft Excel.\n\n3. **Microsoft Excel — Википедия**\n   - URL: https://ru.wikipedia.org/wiki/Microsoft_Excel\n   - Учит тому, что Microsoft Excel — программа для работы с электронными таблицами с расчётами и графикой.\n\n\nCited pages:\n1. https://ru.wikipedia.org/wiki/Сводная_таблица | Сводная таблица\n2. https://ru.wikibooks.org/wiki/Microsoft_Excel | Microsoft Excel — Викиучебник",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "candidates"
+          ],
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3cdaf1a73ab6f57c343f9",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314223,
+    "completed_at": 1793314223,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cdaf1a73ab6f57c343f9:rs_3a9fd58e-d19c-475b-965d-16fdbbfbb0b2",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_5cd02c1e-acc4-4761-8846-19affcb8a60f",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": [{\"lang\": \"ru\", \"level_fit\": 0.9, \"relevance\": 0.95, \"title\": \"Сводная таблица\", \"type\": \"article\", \"url\": \"https://ru.wikipedia.org/wiki/Сводная_таблица\", \"why_ar\": \"هذه الصفحة تشرح مفهوم الجدول المحوري بلغة بسيطة لتبني أساسك كمحلل بيانات مبتدئ.\"}, {\"lang\": \"ru\", \"level_fit\": 0.9, \"relevance\": 0.6, \"title\": \"Microsoft Excel — Викиучебник\", \"type\": \"book\", \"url\": \"https://ru.wikibooks.org/wiki/Microsoft_Excel\", \"why_ar\": \"هذا الكتاب يساعدك على إتقان أساسيات إكسل اللازمة قبل التعمق في الجداول المحورية لتحليل البيانات.\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 542,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 2202,
+      "output_tokens_details": {
+        "reasoning_tokens": 1996
+      },
+      "total_tokens": 2744
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 9687
+}

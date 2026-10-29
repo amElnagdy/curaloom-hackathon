@@ -1,0 +1,9 @@
+{
+  "url": "http://en.wikipedia.org/robots.txt",
+  "latency_ms": 249,
+  "response": {
+    "kind": "redirect",
+    "status": 301,
+    "location": "https://en.wikipedia.org/robots.txt"
+  }
+}

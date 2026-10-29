@@ -1,0 +1,322 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Language: French\nTopic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nSearch queries to try: tableaux croisés dynamiques Excel débutant cours ouvert; tableaux croisés dynamiques Excel initiation Wikilivres",
+      "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "tools": [
+        {
+          "type": "web_search"
+        }
+      ]
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "tools": [
+      {
+        "type": "web_search"
+      }
+    ],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3cd947b942d434a1f43e7",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314196,
+    "completed_at": 1793314211,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_d3f5368a-a038-41df-a040-723b94d85af6",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_d5cc2de5-f8de-4b37-b266-b25abe8a2f53",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Je cherche des ressources ouvertes en français sur les tableaux croisés dynamiques pour débutants.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_7e45cff0-1236-4517-a87a-3d7a2ce587ab",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "tableaux croisés dynamiques Excel débutant cours ouvert"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_5d0a6855-4fdc-4182-9f0f-448b6b5db5bf",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "tableaux croisés dynamiques Excel initiation Wikilivres"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_67473e42-8df4-42ce-858f-ba7e1e182170",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_42cbafd8-4386-443b-b306-afa807cabab4",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Les premiers résultats sont peu adaptés, je cible les sources ouvertes comme Wikipédia et Wikilivres.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_9fd45758-b5d4-4310-b9cd-f5d2ace03d62",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "tableau croisé dynamique Wikipédia Excel analyse données"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_e35d7535-1ca2-4728-ba3a-98b94892d677",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel tableaux croisés dynamiques tutoriel Wikiversité Wikilivres"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_73c22c85-55ca-4318-b1d0-d663c645be78",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_02610bd7-ca14-417f-a3d6-e87e49619e06",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "La recherche classique n'a rien donné, je vais ouvrir directement les pages Wikipédia, Wikilivres et Wikiversité en français.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_4855aa74-7d3f-40ce-b565-3c9a4e4c1c96",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_3c96e3a8-f96c-40da-825c-744159b89bcc",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_cfa2368d-1e16-440c-b29f-64496dcce716",
+        "status": "failed",
+        "action": {
+          "type": "open_page",
+          "url": "https://fr.wikibooks.org/wiki/Bureautique"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_80146ddc-e5ab-4db5-af63-02b8e15e9781",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_db66f471-5207-4c2a-aa39-fb5475596a0f",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "La page Wikipédia est validée, j'essaie de compléter avec d'autres supports libres.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_55e63ead-0d68-4545-a00f-e38fbb725494",
+        "status": "failed",
+        "action": {
+          "type": "open_page",
+          "url": "https://fr.wikiversity.org/wiki/Excel"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_09c5e3f8-aceb-42b5-93fc-b97d7bb0588e",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_67fb8966-9905-418a-bc97-03c5c7ef0a85",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://fr.wikipedia.org/wiki/Tableur"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_2fb8c781-9f50-4d8e-a905-19c2cd5be544",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_6f729e69-fc8e-4883-9fe3-f60f625fb6ef",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://fr.wikipedia.org/wiki/Microsoft_Excel"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_b23ecdd2-0fe1-49da-b50a-a295cb04ab85",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_ddd602f9-10c2-426e-82b8-292033e7ad27",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "J'ai trois ressources pertinentes, j'ajoute deux compléments sur l'analyse des données.",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_1381f423-3984-42bf-8348-80e7ed8d59be",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://fr.wikipedia.org/wiki/Tableau_de_contingence"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd947b942d434a1f43e7:rs_1814441c-0680-45bf-8f95-182256f8748c",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_c3527f71-2a56-4173-9300-1683f1a18aef",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "- **Tableau croisé dynamique — Wikipédia**\n  https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique\n  Elle enseigne à regrouper des données en lignes et colonnes avec sommes ou moyennes pour l’analyse.\n\n- **Tableur — Wikipédia**\n  https://fr.wikipedia.org/wiki/Tableur\n  Elle enseigne les bases du tableur dont le tableau croisé dynamique pour synthétiser une table.\n\n- **Microsoft Excel — Wikipédia**\n  https://fr.wikipedia.org/wiki/Microsoft_Excel\n  Elle enseigne où trouver l’outil d’analyse croisée dynamique et de programmation dans Excel.\n\n- **Tableau de contingence — Wikipédia**\n  https://fr.wikipedia.org/wiki/Tableau_de_contingence\n  Elle enseigne à lire une distribution à double entrée, généralisation utile du tableau croisé dynamique.",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url": "https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique",
+                "start_index": 107,
+                "end_index": 206,
+                "title": "Tableau croisé dynamique — Wikipédia"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://fr.wikipedia.org/wiki/Tableur",
+                "start_index": 276,
+                "end_index": 371,
+                "title": "Tableur"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://fr.wikipedia.org/wiki/Microsoft_Excel",
+                "start_index": 457,
+                "end_index": 549,
+                "title": "Microsoft Excel"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://fr.wikipedia.org/wiki/Tableau_de_contingence",
+                "start_index": 649,
+                "end_index": 753,
+                "title": "Tableau de contingence"
+              }
+            ],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+    "usage": {
+      "input_tokens": 112154,
+      "input_tokens_details": {
+        "cached_tokens": 54777
+      },
+      "output_tokens": 2855,
+      "output_tokens_details": {
+        "reasoning_tokens": 1850
+      },
+      "total_tokens": 115009
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 16056
+}

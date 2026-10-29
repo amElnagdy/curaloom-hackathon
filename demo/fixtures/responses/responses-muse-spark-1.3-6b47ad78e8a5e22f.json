@@ -1,0 +1,406 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Language: Chinese\nTopic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nSearch queries to try: Excel 数据透视表 入门 开放教程; Excel 数据透视表 初学者 维基教科书",
+      "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "tools": [
+        {
+          "type": "web_search"
+        }
+      ]
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "tools": [
+      {
+        "type": "web_search"
+      }
+    ],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3cd934f9230091415476b",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314195,
+    "completed_at": 1793314218,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_49e32257-8fb5-4ef8-b847-a6fcdca6319f",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_135710fd-92e0-45c7-b860-ac92b3157cc0",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "为你找中文 Excel 数据透视表免费开放教程——马上开始搜索。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_b59f0590-fabb-4282-ae0e-5b05ce48de64",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel 数据透视表 入门 开放教程"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_517a8ed4-cbf6-497e-89ee-8c9322759d89",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel 数据透视表 初学者 维基教科书"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_7b5aa826-3566-4cb6-8ffb-45d8b07d18f5",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_91bd7be7-be6e-40e3-9cbd-b95a0d4b8500",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "最初的结果多为商业网站，我来换个方向找开放许可的中文资源。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_35d78dcb-ac41-4f31-a2f8-75981ee728f7",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "数据透视表 wikipedia 中文"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_7f0897d7-2bf0-4651-8db5-b3682037907c",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "LibreOffice Calc 数据透视表 教程 中文 开放"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_4f300544-d467-47c4-bd50-0091aefa6fef",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_3248d4de-51f9-46ea-acb3-3564487eeaac",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "公开许可的中文资源不好找，我来直接打开几个可能合适的页面看看。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_e7fc1aaa-1072-4d7c-b1e4-ed9a6ded4901",
+        "status": "failed",
+        "action": {
+          "type": "open_page",
+          "url": "https://zh.wikipedia.org/wiki/数据透视表"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_d293d977-a497-4d9d-ba52-20d6d5a10143",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_1c34cd57-8783-45d8-a60e-53235570522b",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "那个页面打不开，换个标题再试一次。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_a5abcd78-cd4a-4fc2-affb-d2efa95e9b95",
+        "status": "failed",
+        "action": {
+          "type": "open_page",
+          "url": "https://zh.wikipedia.org/wiki/樞紐分析表"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_7c64566f-f4a3-4a25-ba9d-b161e8c0124c",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_af62bec3-69af-440c-ab72-87526f011b5e",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "维基页面暂不可用，我来试试 LibreOffice 的中文官方文档。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_de422b7e-a888-4d77-8b9b-94a8a30a67f9",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/pivot_table.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_e93f0aef-6b7d-4a07-80cd-1a1d2d2dda3b",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_73dd651e-6b49-42be-9108-ea5e574734ca",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "刚打开的帮助页内容太少，我再试几个中文开放文档。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_c4818ae2-3377-4ad6-a2dd-40a49dcdce8f",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_9fd187ac-3b67-4360-b013-89964d608125",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_845f8d86-6118-447f-89a7-6974cc61c7a8",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "找到一份可用的中文透视表文档，我来打开它的相关子章节补全内容。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_db2dd621-90c4-4ffb-a941-b3fe8bc6f64e",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_createtable.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_f6bbac29-4d7a-4740-af6d-257cdf1b66e5",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_fffd18cf-5203-4583-b040-08e128527120",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "已确认创建步骤的讲解，我继续打开编辑与筛选等后续部分。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_26f99aac-c774-4c58-8ce1-10ce7593a338",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_edittable.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_cfd4980b-b53e-46b6-b0d6-d943796969a2",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_71119a04-abd1-4b27-b187-24fcdca4a2e1",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "编辑方法已经拿到，接着查看筛选和更新的说明。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_fd18216b-7726-490e-9720-d2c47837b1d2",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_filtertable.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_98e567dd-a69f-46c3-b6ec-a2d8a636a43d",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_9d9d41e2-c370-48ec-9bc7-75af45952503",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "筛选功能已了解，最后再打开更新数据的内容。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_41dbdaa2-4940-4865-a26c-2a9ccd03a357",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_updatetable.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cd934f9230091415476b:rs_f962d2e0-b5e9-421c-ac39-2831092caf43",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_c6c0f1bb-df98-45ac-8234-beee33f2dd23",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "以下为初学者转向数据分析可用的中文免费开放文档：\n\n1. **数据透视表**\n   - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html\n   - 教什么：介绍数据透视表组合、比较和分析大批量数据的用途。\n\n2. **创建数据透视表**\n   - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_createtable.html\n   - 教什么：讲解选择数据区域并把字段拖入筛选、行、列和数据区来创建透视表。\n\n3. **编辑透视表**\n   - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_edittable.html\n   - 教什么：讲解拖动按钮改变行列顺序和删除按钮的方法。\n\n4. **筛选数据透视表**\n   - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_filtertable.html\n   - 教什么：讲解用筛选器删除透视表中不需要的数据。\n\n5. **更新数据透视表**\n   - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_updatetable.html\n   - 教什么：讲解源数据变化后用刷新重新计算透视表。",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html",
+                "start_index": 126,
+                "end_index": 156,
+                "title": "数据透视表"
+              }
+            ],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+    "usage": {
+      "input_tokens": 115020,
+      "input_tokens_details": {
+        "cached_tokens": 62171
+      },
+      "output_tokens": 4475,
+      "output_tokens_details": {
+        "reasoning_tokens": 3082
+      },
+      "total_tokens": 119495
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 23412
+}

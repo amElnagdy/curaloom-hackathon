@@ -1,0 +1,248 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-wonder-1.0",
+      "input": "المتعلم: عمر، 28 سنة، محاسب في الرياض يريد أن يصبح محلل بيانات مبتدئًا، لديه 5 ساعات أسبوعيًا، ويقرأ الإنجليزية. الموضوع: أساسيات جداول البيانات. المصادر: r1 (مقال إنجليزي عن الجداول المحورية)، r2 (كتاب روسي عن الإحصاء الوصفي). ضع طريقًا من 3 وحدات، ودروس الأسبوعين الأولين فقط بجلسات من 40 دقيقة في الأيام 0 إلى 13.",
+      "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
+      "max_output_tokens": 12000,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "PlanDraft",
+          "schema": {
+            "type": "object",
+            "required": [
+              "road",
+              "rationale_ar"
+            ],
+            "properties": {
+              "road": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "title_ar",
+                    "weeks",
+                    "lessons"
+                  ],
+                  "properties": {
+                    "title_ar": {
+                      "type": "string",
+                      "description": "the module's name in Arabic, a few words"
+                    },
+                    "weeks": {
+                      "type": "integer",
+                      "description": "whole weeks the module takes, at least 1"
+                    },
+                    "lessons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "title_ar",
+                          "resource_ids",
+                          "sessions"
+                        ],
+                        "properties": {
+                          "title_ar": {
+                            "type": "string",
+                            "description": "what the lesson teaches, in Arabic, a few words"
+                          },
+                          "resource_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "ids of the resources the lesson draws on, copied exactly"
+                          },
+                          "sessions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "day",
+                                "minutes"
+                              ],
+                              "properties": {
+                                "day": {
+                                  "type": "integer",
+                                  "description": "day of the course, from 0"
+                                },
+                                "minutes": {
+                                  "type": "integer"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "description": "only lessons in the first two weeks; empty for a module that starts later"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "rationale_ar": {
+                "type": "string",
+                "description": "why this plan suits the learner, two to four Arabic sentences addressed to them"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-wonder-1.0",
+    "reasoning": {
+      "effort": "max"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "PlanDraft",
+        "schema": {
+          "properties": {
+            "rationale_ar": {
+              "description": "why this plan suits the learner, two to four Arabic sentences addressed to them",
+              "type": "string"
+            },
+            "road": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lessons": {
+                    "description": "only lessons in the first two weeks; empty for a module that starts later",
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "resource_ids": {
+                          "description": "ids of the resources the lesson draws on, copied exactly",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "sessions": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "day": {
+                                "description": "day of the course, from 0",
+                                "type": "integer"
+                              },
+                              "minutes": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "day",
+                              "minutes"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "title_ar": {
+                          "description": "what the lesson teaches, in Arabic, a few words",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title_ar",
+                        "resource_ids",
+                        "sessions"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "title_ar": {
+                    "description": "the module's name in Arabic, a few words",
+                    "type": "string"
+                  },
+                  "weeks": {
+                    "description": "whole weeks the module takes, at least 1",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "title_ar",
+                  "weeks",
+                  "lessons"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "road",
+            "rationale_ar"
+          ],
+          "type": "object"
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae3cdcaa3e80c7829d442a7",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793314250,
+    "completed_at": 1793314250,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae3cdcaa3e80c7829d442a7:rs_fb7f336b-52df-484e-8dde-5b868fb9c806",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_72a129ea-7ce6-4e6b-8ef9-e09085a41738",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{ \"rationale_ar\": \"خطتك مبنية على خبرتك المحاسبية، وبأمثلة من الفواتير والمصروفات، لتكون جسرًا سريعًا نحو تحليل البيانات. التزمنا بسقف 5 ساعات أسبوعيًا: 7 جلسات × 40 دقيقة = 4 ساعات و40 دقيقة أسبوعيًا، ونترك لك 20 دقيقة مرونة للمراجعة الخفيفة. ولأنك تقرأ الإنجليزية سنستخدم المصدر r1، ولن نستخدم المصدر r2 حاليًا لأنه كتاب بالروسية ولم تذكر إجادتها.\" , \"road\": [ { \"lessons\": [ { \"resource_ids\": [], \"sessions\": [ { \"day\": 0, \"minutes\": 40 } ] , \"title_ar\": \"التعرف على واجهة جداول البيانات وإنشاء مصنف عمل منظم\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 1, \"minutes\": 40 } ] , \"title_ar\": \"إدخال وتنسيق البيانات المالية: التواريخ والعملات والنسب المئوية\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 2, \"minutes\": 40 } ] , \"title_ar\": \"الصيغ الأولى والمراجع النسبية والمطلقة، مع حساب إجمالي الفاتورة والضريبة\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 3, \"minutes\": 40 } ] , \"title_ar\": \"الدوال الأساسية: SUM وAVERAGE وMIN وMAX وCOUNT\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 4, \"minutes\": 40 } ] , \"title_ar\": \"الفرز والتصفية وتحويل نطاق البيانات إلى جدول رسمي Table\" } ] , \"title_ar\": \"الوحدة 1: أساسيات جداول البيانات وتنظيم البيانات المالية\" , \"weeks\": 1 } , { \"lessons\": [ { \"resource_ids\": [], \"sessions\": [ { \"day\": 5, \"minutes\": 40 } ] , \"title_ar\": \"تنظيف البيانات: إزالة التكرارات والمسافات الزائدة وتوحيد أسماء المورّدين\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 6, \"minutes\": 40 } ] , \"title_ar\": \"تطبيق أسبوعي: تجهيز جدول مصروفات نظيف وجاهز للتحليل\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 7, \"minutes\": 40 } ] , \"title_ar\": \"التلخيص المشروط باستخدام SUMIF وSUMIFS\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 8, \"minutes\": 40 } ] , \"title_ar\": \"المؤشرات الشرطية باستخدام COUNTIFS وAVERAGEIFS ودالة IF\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 9, \"minutes\": 40 } ] , \"title_ar\": \"ربط الجداول باستخدام XLOOKUP، مثل ربط الفواتير بأسماء الأقسام\" } ] , \"title_ar\": \"الوحدة 2: تنظيف البيانات ودوال التحليل الأساسية\" , \"weeks\": 1 } , { \"lessons\": [ { \"resource_ids\": [ \"r1\" ], \"sessions\": [ { \"day\": 10, \"minutes\": 40 } ] , \"title_ar\": \"مقدمة الجداول المحورية Pivot Tables وقراءة الجزء التمهيدي من المصدر r1\" } , { \"resource_ids\": [ \"r1\" ], \"sessions\": [ { \"day\": 11, \"minutes\": 40 } ] , \"title_ar\": \"بناء جدول محوري لتلخيص المصروفات حسب البند والقسم\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 12, \"minutes\": 40 } ] , \"title_ar\": \"تجميع الجدول المحوري حسب الشهر وحساب النسب المئوية وإضافة مخطط بياني\" } , { \"resource_ids\": [], \"sessions\": [ { \"day\": 13, \"minutes\": 40 } ] , \"title_ar\": \"مشروع الأسبوعين: إعداد تقرير من صفحة واحدة عن المصروفات الشهرية\" } ] , \"title_ar\": \"الوحدة 3: الجداول المحورية وعرض النتائج\" , \"weeks\": 1 } ] }",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
+    "usage": {
+      "input_tokens": 153,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 4517,
+      "output_tokens_details": {
+        "reasoning_tokens": 3508
+      },
+      "total_tokens": 4670
+    },
+    "parallel_tool_calls": true,
+    "store": true,
+    "max_output_tokens": 12000
+  },
+  "latency_ms": 60527
+}

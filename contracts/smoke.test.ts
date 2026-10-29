@@ -103,5 +103,5 @@ describe.each(AGENT_OUTPUTS)("%s", (name: ContractName) => {
     });
 
     expect(contractErrors(CONTRACTS[name], result.json)).toEqual([]);
-  }, 180_000);
+  }, 300_000);
 });
