@@ -91,6 +91,9 @@ export const FIXTURES_DIR = join(process.cwd(), "demo/fixtures/responses");
 const MAX_ATTEMPTS = 3;
 
 type WireResponse = { status: number; body: unknown; latency_ms: number; retryAfterMs?: number };
+// How one call sends: its role's timeout, and how to read a reply, so a recording can tell a
+// complete reply from one cut off.
+type Sending = { timeoutMs: number; normalize: (body: unknown) => Normalized };
 type Fixture = { request: unknown; body: unknown; latency_ms: number };
 
 class HttpError extends Error {
@@ -170,20 +173,23 @@ export function createProvider(options: ProviderOptions): Provider {
     };
   }
 
-  async function send(req: WireRequest, timeoutMs: number): Promise<WireResponse> {
+  async function send(req: WireRequest, { timeoutMs, normalize }: Sending): Promise<WireResponse> {
     const { material, name } = fixtureKey(req);
     const path = join(fixturesDir, name);
-    const recorded = existsSync(path);
+    const saved = existsSync(path)
+      ? (JSON.parse(readFileSync(path, "utf8")) as Fixture)
+      : undefined;
     // Recording reuses what is already recorded, so a re-record calls the model only for the
-    // requests that changed. Delete a fixture to record it again.
-    if (profile === "replay" || (profile === "record" && recorded)) {
-      if (!recorded) {
+    // requests that changed. A reply recorded cut off is asked for again, so a retry identical to
+    // the failed call can still pass. Delete a fixture to record it again.
+    const reuse = saved && !normalize(saved.body).incomplete;
+    if (profile === "replay" || (profile === "record" && reuse)) {
+      if (!saved) {
         throw new Error(
           `No recorded response for ${req.path} (${name}); run once with PROVIDER_PROFILE=record`,
         );
       }
-      const fixture = JSON.parse(readFileSync(path, "utf8")) as Fixture;
-      return { status: 200, body: fixture.body, latency_ms: fixture.latency_ms };
+      return { status: 200, body: saved.body, latency_ms: saved.latency_ms };
     }
     const res = await sendLive(req, timeoutMs);
     if (profile === "record" && res.status < 300) {
@@ -197,7 +203,7 @@ export function createProvider(options: ProviderOptions): Provider {
   // Sends with retries: network errors, timeouts, 429 and 5xx are retried with backoff.
   async function sendWithRetry(
     req: WireRequest,
-    timeoutMs: number,
+    sending: Sending,
     onFailure: (attempt: number, error: string, latencyMs: number) => void,
   ) {
     for (let attempt = 1; ; attempt++) {
@@ -206,7 +212,7 @@ export function createProvider(options: ProviderOptions): Provider {
       // does not apply.
       const started = performance.now();
       try {
-        const res = await send(req, timeoutMs);
+        const res = await send(req, sending);
         if (res.status < 300) return { res, attempt };
         const detail = JSON.stringify(res.body).slice(0, 300);
         error = new HttpError(
@@ -247,7 +253,7 @@ export function createProvider(options: ProviderOptions): Provider {
 
     const { res, attempt } = await sendWithRetry(
       build(role),
-      timeoutFor(role),
+      { timeoutMs: timeoutFor(role), normalize },
       (attempt, error, latency_ms) => trace({ attempt, ok: false, latency_ms, cost_usd: 0, error }),
     );
     const normalized = normalize(res.body);

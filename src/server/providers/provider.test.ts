@@ -33,6 +33,22 @@ tool_prices:
 
 const TRACE = { agent: "test", summary_ar: "اختبار", summary_en: "Test call" };
 
+// A reply cut off at the role's output cap: OpenAI's shape, which Meta's Responses API follows.
+const cutOff = (text: string) => {
+  const body = structuredClone(spike("json_schema", "/responses")) as {
+    status?: string;
+    incomplete_details?: { reason: string };
+    output: { type: string; content?: { text: string }[] }[];
+    usage: { output_tokens: number };
+  };
+  body.status = "incomplete";
+  body.incomplete_details = { reason: "max_output_tokens" };
+  body.usage.output_tokens = 8000;
+  const message = body.output.find((o) => o.type === "message");
+  if (message?.content?.[0]) message.content[0].text = text;
+  return body;
+};
+
 type Sent = { url: string; headers: Headers; body: unknown };
 type Reply = { status: number; body: unknown } | { sse: unknown[] } | Error;
 
@@ -292,22 +308,6 @@ describe("retries, cost and trace", () => {
     expect(p.totalCostUsd()).toBeCloseTo(0.0035235, 6);
   });
 
-  // A reply cut off at the role's output cap: OpenAI's shape, which Meta's Responses API follows.
-  const cutOff = (text: string) => {
-    const body = structuredClone(spike("json_schema", "/responses")) as {
-      status?: string;
-      incomplete_details?: { reason: string };
-      output: { type: string; content?: { text: string }[] }[];
-      usage: { output_tokens: number };
-    };
-    body.status = "incomplete";
-    body.incomplete_details = { reason: "max_output_tokens" };
-    body.usage.output_tokens = 8000;
-    const message = body.output.find((o) => o.type === "message");
-    if (message?.content?.[0]) message.content[0].text = text;
-    return body;
-  };
-
   it("fails a reply cut off at the output cap as cut off, counting its cost, without retrying", async () => {
     const { p, sent, events } = provider([{ status: 200, body: cutOff('{"answer": "par') }]);
 
@@ -319,6 +319,7 @@ describe("retries, cost and trace", () => {
       { ok: false, usage: { out: 8000 }, cost_usd: expect.any(Number) },
     ]);
     expect(events[0]?.cost_usd).toBeGreaterThan(0);
+    expect(p.totalCostUsd()).toBe(events[0]?.cost_usd);
   });
 
   it("does not answer a chat with the part of a reply that was cut off", async () => {
@@ -417,6 +418,29 @@ describe("record and replay", () => {
     expect(again.sent).toEqual([]);
     expect(reused.json).toEqual(recorded.json);
     expect(readFileSync(join(fixturesDir, readdirSync(fixturesDir)[0] ?? ""), "utf8")).toBe(saved);
+  });
+
+  it("asks the model again for a request whose recording was cut off, so an identical retry can pass", async () => {
+    const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
+    const first = provider([{ status: 200, body: cutOff('{"answer": "par') }], {
+      profile: "record",
+      fixturesDir,
+    });
+    await expect(first.p.structured(call)).rejects.toThrow(/cut off/);
+
+    const again = provider([{ status: 200, body: spike("json_schema", "/responses") }], {
+      profile: "record",
+      fixturesDir,
+    });
+    const retried = await again.p.structured(call);
+    const replayed = await createProvider({
+      models: MODELS,
+      profile: "replay",
+      fixturesDir,
+    }).structured(call);
+
+    expect(again.sent).toHaveLength(1);
+    expect(replayed.json).toEqual(retried.json);
   });
 
   it("fails clearly when replay has no recording for a request", async () => {
