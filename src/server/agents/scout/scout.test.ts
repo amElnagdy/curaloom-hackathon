@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { type Resource, SOURCE_LANGS } from "../../../../contracts/index.ts";
+import { type Resource, type ScoutQueries, SOURCE_LANGS } from "../../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
@@ -58,7 +58,12 @@ const SCORES: Record<string, { relevance: number; level_fit: number }> = {
   [BOOK]: { relevance: 7, level_fit: 0.8 },
 };
 
-function fakeProvider() {
+const PLAN: ScoutQueries["queries"] = [
+  { lang: "en", queries: [SCRIPT.en.query] },
+  { lang: "ru", queries: [SCRIPT.ru.query] },
+];
+
+function fakeProvider(plan = PLAN) {
   const prompts: string[] = [];
   let calls = 0;
   const reply = <J>(json: J, extra: Partial<ModelResult<J>> = {}) => {
@@ -86,14 +91,7 @@ function fakeProvider() {
     async structured(call) {
       const input = String(call.input);
       prompts.push(`${call.instructions}\n${input}`);
-      if (call.schema.name === "ScoutQueries") {
-        return reply({
-          queries: [
-            { lang: "en", queries: [SCRIPT.en.query] },
-            { lang: "ru", queries: [SCRIPT.ru.query] },
-          ],
-        });
-      }
+      if (call.schema.name === "ScoutQueries") return reply({ queries: plan });
       const lang = scripted(input, "cited");
       return reply({
         candidates: SCRIPT[lang].described.map((url) => ({
@@ -129,11 +127,11 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function setup() {
+function setup({ plan }: { plan?: ScoutQueries["queries"] } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "scout-"));
   dirs.push(dir);
   const store = createFileStore(dir);
-  const fake = fakeProvider();
+  const fake = fakeProvider(plan);
   let providers = 0;
   const orchestrator = createOrchestrator({
     store,
@@ -218,6 +216,22 @@ describe("scout", () => {
         ),
       ]),
     );
+  });
+
+  it("searches with at most two of the queries the model wrote for a language", async () => {
+    const extra = ["pivot table guide", "pivot table course"];
+    const { run, fake, trace } = setup({
+      plan: [
+        { lang: "en", queries: [SCRIPT.en.query, ...extra] },
+        { lang: "ru", queries: [SCRIPT.ru.query] },
+      ],
+    });
+
+    await run(["en", "ru"]);
+
+    const search = fake.prompts.find((p) => p.includes("Language: English"));
+    expect(search).toMatch(/Search queries to try: pivot table tutorial; pivot table guide$/);
+    expect(trace()).toContain('Queries (en): "pivot table tutorial", "pivot table guide"');
   });
 
   it("sends the model the topic, goal, level and languages, and nothing else about the learner", async () => {

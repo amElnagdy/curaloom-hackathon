@@ -66,7 +66,7 @@ export function runScout({
 }
 
 const MAX_RESOURCES = 8;
-const MAX_QUERIES = 3;
+const MAX_QUERIES = 2;
 const FETCH_CONCURRENCY = 4;
 
 const LANGUAGE: Record<Lang, { en: string; ar: string }> = {
