@@ -143,7 +143,10 @@ describe("fetchPage", () => {
 
       const outcome = await pages.fetchPage(PAGE, trace);
 
-      expect(outcome).toMatchObject({ ok: false, reason: /robots\.txt could not be read/ });
+      expect(outcome).toMatchObject({
+        ok: false,
+        reason: expect.stringMatching(/robots\.txt could not be read/),
+      });
       expect(web.requested).not.toContain(PAGE);
     }
   });
