@@ -141,9 +141,9 @@ function scoutAgent(pages: PageFetcher): Agent<ScoutBrief, typeof ScoutResult> {
     output: ScoutResult,
     async run(ctx, brief) {
       const costBefore = ctx.provider.totalCostUsd();
-      const queries = await planQueries(ctx, brief);
+      const planned = await planQueries(ctx, brief);
       const found = await Promise.all(
-        brief.langs.map((lang) => searchLanguage(ctx, brief, lang, queries[lang])),
+        planned.map(({ lang, queries }) => searchLanguage(ctx, brief, lang, queries)),
       );
 
       const seen = new Set<string>();
@@ -206,7 +206,10 @@ function scoutAgent(pages: PageFetcher): Agent<ScoutBrief, typeof ScoutResult> {
   };
 }
 
-async function planQueries(ctx: AgentContext, brief: ScoutBrief): Promise<Record<Lang, string[]>> {
+async function planQueries(
+  ctx: AgentContext,
+  brief: ScoutBrief,
+): Promise<{ lang: Lang; queries: string[] }[]> {
   const result = await ctx.provider.structured({
     role: "agent_default",
     trace: {
@@ -218,22 +221,21 @@ async function planQueries(ctx: AgentContext, brief: ScoutBrief): Promise<Record
     input: `${learnerLines(brief)}\nLanguages: ${brief.langs.join(", ")}`,
     schema: { name: "ScoutQueries", schema: ScoutQueries },
   });
-  const planned = {} as Record<Lang, string[]>;
-  for (const lang of brief.langs) {
+  return brief.langs.map((lang) => {
     const written = result.json.queries
       .filter((q) => q.lang === lang)
       .flatMap((q) => q.queries)
       .map((q) => q.trim())
       .filter(Boolean)
       .slice(0, MAX_QUERIES);
-    planned[lang] = written.length ? written : [brief.topic];
+    const queries = written.length ? written : [brief.topic];
     ctx.trace({
       kind: "decision",
-      summary_ar: `صاغ عبارات بحث ${LANGUAGE[lang].ar}: ${planned[lang].join("، ")}`,
-      summary_en: `Queries (${lang}): ${planned[lang].map((q) => JSON.stringify(q)).join(", ")}`,
+      summary_ar: `صاغ عبارات بحث ${LANGUAGE[lang].ar}: ${queries.join("، ")}`,
+      summary_en: `Queries (${lang}): ${queries.map((q) => JSON.stringify(q)).join(", ")}`,
     });
-  }
-  return planned;
+    return { lang, queries };
+  });
 }
 
 // Searches in one language and has the model describe what the search cited. A candidate whose URL
