@@ -19,6 +19,7 @@ const WIKI = "https://en.wikipedia.org/wiki/Pivot_table";
 const VENDOR = "https://vendor.example/pivot";
 const HUGE = "https://big.example/pivot";
 const INVENTED = "https://invented.example/pivot";
+const OFF_TOPIC = "https://en.wikipedia.org/wiki/Contingency_table";
 const BOOK = "https://ru.wikibooks.org/wiki/Сводные_таблицы";
 const BOOK_CITED = encodeURI(BOOK);
 const BLOCKED = "https://blocked.example/svodnye";
@@ -37,11 +38,12 @@ const WEB: Record<string, FetchOutcome> = {
 };
 
 // Per language: the query the model writes, the pages the search cites, and the URLs the model
-// then describes (one invented, one a second spelling of a page another language found).
+// then describes (one invented, one left out, one a second spelling of a page another language
+// found).
 const SCRIPT: Record<"en" | "ru", { query: string; cited: string[]; described: string[] }> = {
   en: {
     query: "pivot table tutorial",
-    cited: [WIKI, VENDOR, HUGE],
+    cited: [WIKI, VENDOR, HUGE, OFF_TOPIC],
     described: [WIKI, VENDOR, HUGE, INVENTED],
   },
   ru: {
@@ -183,13 +185,14 @@ describe("scout", () => {
     expect(fetched).not.toContain(INVENTED);
   });
 
-  it("rejects uncited, unlicensed, unreadable and cut pages, and traces each reason", async () => {
+  it("gives a reason for every page it does not keep, and traces each one", async () => {
     const { run, trace } = setup();
 
     const result = await run(["en", "ru"]);
 
     expect(result.rejected.map((r) => [r.url, r.reason])).toEqual([
       [INVENTED, "not among the pages the search cited"],
+      [OFF_TOPIC, "the model judged it off the topic"],
       [VENDOR, "all rights reserved"],
       [HUGE, expect.stringMatching(/licence terms were not all read/)],
       [BLOCKED, "could not read the page: robots.txt disallows it"],
@@ -210,7 +213,7 @@ describe("scout", () => {
         'Queries (en): "pivot table tutorial"',
         'Queries (ru): "сводные таблицы"',
         expect.stringMatching(
-          /^Scout chose 2 resources \(en 1, ru 1\) and rejected 4; run cost \$0\.0500/,
+          /^Scout chose 2 resources \(en 1, ru 1\) and rejected 5; run cost \$0\.0500/,
         ),
       ]),
     );

@@ -149,8 +149,8 @@ function scoutAgent(pages: PageFetcher): Agent<ScoutBrief, typeof ScoutResult> {
       const seen = new Set<string>();
       const rejected: Rejection[] = [];
       const candidates: Candidate[] = [];
-      for (const { cited, uncited } of found) {
-        rejected.push(...uncited);
+      for (const { cited, dropped } of found) {
+        rejected.push(...dropped);
         for (const candidate of cited) {
           const key = normalUrl(candidate.url);
           if (seen.has(key)) continue;
@@ -237,13 +237,14 @@ async function planQueries(ctx: AgentContext, brief: ScoutBrief): Promise<Record
 }
 
 // Searches in one language and has the model describe what the search cited. A candidate whose URL
-// the search never cited is dropped: a page the search did not open is not evidence of anything.
+// the search never cited is dropped, as a page the search did not open is not evidence of anything,
+// and so is a cited page the model left out; each gets a reason.
 async function searchLanguage(
   ctx: AgentContext,
   brief: ScoutBrief,
   lang: Lang,
   queries: string[],
-): Promise<{ cited: Candidate[]; uncited: Rejection[] }> {
+): Promise<{ cited: Candidate[]; dropped: Rejection[] }> {
   const search = await ctx.provider.webSearch({
     role: "agent_default",
     trace: {
@@ -260,7 +261,7 @@ async function searchLanguage(
       summary_ar: `لم يستشهد البحث ${LANGUAGE[lang].ar} بأي صفحة`,
       summary_en: `web_search (${lang}) cited no pages`,
     });
-    return { cited: [], uncited: [] };
+    return { cited: [], dropped: [] };
   }
 
   const described = await ctx.provider.structured({
@@ -275,29 +276,42 @@ async function searchLanguage(
     schema: { name: "Candidates", schema: Candidates },
   });
 
-  const byUrl = new Map(search.citations.map((c) => [normalUrl(c.url), c.url]));
+  const byUrl = new Map(search.citations.map((c) => [normalUrl(c.url), c]));
+  const kept = new Set<string>();
   const cited: Candidate[] = [];
-  const uncited: Rejection[] = [];
+  const dropped: Rejection[] = [];
   for (const candidate of described.json.candidates) {
-    const url = byUrl.get(normalUrl(candidate.url));
-    if (url) {
-      cited.push({
-        ...candidate,
-        url,
-        relevance: unit(candidate.relevance),
-        level_fit: unit(candidate.level_fit),
-      });
-    } else {
-      uncited.push({
+    const key = normalUrl(candidate.url);
+    const citation = byUrl.get(key);
+    if (!citation) {
+      dropped.push({
         url: candidate.url,
         title: candidate.title,
         lang: candidate.lang,
         reason: "not among the pages the search cited",
         reason_ar: "لم يرد بين الصفحات التي استشهد بها البحث",
       });
+    } else if (!kept.has(key)) {
+      kept.add(key);
+      cited.push({
+        ...candidate,
+        url: citation.url,
+        relevance: unit(candidate.relevance),
+        level_fit: unit(candidate.level_fit),
+      });
     }
   }
-  return { cited, uncited };
+  for (const [key, { url, title }] of byUrl) {
+    if (kept.has(key)) continue;
+    dropped.push({
+      url,
+      title,
+      lang,
+      reason: "the model judged it off the topic",
+      reason_ar: "رأى النموذج أنه لا يتناول الموضوع",
+    });
+  }
+  return { cited, dropped };
 }
 
 async function checkPage(
