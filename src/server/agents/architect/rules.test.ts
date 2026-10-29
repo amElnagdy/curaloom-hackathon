@@ -72,6 +72,28 @@ describe("planViolations", () => {
       withLessons([PLAN.committed.lessons[0] as Lesson, { id: "L2", title_ar: "درس", module: 5 }]),
       /L2.*module 5/,
     ],
+    [
+      "a module in the two weeks with no lesson",
+      {
+        ...PLAN,
+        committed: {
+          ...PLAN.committed,
+          lessons: [PLAN.committed.lessons[0] as Lesson],
+          sessions: PLAN.committed.sessions.slice(0, 2),
+        },
+      },
+      /التلخيص والتصفية.*day 7.*no lesson/,
+    ],
+    // A reply Wonder once gave: no lesson at all, so nothing to do in the two weeks.
+    [
+      "a plan with nothing to do in the two weeks",
+      {
+        ...PLAN,
+        road: [{ module: "ИfбэККэ...", weeks: 1_900_000 }],
+        committed: { ...PLAN.committed, lessons: [], sessions: [] },
+      },
+      /day 0.*no lesson/,
+    ],
   ])("catches %s, in English for the model and Arabic for the learner", (_, plan, en) => {
     const violation = planViolations(plan, LIMITS).find((v) => en.test(v.en));
 

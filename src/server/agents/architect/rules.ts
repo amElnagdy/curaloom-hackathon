@@ -118,6 +118,17 @@ const RULES: Rule[] = [
       }
       return [];
     }),
+  // A module that starts in the committed weeks has lessons there, so those weeks are planned.
+  (plan) =>
+    plan.road.flatMap((step, i) => {
+      const days = moduleDays(plan, i);
+      if (!days || days.from > lastDay(plan)) return [];
+      if (plan.committed.lessons.some((l) => l.module === i)) return [];
+      return {
+        en: `module "${step.module}" starts on day ${days.from}, in the committed days 0 to ${lastDay(plan)}, but has no lesson`,
+        ar: "وحدة تبدأ في أسبوعيك الأولين بلا درس",
+      };
+    }),
 ];
 
 export function planViolations(plan: CoursePlan, limits: Limits): Violation[] {
