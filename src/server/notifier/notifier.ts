@@ -63,34 +63,43 @@ export type ReplyResult = { opted_out: boolean; confirmed: boolean };
 // Matching ignores case, tashkeel, tatweel, alef forms, punctuation and polite words. As with SMS
 // and WhatsApp opt-out keywords, what is left must be the stop word: a sentence that mentions
 // stopping («توقف الفيديو عندي») is a reply, while «توقف من فضلك» is a stop.
-const STOP_WORDS = new Set([
+const STOP_VERBS = [
   "stop",
+  "unsubscribe",
   "توقف",
   "توقفي",
   "توقفوا",
+  "وقف",
+  "وقفي",
+  "وقفوا",
   "ايقاف",
   "اوقف",
   "اوقفي",
   "اوقفوا",
-  "ايقاف الرسائل",
-  "اوقف الرسائل",
-  "اوقفي الرسائل",
-  "اوقفوا الرسائل",
-]);
+];
+const STOP_OBJECTS = ["", "messages", "الرسائل", "عن الرسائل"];
 
 const POLITE = ["من فضلك", "لو سمحت", "لو سمحتي", "لو سمحتم", "رجاء", "please", "pls", "plz"];
 
 export function normalizeReply(text: string): string {
-  return text
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[ً-ٰٟۖ-ۭ]/g, "")
-    .replace(/ـ/g, "")
-    .replace(/[أإآٱ]/g, "ا")
-    .replace(/[\p{P}\p{S}]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    text
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/[ً-ٰٟۖ-ۭ]/g, "")
+      .replace(/ـ/g, "")
+      .replace(/[أإآٱ]/g, "ا")
+      // Gulf and everyday spelling: «الرسايل» for «الرسائل», «على» written with ى.
+      .replace(/[ئى]/g, "ي")
+      .replace(/[\p{P}\p{S}]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
+
+const STOP_WORDS = new Set(
+  STOP_VERBS.flatMap((verb) => STOP_OBJECTS.map((object) => normalizeReply(`${verb} ${object}`))),
+);
 
 export function isStopWord(text: string): boolean {
   let padded = ` ${normalizeReply(text)} `;

@@ -126,6 +126,13 @@ describe("opt-out", () => {
     "أوقفوا الرسائل لو سمحتم",
     "please stop",
     "Stop, please.",
+    "أوقف الرسايل",
+    "ايقاف الرسايل",
+    "وقف",
+    "وقف الرسايل",
+    "توقف عن الرسائل",
+    "stop messages",
+    "unsubscribe",
   ])("opts out on %j", (text) => {
     const { notifier } = setup();
 
