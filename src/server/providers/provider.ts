@@ -171,8 +171,11 @@ export function createProvider(options: ProviderOptions): Provider {
   async function send(req: WireRequest): Promise<WireResponse> {
     const { material, name } = fixtureKey(req);
     const path = join(fixturesDir, name);
-    if (profile === "replay") {
-      if (!existsSync(path)) {
+    const recorded = existsSync(path);
+    // Recording reuses what is already recorded, so a re-record calls the model only for the
+    // requests that changed. Delete a fixture to record it again.
+    if (profile === "replay" || (profile === "record" && recorded)) {
+      if (!recorded) {
         throw new Error(
           `No recorded response for ${req.path} (${name}); run once with PROVIDER_PROFILE=record`,
         );

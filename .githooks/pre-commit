@@ -1,0 +1,3 @@
+#!/bin/sh
+# Runs before every commit; `pnpm install` wires it up through the prepare script.
+exec pnpm check

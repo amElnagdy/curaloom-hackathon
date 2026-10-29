@@ -10,6 +10,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "preview": "rm -rf .preview-data && env PROVIDER_PROFILE=replay DEMO_TOPIC='Excel pivot tables for data analysis' DATA_DIR=.preview-data sh -c 'next build && next start -p 3107'",
+    "prepare": "git config core.hooksPath .githooks",
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "next typegen && tsc --noEmit",
@@ -17,6 +19,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts",
     "fixtures:record": "RECORD_FIXTURES=1 vitest run smoke.test intake.test",
+    "fixtures:prune": "node demo/fixtures/prune.ts",
     "scout": "node --env-file-if-exists=.env src/server/agents/scout/cli.ts"
   },
   "dependencies": {

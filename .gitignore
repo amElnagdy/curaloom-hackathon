@@ -19,8 +19,9 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 
-# Local runtime data (state store, traces)
+# Local runtime data (state store, traces), and the preview server's own copy
 data/
+.preview-data/
 
 # Partial eval runs (--only)
 evals/**/results-*-partial.*

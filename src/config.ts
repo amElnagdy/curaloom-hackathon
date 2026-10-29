@@ -1,5 +1,7 @@
 // The only module that reads app-level settings. Everything else imports `config`.
 
+import { resolve } from "node:path";
+
 export const PROVIDER_PROFILES = ["live", "record", "replay"] as const;
 export type ProviderProfile = (typeof PROVIDER_PROFILES)[number];
 
@@ -16,6 +18,9 @@ export type Config = {
   notifierAdapter: NotifierAdapterName;
   // Dev-only pages, routes and buttons (the dummy run, /dev/bidi): on unless this is a production build.
   devTools: boolean;
+  // Where sessions, traces and the cache live. A second server (`pnpm preview`) sets its own, so it
+  // never writes into the dev server's.
+  dataDir: string;
 };
 
 type Env = Record<string, string | undefined>;
@@ -55,6 +60,7 @@ export function loadConfig(env: Env): Config {
       "simulated",
     ),
     devTools: read(env, "NODE_ENV") !== "production",
+    dataDir: resolve(process.cwd(), read(env, "DATA_DIR") ?? "data"),
   };
 }
 

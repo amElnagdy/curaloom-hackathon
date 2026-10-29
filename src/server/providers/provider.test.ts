@@ -329,6 +329,23 @@ describe("record and replay", () => {
     ).not.toContain("sk-test-secret");
   });
 
+  it("records only a request it has no recording for, so a re-record pays for what changed", async () => {
+    const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
+    const first = provider([{ status: 200, body: spike("json_schema", "/responses") }], {
+      profile: "record",
+      fixturesDir,
+    });
+    const recorded = await first.p.structured(call);
+    const saved = readFileSync(join(fixturesDir, readdirSync(fixturesDir)[0] ?? ""), "utf8");
+
+    const again = provider([], { profile: "record", fixturesDir });
+    const reused = await again.p.structured(call);
+
+    expect(again.sent).toEqual([]);
+    expect(reused.json).toEqual(recorded.json);
+    expect(readFileSync(join(fixturesDir, readdirSync(fixturesDir)[0] ?? ""), "utf8")).toBe(saved);
+  });
+
   it("fails clearly when replay has no recording for a request", async () => {
     const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
     const replayer = createProvider({ models: MODELS, profile: "replay", fixturesDir });

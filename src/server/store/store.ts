@@ -14,6 +14,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
+import { config } from "../../config.ts";
 
 export type Store = {
   readDoc<T = unknown>(sessionId: string, name: string): T | undefined;
@@ -35,7 +36,7 @@ export type Cache = {
   write(area: string, key: string, value: unknown): void;
 };
 
-export const DATA_DIR = join(process.cwd(), "data");
+export const DATA_DIR = config.dataDir;
 
 // Names content by a short hash of it: a cache key, or a step key that changes with its input.
 export const contentHash = (material: unknown) =>

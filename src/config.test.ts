@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "./config";
 
@@ -11,6 +12,7 @@ describe("loadConfig", () => {
       simClock: true,
       notifierAdapter: "simulated",
       devTools: true,
+      dataDir: join(process.cwd(), "data"),
     });
   });
 
@@ -23,6 +25,7 @@ describe("loadConfig", () => {
       SIM_CLOCK: "false",
       NOTIFIER_ADAPTER: "email",
       NODE_ENV: "production",
+      DATA_DIR: "/tmp/curaloom-data",
     });
 
     expect(config).toEqual({
@@ -33,7 +36,14 @@ describe("loadConfig", () => {
       simClock: false,
       notifierAdapter: "email",
       devTools: false,
+      dataDir: "/tmp/curaloom-data",
     });
+  });
+
+  it("reads a relative DATA_DIR from the repo root, so a preview server keeps its own data", () => {
+    expect(loadConfig({ DATA_DIR: ".preview-data" }).dataDir).toBe(
+      join(process.cwd(), ".preview-data"),
+    );
   });
 
   it("turns dev tools off only in a production build", () => {
