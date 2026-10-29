@@ -10,6 +10,15 @@ const FOREIGN =
 const INNER = `${FOREIGN}0-9 .,:;!?'"_/()&+%$@#=\\-\\[\\]\\u3000-\\u303F\\uFF01-\\uFF20`;
 const FOREIGN_RUN = new RegExp(`[${FOREIGN}](?:[${INNER}]*[${FOREIGN}0-9)\\]"'])?`, "g");
 
+// A run ends on a closing bracket only when it opened one: «المحوري (PivotTable)» leaves both
+// parentheses to the Arabic text, or the isolated run would carry one and the bidi algorithm
+// would mirror the other.
+function unopened(run: string): string {
+  const open = (run.match(/[([]/g) ?? []).length;
+  const close = (run.match(/[)\]]/g) ?? []).length;
+  return close > open && /[)\]]$/.test(run) ? unopened(run.slice(0, -1)) : run;
+}
+
 // `start` is the run's offset in the original text.
 export type TextRun = { text: string; start: number; foreign: boolean; lang?: "ru" | "zh" };
 
@@ -20,7 +29,7 @@ export function splitRuns(text: string): TextRun[] {
     if (match.index > last) {
       runs.push({ text: text.slice(last, match.index), start: last, foreign: false });
     }
-    const run = match[0];
+    const run = unopened(match[0]);
     const lang = /[\u3400-\u9FFF]/.test(run)
       ? "zh"
       : /[\u0400-\u04FF]/.test(run)
