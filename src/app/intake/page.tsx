@@ -130,13 +130,13 @@ export default function IntakePage() {
                 <BidiText text={background} />
               </Fact>
               <Fact label="مستواك الآن">{LEVEL[diagnostic.level]}</Fact>
-              <Fact label="لغة المصادر">
+              <Fact label="لغات المصادر">
                 <span className={styles.langs}>
                   {profile.source_langs_ok.map((lang) => (
                     <LangBadge key={lang} lang={lang} />
                   ))}
-                  {profile.source_langs_ok.map((lang) => LANG_NAMES[lang]).join(" و")}، ويُترجم لك ما
-                  سواها
+                  {profile.source_langs_ok.map((lang) => LANG_NAMES[lang]).join(" و")}، ويصلك ما
+                  فيها بالعربية
                 </span>
               </Fact>
               <Fact label="الرسائل">
