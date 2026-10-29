@@ -319,6 +319,21 @@
   font-weight: 400;
   color: var(--ink-3);
 }
+/* A session's source: its language badge, then its original title, cut at its own end */
+.rowSource {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 100%;
+  margin-inline-start: var(--s-1);
+}
+.rowSource bdi {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .rowMinutes {
   font-size: var(--text-sm);
   font-weight: 600;

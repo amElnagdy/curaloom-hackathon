@@ -248,7 +248,9 @@ export default async function PlanPage() {
                   sessionId={DEMO_SESSION_ID}
                   plan={plan}
                   limits={shown.limits}
-                  langs={Object.fromEntries(resources.map((r) => [r.id, r.lang]))}
+                  sources={Object.fromEntries(
+                    resources.map((r) => [r.id, { lang: r.lang, title: r.title }]),
+                  )}
                   editable={shown.editable}
                 />
               </section>

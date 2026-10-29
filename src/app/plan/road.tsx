@@ -2,14 +2,14 @@
 
 // The plan's client side (#18). BuildPlan asks the server for the plan once the intake is done and
 // shows the page again when it is ready. Road draws the modules in order; a module in the committed
-// weeks lists its sessions, and the learner can move a session to another day of its module or make
-// it shorter. The editor checks a change with the plan's own rules before it is sent, and the server
+// weeks lists its sessions and their sources, and the learner can move a session to another day of
+// its module or make it shorter. The editor checks a change with the plan's own rules before it is sent, and the server
 // checks it again.
 
 import { CalendarClock, Check, Hourglass, RotateCcw, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import type { CoursePlan } from "../../../contracts/index.ts";
+import type { CoursePlan, Resource } from "../../../contracts/index.ts";
 import {
   applyEdit,
   type Limits,
@@ -22,7 +22,7 @@ import {
 import { Callout } from "../_shell/blocks.tsx";
 import { type Session, sessionsOf, simDay } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, ordinalF, WEEKS } from "../_shell/format.ts";
-import { BidiText, buttonClass, cx, type Lang, LangBadge, StatusPill } from "../_shell/ui.tsx";
+import { BidiText, buttonClass, cx, LangBadge, StatusPill } from "../_shell/ui.tsx";
 import styles from "./plan.module.css";
 
 type Op = PlanEdit["op"];
@@ -90,14 +90,14 @@ export function Road({
   sessionId,
   plan,
   limits,
-  langs,
+  sources,
   editable,
 }: {
   sessionId: string;
   plan: CoursePlan;
   limits: Limits;
-  // Each resource's language, for the badges on a session.
-  langs: Record<string, Lang>;
+  // Each resource's language and original title, to name a session's sources.
+  sources: Record<string, Pick<Resource, "lang" | "title">>;
   editable: boolean;
 }) {
   const [open, setOpen] = useState<{ id: string; op: Op } | null>(null);
@@ -137,9 +137,6 @@ export function Road({
                 <ul className={styles.agenda}>
                   {own.map((s) => {
                     const editing = open?.id === s.id ? open.op : undefined;
-                    const sessionLangs = [
-                      ...new Set(s.resource_ids.flatMap((id) => langs[id] ?? [])),
-                    ];
                     return (
                       <li
                         key={s.id}
@@ -154,9 +151,18 @@ export function Road({
                           <BidiText text={lesson(s)?.title_ar ?? ""} />
                           <small>
                             الجلسة {ordinalF(sessions.indexOf(s))}
-                            {sessionLangs.map((lang) => (
-                              <LangBadge key={lang} lang={lang} />
-                            ))}
+                            {s.resource_ids.map((id) => {
+                              const source = sources[id];
+                              return (
+                                source && (
+                                  <span key={id} className={styles.rowSource}>
+                                    <span className="sr-only">، </span>
+                                    <LangBadge lang={source.lang} />
+                                    <bdi lang={source.lang}>{source.title}</bdi>
+                                  </span>
+                                )
+                              );
+                            })}
                           </small>
                         </div>
                         <span className={styles.rowMinutes}>{countOf(s.minutes, MINUTES)}</span>
