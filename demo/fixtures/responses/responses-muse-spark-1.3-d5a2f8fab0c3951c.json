@@ -3,7 +3,7 @@
     "path": "/responses",
     "json": {
       "model": "muse-spark-1.3",
-      "input": "أنشئ اختبارًا من سؤالين (اختيار من متعدد وإجابة قصيرة) لدرس L1 عن الجدول المحوري.",
+      "input": "اكتب اختبارًا من سؤالين لدرس عن الجدول المحوري: سؤال اختيار من متعدد بأربعة خيارات، وسؤال إجابة قصيرة. مصطلح المسرد الوحيد g1 (جدول محوري).",
       "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
       "reasoning": {
         "effort": "medium"
@@ -12,23 +12,18 @@
         "format": {
           "type": "json_schema",
           "strict": true,
-          "name": "Quiz",
+          "name": "QuizDraft",
           "schema": {
             "type": "object",
-            "required": ["id", "lesson_id", "items", "pass_threshold"],
+            "required": [
+              "items"
+            ],
             "properties": {
-              "id": {
-                "type": "string"
-              },
-              "lesson_id": {
-                "type": "string"
-              },
               "items": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "required": [
-                    "id",
                     "type",
                     "prompt_ar",
                     "options_ar",
@@ -37,43 +32,42 @@
                     "glossary_ids"
                   ],
                   "properties": {
-                    "id": {
-                      "type": "string"
-                    },
                     "type": {
                       "type": "string",
-                      "enum": ["mcq", "short"]
+                      "enum": [
+                        "mcq",
+                        "short"
+                      ]
                     },
                     "prompt_ar": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "the question, in Arabic"
                     },
                     "options_ar": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
-                      "description": "empty for short answers"
+                      "description": "for mcq, 4 options in Arabic; empty for a short answer"
                     },
                     "answer": {
                       "type": "string",
-                      "description": "for mcq, exactly one of options_ar"
+                      "description": "for mcq, the right option copied exactly; for a short answer, a model answer"
                     },
                     "rubric_ar": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "for mcq, one sentence on why the answer is right; for a short answer, what earns full and half credit; in Arabic"
                     },
                     "glossary_ids": {
                       "type": "array",
                       "items": {
                         "type": "string"
-                      }
+                      },
+                      "description": "ids of the lesson's glossary terms the item checks, copied exactly"
                     }
                   },
                   "additionalProperties": false
                 }
-              },
-              "pass_threshold": {
-                "type": "number",
-                "description": "0 to 1"
               }
             },
             "additionalProperties": false
@@ -95,52 +89,50 @@
     "text": {
       "format": {
         "type": "json_schema",
-        "name": "Quiz",
+        "name": "QuizDraft",
         "schema": {
-          "additionalProperties": false,
-          "required": ["id", "lesson_id", "items", "pass_threshold"],
           "type": "object",
+          "additionalProperties": false,
           "properties": {
-            "id": {
-              "type": "string"
-            },
             "items": {
               "items": {
                 "additionalProperties": false,
                 "properties": {
                   "answer": {
-                    "description": "for mcq, exactly one of options_ar",
+                    "description": "for mcq, the right option copied exactly; for a short answer, a model answer",
                     "type": "string"
                   },
                   "glossary_ids": {
+                    "description": "ids of the lesson's glossary terms the item checks, copied exactly",
                     "items": {
                       "type": "string"
                     },
                     "type": "array"
                   },
-                  "id": {
-                    "type": "string"
-                  },
                   "options_ar": {
-                    "description": "empty for short answers",
+                    "description": "for mcq, 4 options in Arabic; empty for a short answer",
                     "items": {
                       "type": "string"
                     },
                     "type": "array"
                   },
                   "prompt_ar": {
+                    "description": "the question, in Arabic",
                     "type": "string"
                   },
                   "rubric_ar": {
+                    "description": "for mcq, one sentence on why the answer is right; for a short answer, what earns full and half credit; in Arabic",
                     "type": "string"
                   },
                   "type": {
-                    "enum": ["mcq", "short"],
+                    "enum": [
+                      "mcq",
+                      "short"
+                    ],
                     "type": "string"
                   }
                 },
                 "required": [
-                  "id",
                   "type",
                   "prompt_ar",
                   "options_ar",
@@ -151,15 +143,11 @@
                 "type": "object"
               },
               "type": "array"
-            },
-            "lesson_id": {
-              "type": "string"
-            },
-            "pass_threshold": {
-              "description": "0 to 1",
-              "type": "number"
             }
-          }
+          },
+          "required": [
+            "items"
+          ]
         },
         "strict": true
       }
@@ -167,28 +155,28 @@
     "tools": [],
     "tool_choice": "auto",
     "truncation": "disabled",
-    "id": "resp_6ae0fab7c4d39c0b2afc45da",
+    "id": "resp_6ae4edb821fda6ebf06346fd",
     "object": "response",
     "status": "completed",
-    "created_at": 1793129143,
-    "completed_at": 1793129143,
+    "created_at": 1793387960,
+    "completed_at": 1793387960,
     "error": null,
     "incomplete_details": null,
     "output": [
       {
         "type": "reasoning",
-        "id": "rs_6ae0fab7c4d39c0b2afc45da:rs_b28e8aa6-8c65-4660-a75b-b37bff08831a",
+        "id": "rs_6ae4edb821fda6ebf06346fd:rs_2b215688-d35f-479e-bed7-c72a02950f28",
         "summary": [],
         "status": "completed"
       },
       {
         "type": "message",
-        "id": "msg_c343409d-89a6-45c5-ab27-d37b84b7b25c",
+        "id": "msg_0277673e-7b08-475d-ab03-b61948ab5193",
         "role": "assistant",
         "content": [
           {
             "type": "output_text",
-            "text": "{\"id\":\"quiz-L1-pivot-01\",\"items\":[{\"answer\":\"تلخيص وتحليل البيانات بسرعة عن طريق التجميع والتصفية والحساب\",\"glossary_ids\":[],\"id\":\"L1-Q1\",\"options_ar\":[\"تلخيص وتحليل البيانات بسرعة عن طريق التجميع والتصفية والحساب\",\"تغيير لون الخط وحجم الخلايا فقط\",\"إنشاء شرائح عرض تقديمي متحركة\",\"تصفح الإنترنت داخل ورقة العمل\"],\"prompt_ar\":\"ما وظيفة الجدول المحوري (PivotTable) في برنامج إكسل؟\",\"rubric_ar\":\"الإجابة الصحيحة هي تلخيص وتحليل البيانات بسرعة. لا تُقبل أي إجابة أخرى.\",\"type\":\"mcq\"},{\"answer\":\"حدد نطاق البيانات ثم من تبويب إدراج اختر جدول محوري ثم حدد مكان الجدول واسحب الحقول إلى الصفوف والأعمدة والقيم\",\"glossary_ids\":[],\"id\":\"L1-Q2\",\"options_ar\":[],\"prompt_ar\":\"اذكر باختصار خطوات إنشاء جدول محوري من نطاق بيانات في إكسل.\",\"rubric_ar\":\"اقبل أي إجابة تذكر تحديد نطاق البيانات واستخدام أمر إدراج ثم جدول محوري ثم سحب الحقول إلى الصفوف أو الأعمدة أو القيم.\",\"type\":\"short\"}],\"lesson_id\":\"L1\",\"pass_threshold\":0.5}",
+            "text": "{\"items\": [{\"answer\": \"تلخيص البيانات الكبيرة وتحليلها بسرعة عن طريق تجميعها وتدويرها\", \"glossary_ids\": [\"g1\"], \"options_ar\": [\"تلخيص البيانات الكبيرة وتحليلها بسرعة عن طريق تجميعها وتدويرها\", \"تغيير نوع الخط ولون الخلايا فقط\", \"إنشاء عروض تقديمية متحركة\", \"تصحيح الأخطاء الإملائية في النصوص\"], \"prompt_ar\": \"ما وظيفة الجدول المحوري في برامج جداول البيانات؟\", \"rubric_ar\": \"الإجابة صحيحة لأن الجدول المحوري يستخدم لتلخيص البيانات الكبيرة وتجميعها وتحليلها بمرونة.\", \"type\": \"mcq\"}, {\"answer\": \"يسمح الجدول المحوري بسحب حقل المنطقة إلى الصفوف وحقل المبيعات إلى القيم لجمعها تلقائيا وعرض إجمالي المبيعات لكل منطقة.\", \"glossary_ids\": [\"g1\"], \"options_ar\": [], \"prompt_ar\": \"اشرح بكلماتك كيف يساعدك الجدول المحوري في معرفة إجمالي المبيعات لكل منطقة من جدول بيانات كبير؟\", \"rubric_ar\": \"الدرجة الكاملة لذكر سحب الحقول للتجميع وحساب إجمالي المبيعات لكل منطقة، ونصف الدرجة لذكر التلخيص فقط دون توضيح الآلية.\", \"type\": \"short\"}]}",
             "annotations": [],
             "logprobs": []
           }
@@ -198,18 +186,18 @@
     ],
     "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
     "usage": {
-      "input_tokens": 259,
+      "input_tokens": 312,
       "input_tokens_details": {
         "cached_tokens": 0
       },
-      "output_tokens": 1261,
+      "output_tokens": 1388,
       "output_tokens_details": {
-        "reasoning_tokens": 958
+        "reasoning_tokens": 1060
       },
-      "total_tokens": 1520
+      "total_tokens": 1700
     },
     "parallel_tool_calls": true,
     "store": true
   },
-  "latency_ms": 5142
+  "latency_ms": 7688
 }

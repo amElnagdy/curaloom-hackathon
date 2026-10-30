@@ -73,7 +73,7 @@ const ADDRESSES = [
   /https?:\/\/\S+|www\.\S+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+/iu,
   /\b[\w-]+(?:\.[\w-]+)*\.(?:com|org|net|edu|gov|int|io|ai|app|dev|info|biz|xyz|top|shop|store|online|site|link|live|me|ly|co|gg|gl|be|ee|to|tv|us|uk|de|ru|cn|fr|sa|ae|eg)\b(?!\()/u,
 ];
-const addressIn = (text: string) =>
+export const addressIn = (text: string) =>
   ADDRESSES.map((pattern) => text.match(pattern)?.[0]).find(Boolean);
 
 const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

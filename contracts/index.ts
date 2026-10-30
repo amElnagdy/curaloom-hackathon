@@ -306,6 +306,56 @@ export const Quiz = Obj({
   pass_threshold: Score,
 });
 
+// What the examiner's model writes (#20). Code numbers the items, sets the gate and checks the
+// rules, so a draft carries no ids.
+export const QuizDraft = Obj({
+  items: Type.Array(
+    Obj({
+      type: StringEnum(["mcq", "short"]),
+      prompt_ar: Type.String({ description: "the question, in Arabic" }),
+      options_ar: Type.Array(Type.String(), {
+        description: "for mcq, 4 options in Arabic; empty for a short answer",
+      }),
+      answer: Type.String({
+        description: "for mcq, the right option copied exactly; for a short answer, a model answer",
+      }),
+      rubric_ar: Type.String({
+        description:
+          "for mcq, one sentence on why the answer is right; for a short answer, what earns full and half credit; in Arabic",
+      }),
+      glossary_ids: Type.Array(Type.String(), {
+        description: "ids of the lesson's glossary terms the item checks, copied exactly",
+      }),
+    }),
+  ),
+});
+
+// The judge's answers to a quiz's multiple-choice items, from the lesson alone, without the keys.
+export const KeyCheck = Obj({
+  choices: Type.Array(
+    Obj({
+      item_id: Type.String({ description: "the item's id, copied exactly" }),
+      choice: Type.String({ description: "the option the lesson supports, copied exactly" }),
+    }),
+  ),
+});
+
+// The judge's grades for an attempt's short answers.
+export const ShortGrades = Obj({
+  grades: Type.Array(
+    Obj({
+      item_id: Type.String({ description: "the item's id, copied exactly" }),
+      score: Type.Number({
+        description: "1 for full credit, 0.5 for half, 0 for none, by the rubric",
+      }),
+      feedback_ar: Type.String({
+        description:
+          "one or two sentences to the learner, in Arabic: what the answer got right and what it missed",
+      }),
+    }),
+  ),
+});
+
 export const QuizAttempt = Obj({
   id: Type.String(),
   quiz_id: Type.String(),
@@ -355,6 +405,9 @@ export const CONTRACTS = {
   GlossaryEntry,
   LessonDraft,
   BuiltLesson,
+  QuizDraft,
+  KeyCheck,
+  ShortGrades,
   Quiz,
   QuizAttempt,
   Mastery,
@@ -365,7 +418,8 @@ export type ContractName = keyof typeof CONTRACTS;
 // Schemas a model fills in through `provider.structured`; each has a recorded smoke test.
 // Resource and ScoutResult are not: the scout builds them in code from model-filled Candidates.
 // Nor is CoursePlan: the architect builds it from a PlanDraft. Nor are Lesson and GlossaryEntry:
-// the lesson builder builds them from a LessonDraft.
+// the lesson builder builds them from a LessonDraft. Nor are Quiz and QuizAttempt: the examiner
+// builds them from a QuizDraft, a KeyCheck and ShortGrades.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
   "IntakeReply",
@@ -374,8 +428,9 @@ export const AGENT_OUTPUTS = [
   "Candidates",
   "PlanDraft",
   "LessonDraft",
-  "Quiz",
-  "QuizAttempt",
+  "QuizDraft",
+  "KeyCheck",
+  "ShortGrades",
   "CoachEvent",
 ] as const satisfies readonly ContractName[];
 
@@ -394,6 +449,9 @@ export type Lesson = Static<typeof Lesson>;
 export type GlossaryEntry = Static<typeof GlossaryEntry>;
 export type LessonDraft = Static<typeof LessonDraft>;
 export type BuiltLesson = Static<typeof BuiltLesson>;
+export type QuizDraft = Static<typeof QuizDraft>;
+export type KeyCheck = Static<typeof KeyCheck>;
+export type ShortGrades = Static<typeof ShortGrades>;
 export type Quiz = Static<typeof Quiz>;
 export type QuizAttempt = Static<typeof QuizAttempt>;
 export type Mastery = Static<typeof Mastery>;

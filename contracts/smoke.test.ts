@@ -64,16 +64,22 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
     instructions: ARABIC,
     input: `${LEARNER} اكتب درسًا قصيرًا عن الجدول المحوري بقسم واحد يقتبس الجملتين 1 و2 من المصدر r1، ومدخل مسرد واحد للمصطلح pivot table بالعربية مع التشكيل الكامل.\n\n### r1 | en | Pivot table\n[1] A pivot table is a table of values which are aggregations of groups of individual values from a more extensive table.\n[2] It lets the user summarize the data by the categories they choose.`,
   },
-  Quiz: {
-    role: "agent_default",
-    instructions: ARABIC,
-    input: "أنشئ اختبارًا من سؤالين (اختيار من متعدد وإجابة قصيرة) لدرس L1 عن الجدول المحوري.",
-  },
-  QuizAttempt: {
+  QuizDraft: {
     role: "agent_default",
     instructions: ARABIC,
     input:
-      "صحّح محاولة الاختبار q1 لدرس L1 في اليوم 3. السؤال i1 (اختيار من متعدد، الإجابة: تلخيص البيانات بتجميعها) وأجاب المتعلم: «تلخيص البيانات بتجميعها». السؤال i2 (إجابة قصيرة: مثال من العمل) وأجاب: «أجمع المصروفات حسب القسم». حد النجاح 0.8.",
+      "اكتب اختبارًا من سؤالين لدرس عن الجدول المحوري: سؤال اختيار من متعدد بأربعة خيارات، وسؤال إجابة قصيرة. مصطلح المسرد الوحيد g1 (جدول محوري).",
+  },
+  KeyCheck: {
+    role: "judge",
+    input:
+      "Answer each multiple-choice item from the lesson alone; copy the option exactly.\n\nLesson: الجدول المحوري يلخص جدولًا كبيرًا بتجميع صفوفه حسب فئة وحساب الإجمالي.\n\ni1. ما الغرض من الجدول المحوري؟\n- تلخيص البيانات بتجميعها\n- رسم المخططات فقط\n- حذف الصفوف المكررة\n- تنسيق الخلايا",
+  },
+  ShortGrades: {
+    role: "judge",
+    instructions: ARABIC,
+    input:
+      "Grade the short answer by its rubric.\n\ni2. اذكر مثالًا من عملك يمكن تلخيصه بجدول محوري.\nRubric: تُقبل أي حالة فيها تجميع بيانات حسب فئة وحساب مجموع أو متوسط.\nAnswer: أجمع المصروفات حسب القسم وأطلع مجموع كل قسم",
   },
   CoachEvent: {
     role: "agent_default",

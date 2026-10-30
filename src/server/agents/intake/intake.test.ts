@@ -9,6 +9,7 @@ import {
   type IntakeReply,
   LearnerProfile,
   type Lesson,
+  type Quiz,
 } from "../../../../contracts/index.ts";
 import { loadConfig } from "../../../config.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
@@ -19,6 +20,8 @@ import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
 import { createPlanner } from "../architect/architect.ts";
 import { planViolations } from "../architect/rules.ts";
+import { courseOf, createExaminer, QuizConflict } from "../examiner/examiner.ts";
+import { lessonOpen, quizViolations } from "../examiner/rules.ts";
 import { createLessonBuilder } from "../lesson/lesson.ts";
 import { wordCount } from "../lesson/rules.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
@@ -459,7 +462,95 @@ describe("intake, replaying Omar's recorded interview", () => {
     expect(new Set(terms).size).toBe(terms.length);
     expect(new Set(modelsOf(store, "lesson_builder"))).toEqual(new Set(["muse-spark-1.3"]));
   }, 600_000);
+
+  // The lesson page asks for the quiz while Omar reads lesson 1.
+  it("writes the quiz for his first lesson", async () => {
+    const { store, examiner, first, lesson } = await quizzed();
+
+    const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+
+    expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
+    expect(new Set(modelsOf(store, "examiner"))).toEqual(new Set(["muse-spark-1.3"]));
+  }, 600_000);
+
+  it("keeps his second lesson shut below 80%, then opens it once he passes a quiz with other questions", async () => {
+    const { examiner, first, second, lesson, lessonIds } = await quizzed();
+    const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+
+    // He misses one multiple-choice item and explains half of the last short answer.
+    const missed = quiz.items.filter((i) => i.type === "mcq")[1];
+    const answers = answersTo(quiz, OMAR_FIRST, missed?.id);
+    const below = await examiner.attempt(first, quiz.id, answers);
+    // Its keys are shown with the grades, so the quiz takes no other attempt.
+    expect((await examiner.attempt(first, quiz.id, answers)).attempt).toEqual(below.attempt);
+    await expect(examiner.attempt(first, quiz.id, answersTo(quiz, OMAR_FIRST))).rejects.toThrow(
+      QuizConflict,
+    );
+    const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
+
+    expect(below.attempt.passed).toBe(false);
+    expect(below.attempt.score).toBeLessThan(0.8);
+    expect(lessonOpen(lessonIds, below.mastery ? [below.mastery] : [], second)).toBe(false);
+    expect(quizViolations(retry, lesson.glossary_ids)).toEqual([]);
+    const asked = new Set(quiz.items.map((i) => i.prompt_ar));
+    expect(retry.items.filter((i) => asked.has(i.prompt_ar))).toEqual([]);
+
+    const passed = await examiner.attempt(first, retry.id, answersTo(retry, OMAR_RETRY));
+
+    expect(passed.attempt.passed).toBe(true);
+    expect(passed.mastery).toMatchObject({ passed: true, attempts: 2 });
+    expect(lessonOpen(lessonIds, passed.mastery ? [passed.mastery] : [], second)).toBe(true);
+    for (const answer of passed.attempt.answers) {
+      expect(answer.feedback_ar).toMatch(/\p{Script=Arabic}/u);
+    }
+  }, 600_000);
 });
+
+// Omar's short answers, in Gulf dialect, to the first quiz's short items in order: the first earns
+// full credit by its rubric, the second only half (it filters but never summarises by branch).
+const OMAR_FIRST = [
+  "أسوي ورقة لكل شهر في نفس المصنف، وأحط أعمدة التاريخ والبيان والمدين والدائن والرصيد. خانة الرصيد أكتب فيها معادلة تاخذ الرصيد اللي فوقها وتزيد المدين وتنقص الدائن، فلو غيرت أي مبلغ يتعدل الرصيد بروحه.",
+  "أفلتر على كل فرع بروحه وأشوف مبيعاته شهر شهر، وبعدين أرسل الجدول للمدير.",
+];
+
+// His short answers to the retry's short items, each earning full credit by its rubric.
+const OMAR_RETRY = [
+  "أسوي مصنف واحد للسنة فيه ثلاث أوراق: ورقة العملاء فيها التاريخ والعميل والمبلغ والمحصل، وورقة الموردين بنفس الأعمدة تقريبا، وورقة الملخص الشهري. خلايا الملخص ما أكتبها بيدي، أحط فيها معادلات تجمع من ورقة العملاء وورقة الموردين، فأي تعديل هناك يتحدث هنا على طول. وبعدين أسوي رسم بياني من الملخص وأعرضه على الإدارة.",
+  "أقول له لا تخاف، الفلتر ما يمسح شي، بس يخبي الصفوف اللي ما تبيها مؤقتا، ولو شلت الفلتر ترجع كلها. مثلا في جدول مدفوعات الموردين أفلتر على مورد واحد وأراجع دفعاته. والجدول المحوري بدل ما أجمع بيدي يطلع لي إجمالي المدفوع لكل مورد في كل شهر في جدول صغير، وهذا اللي تبيه الإدارة.",
+];
+
+// His answers to a quiz: each multiple-choice key, except a wrong option on `miss`, and the given
+// short answers in order.
+function answersTo(quiz: Quiz, shorts: string[], miss?: string) {
+  const left = [...shorts];
+  return quiz.items.map((item) => ({
+    item_id: item.id,
+    response:
+      item.type === "short"
+        ? (left.shift() ?? "")
+        : item.id === miss
+          ? (item.options_ar.find((o) => o !== item.answer) as string)
+          : item.answer,
+  }));
+}
+
+// Omar's plan with his first lesson written, and the examiner the lesson page asks.
+async function quizzed() {
+  const { store, orchestrator, pages, saved } = await planned();
+  const profile = () => savedProfile(store, "s1") as LearnerProfile;
+  const builder = createLessonBuilder({ orchestrator, store, sessionId: "s1", pages, profile });
+  const lessonIds = (saved.versions[0] as CoursePlan).committed.lessons.map((l) => l.id);
+  const [first, second] = lessonIds;
+  if (!first || !second) throw new Error("the plan has fewer than two lessons");
+  const lesson = (await builder.build(first)).lessons[first] as Lesson;
+  const examiner = createExaminer({
+    orchestrator,
+    store,
+    sessionId: "s1",
+    course: () => courseOf(store, "s1", profile()),
+  });
+  return { store, examiner, first, second, lesson, lessonIds };
+}
 
 const modelsOf = (store: Store, agent: string) =>
   store
