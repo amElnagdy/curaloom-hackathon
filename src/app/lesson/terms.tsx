@@ -7,6 +7,7 @@
 // elsewhere closes it. While a card is open, the source term is marked in the excerpt beside it.
 
 import { ArrowRight, Copy, Hourglass, RotateCcw, TriangleAlert, X } from "lucide-react";
+import Link from "next/link";
 import {
   createContext,
   type KeyboardEvent,
@@ -18,6 +19,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import type { GlossaryEntry } from "../../../contracts/index.ts";
 import { Callout } from "../_shell/blocks.tsx";
 import {
@@ -98,6 +100,69 @@ export function WritingHint({
       <Hourglass aria-hidden />
       يكتب صانع الدروس الدرس الأول الآن
     </p>
+  );
+}
+
+// The foot of the learner's lesson (#20). While the lesson has no quiz (`build`), it asks the
+// examiner for one as soon as the lesson is shown, so it is ready by the time he finishes reading;
+// then it shows `children`, the way to the quiz, and says the quiz is ready.
+export function QuizBuilding({
+  sessionId,
+  lessonId,
+  build,
+  children,
+}: {
+  sessionId: string;
+  lessonId: string;
+  build: boolean;
+  children: ReactNode;
+}) {
+  const url = `/api/sessions/${encodeURIComponent(sessionId)}/quizzes/${encodeURIComponent(lessonId)}`;
+  const { failed, done, retry } = useBuild(build ? url : null);
+  const note = useRef<HTMLParagraphElement>(null);
+  return (
+    <>
+      {build ? (
+        <footer className={styles.footer}>
+          {failed ? (
+            <p key="failed" className={styles.footNote} data-failed role="alert">
+              <TriangleAlert aria-hidden />
+              تعذّرت كتابة اختبار هذا الدرس هذه المرة.
+            </p>
+          ) : (
+            <p key="writing" ref={note} className={styles.footNote} tabIndex={-1}>
+              <Hourglass aria-hidden />
+              يكتب الممتحن اختبار هذا الدرس الآن، ويجهز وأنت تقرأ.
+            </p>
+          )}
+          {failed ? (
+            <button
+              type="button"
+              className={buttonClass("secondary")}
+              onClick={() => {
+                // The button goes with the failure; focus moves to the note that replaces it, which
+                // keeps the reader at the foot of a long lesson.
+                flushSync(retry);
+                note.current?.focus();
+              }}
+            >
+              <RotateCcw aria-hidden />
+              حاول مرة أخرى
+            </button>
+          ) : (
+            <Link href="/quiz" className={buttonClass("secondary")}>
+              إلى الاختبار
+              <DirIcon icon={ArrowRight} />
+            </Link>
+          )}
+        </footer>
+      ) : (
+        children
+      )}
+      <p role="status" className="sr-only">
+        {done ? "اختبار الدرس جاهز." : ""}
+      </p>
+    </>
   );
 }
 

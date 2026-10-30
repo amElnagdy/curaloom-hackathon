@@ -29,7 +29,14 @@ import { savedLessons } from "../../server/agents/lesson/lesson.ts";
 import { contentHash, createFileStore } from "../../server/store/store.ts";
 import { ActivityFeed, LiveStatusPill } from "../_shell/activity-feed.tsx";
 import { Callout } from "../_shell/blocks.tsx";
-import { latestPlan, sessionsOf, simDay, unique } from "../_shell/course.ts";
+import {
+  firstLesson,
+  latestPlan,
+  lessonPlace,
+  sessionsOf,
+  simDay,
+  unique,
+} from "../_shell/course.ts";
 import {
   arabicNumber,
   countOf,
@@ -152,12 +159,13 @@ export default async function PlanPage() {
   const totalWeeks = plan?.road.reduce((sum, m) => sum + m.weeks, 0) ?? 0;
   const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0);
   // The first lesson is written once the plan is ready (#19); the example's is the seed's.
-  const first = sessions[0];
+  const first = plan && firstLesson(plan);
+  const firstSession = plan && first && lessonPlace(plan, first.id).session;
   const firstReady =
     !!first &&
     (shown?.editable
-      ? !!(latest && savedLessons(store, DEMO_SESSION_ID, latest)?.lessons[first.lesson_id])
-      : seed.lessons.some((l) => l.id === first.lesson_id));
+      ? !!(latest && savedLessons(store, DEMO_SESSION_ID, latest)?.lessons[first.id])
+      : seed.lessons.some((l) => l.id === first.id));
   const writeFirst = !!(shown?.editable && first && !firstReady);
 
   const article = (
@@ -284,7 +292,7 @@ export default async function PlanPage() {
 
       <ActivityFeed>
         <div className={styles.start}>
-          {firstReady && first ? (
+          {firstReady ? (
             <>
               <Link
                 href="/lesson"
@@ -295,14 +303,19 @@ export default async function PlanPage() {
               </Link>
               <p className={styles.startHint}>
                 <CircleCheck aria-hidden />
-                <Meta parts={["الدرس الأول جاهز", countOf(first.minutes, MINUTES)]} />
+                <Meta
+                  parts={[
+                    "الدرس الأول جاهز",
+                    ...(firstSession ? [countOf(firstSession.minutes, MINUTES)] : []),
+                  ]}
+                />
               </p>
             </>
           ) : (
             <LessonBuilding
-              key={`${plan?.id}-${first?.lesson_id}`}
+              key={`${plan?.id}-${first?.id}`}
               sessionId={DEMO_SESSION_ID}
-              lessonId={first?.lesson_id ?? ""}
+              lessonId={first?.id ?? ""}
               build={writeFirst}
             >
               <button

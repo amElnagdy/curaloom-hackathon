@@ -138,6 +138,10 @@ html[data-demo-bar="collapsed"] {
     /* The drawer leaves room for the trace tab beside it. */
     --trace-w: calc(100vw - var(--tab-w));
   }
+  /* The bar's controls wrap to their own row on a phone. */
+  html[data-demo-bar="open"] {
+    --demo-bar-h: 13.25rem;
+  }
 }
 
 html {

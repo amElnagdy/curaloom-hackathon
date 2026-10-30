@@ -2,7 +2,9 @@
 // glossary term in the Arabic opens its card and marks the source term in the excerpt. Under the
 // lesson, the sources it quotes with their licences and what the Arabic changed, then the glossary.
 // Before the intake it shows the seed's lesson as an example; once the plan is ready and its first
-// lesson is not, the page asks the lesson builder for it.
+// lesson is not, the page asks the lesson builder for it. With the lesson shown, its foot asks the
+// examiner for the lesson's first quiz (#20), which is written while the learner reads; a new quiz
+// after an attempt below the gate is asked for on the quiz page.
 
 import {
   ArrowRight,
@@ -32,6 +34,8 @@ import { loadOmarSeed } from "../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
 import { planFor } from "../../server/agents/architect/architect.ts";
+import { quizView, savedQuizzes } from "../../server/agents/examiner/examiner.ts";
+import type { QuizView } from "../../server/agents/examiner/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
 import { savedLessons } from "../../server/agents/lesson/lesson.ts";
 import { sourceMarks, type TermMark, termMarks } from "../../server/agents/lesson/rules.ts";
@@ -46,7 +50,7 @@ import {
   Panel,
   SourceExcerpt,
 } from "../_shell/blocks.tsx";
-import { latestPlan, lessonPlace, sessionsOf, unique } from "../_shell/course.ts";
+import { firstLesson, latestPlan, lessonPlace, unique } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, percent, QUESTIONS } from "../_shell/format.ts";
 import {
   BidiText,
@@ -63,6 +67,7 @@ import {
   CopyButton,
   ExcerptMark,
   LessonBuilding,
+  QuizBuilding,
   Term,
   Terms,
   WritingBody,
@@ -86,8 +91,11 @@ type Shown =
       // The lesson's own entries of the course glossary.
       glossary: GlossaryEntry[];
       sources: QuotedSource[];
-      quiz: Quiz | undefined;
+      quiz: LessonQuiz;
     };
+
+// The lesson's quiz as its foot shows it: the seed's, under the example, or the learner's quizzes.
+type LessonQuiz = { sample: true; quiz: Quiz | undefined } | { sample: false; view: QuizView };
 
 // The lesson's sources in the order it first quotes them, each with the call mark that ties its
 // excerpts to its card: R1, R2.
@@ -99,7 +107,7 @@ const quotedSources = (lesson: Lesson, resources: Resource[]): QuotedSource[] =>
 
 const shownWith = (
   lesson: Lesson,
-  course: { sample: boolean; plan: CoursePlan | undefined; quiz: Quiz | undefined },
+  course: { sample: boolean; plan: CoursePlan | undefined; quiz: LessonQuiz },
   glossary: GlossaryEntry[],
   resources: Resource[],
 ): Shown => ({
@@ -116,20 +124,24 @@ function shownLesson(): Shown {
   const learner = savedProfile(store, DEMO_SESSION_ID);
   if (!learner) {
     const plan = latestPlan(seed);
-    const firstId = plan && sessionsOf(plan)[0]?.lesson_id;
+    const firstId = plan && firstLesson(plan)?.id;
     const lesson = seed.lessons.find((l) => l.id === firstId) ?? seed.lessons[0];
     if (!lesson) return { kind: "waiting" };
-    const quiz = seed.quizzes.find((q) => q.lesson_id === lesson.id);
+    const quiz = {
+      sample: true as const,
+      quiz: seed.quizzes.find((q) => q.lesson_id === lesson.id),
+    };
     return shownWith(lesson, { sample: true, plan, quiz }, seed.glossary, seed.resources);
   }
   const saved = planFor(store, DEMO_SESSION_ID, learner);
   const plan = saved?.versions.at(-1);
-  const lessonId = plan && sessionsOf(plan)[0]?.lesson_id;
+  const lessonId = plan && firstLesson(plan)?.id;
   if (!saved || !plan || !lessonId) return { kind: "waiting" };
   const written = savedLessons(store, DEMO_SESSION_ID, plan);
   const lesson = written?.lessons[lessonId];
   if (!written || !lesson) return { kind: "writing", name: learner.name, plan, lessonId };
-  const course = { sample: false, plan, quiz: undefined };
+  const view = quizView(savedQuizzes(store, DEMO_SESSION_ID, plan.id), lesson.id);
+  const course = { sample: false, plan, quiz: { sample: false as const, view } };
   return shownWith(lesson, course, written.glossary, saved.resources);
 }
 
@@ -384,6 +396,83 @@ function GlossaryItem({ entry }: { entry: GlossaryEntry }) {
   );
 }
 
+// Under the lesson, the way to its quiz: the first one being written while the learner reads, then
+// the quiz to take or its result.
+function LessonFoot({ lessonId, quiz }: { lessonId: string; quiz: LessonQuiz }) {
+  if (quiz.sample) {
+    const sample = quiz.quiz;
+    return (
+      <footer className={styles.footer}>
+        <p>
+          {sample ? (
+            <>
+              بعد الدرس اختبار قصير فيه {countOf(sample.items.length, QUESTIONS)}، وتجتاز الدرس حين
+              تحصل على {percent(sample.pass_threshold)} أو أكثر.
+            </>
+          ) : (
+            "بعد الدرس اختبار قصير يكتبه الممتحن من الدرس نفسه."
+          )}
+        </p>
+        <Link href="/quiz" className={buttonClass("secondary")}>
+          اطّلع على الاختبار
+          <DirIcon icon={ArrowRight} />
+        </Link>
+      </footer>
+    );
+  }
+  const { view } = quiz;
+  const last = view.quizzes.at(-1);
+  return (
+    <QuizBuilding sessionId={DEMO_SESSION_ID} lessonId={lessonId} build={!last}>
+      {last && <QuizWay view={view} last={last} />}
+    </QuizBuilding>
+  );
+}
+
+// The way to the lesson's latest quiz. After an attempt below the gate it leads to the result, where
+// the learner asks for a new quiz once he is ready, so the result stays until then.
+function QuizWay({ view, last }: { view: QuizView; last: Quiz }) {
+  const gate = percent(last.pass_threshold);
+  const best = percent(view.mastery?.best_score ?? 0);
+  if (view.mastery?.passed) {
+    return (
+      <footer className={styles.footer}>
+        <p>اجتزت اختبار هذا الدرس بنسبة {best}.</p>
+        <Link href="/quiz" className={buttonClass("secondary")}>
+          راجع نتيجتك
+          <DirIcon icon={ArrowRight} />
+        </Link>
+      </footer>
+    );
+  }
+  if (!view.attempts.length) {
+    return (
+      <footer className={styles.footer}>
+        <p>{`بعد الدرس اختبار قصير فيه ${countOf(last.items.length, QUESTIONS)}، وتجتازه عند ${gate}.`}</p>
+        <Link href="/quiz" className={buttonClass("primary")}>
+          ابدأ الاختبار
+          <DirIcon icon={ArrowRight} />
+        </Link>
+      </footer>
+    );
+  }
+  const graded = view.attempts.some((a) => a.quiz_id === last.id);
+  return (
+    <footer className={styles.footer}>
+      <p>
+        {`أفضل نتيجة لك ${best}، والنجاح عند ${gate}. `}
+        {graded
+          ? "حين تكون جاهزًا، ابدأ من صفحة نتيجتك اختبارًا جديدًا بأسئلة أخرى من الدرس نفسه."
+          : "الاختبار الجديد بأسئلة أخرى من الدرس نفسه."}
+      </p>
+      <Link href="/quiz" className={buttonClass("primary")}>
+        {graded ? "إلى نتيجتك" : "أعد الاختبار"}
+        <DirIcon icon={ArrowRight} />
+      </Link>
+    </footer>
+  );
+}
+
 function LessonView({ shown }: { shown: Extract<Shown, { kind: "lesson" }> }) {
   const { lesson, sample, quiz, sources, glossary } = shown;
   return (
@@ -415,22 +504,7 @@ function LessonView({ shown }: { shown: Extract<Shown, { kind: "lesson" }> }) {
             />
           ))}
 
-          <footer className={styles.footer}>
-            <p>
-              {quiz ? (
-                <>
-                  بعد الدرس اختبار قصير فيه {countOf(quiz.items.length, QUESTIONS)}، وتجتاز الدرس
-                  حين تحصل على {percent(quiz.pass_threshold)} أو أكثر.
-                </>
-              ) : (
-                "بعد الدرس اختبار قصير يكتبه الممتحن من الدرس نفسه."
-              )}
-            </p>
-            <Link href="/quiz" className={buttonClass("secondary")}>
-              اطّلع على الاختبار
-              <DirIcon icon={ArrowRight} />
-            </Link>
-          </footer>
+          <LessonFoot lessonId={lesson.id} quiz={quiz} />
         </article>
       </Terms>
 
