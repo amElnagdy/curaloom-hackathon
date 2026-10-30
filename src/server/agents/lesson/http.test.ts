@@ -67,10 +67,12 @@ describe("lesson route", () => {
 
     expect(missing.status).toBe(404);
     expect(early.status).toBe(409);
+    expect(early.headers.get("retry-after")).toBeNull();
     expect(await early.json()).toEqual({ error: "no plan yet" });
   });
 
-  it("answers 409 to a second call while the session's lesson is still being written", async () => {
+  // Retry-After tells the page to ask again; a 409 without it will not clear by waiting.
+  it("answers 409 with Retry-After to a second call while the session's lesson is still being written", async () => {
     let finish = () => {};
     const { builder } = stubBuilder(undefined, new Promise((resolve) => (finish = resolve)));
 
@@ -79,6 +81,7 @@ describe("lesson route", () => {
     finish();
 
     expect(second.status).toBe(409);
+    expect(second.headers.get("retry-after")).toBe("3");
     expect((await first).status).toBe(200);
     expect((await post(builder, "L2", {}, "busy")).status).toBe(200);
   });

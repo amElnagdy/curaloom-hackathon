@@ -25,10 +25,11 @@ import { config } from "../../config.ts";
 import { architectBrief, limitsOf, planFor } from "../../server/agents/architect/architect.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
+import { savedLessons } from "../../server/agents/lesson/lesson.ts";
 import { contentHash, createFileStore } from "../../server/store/store.ts";
 import { ActivityFeed, LiveStatusPill } from "../_shell/activity-feed.tsx";
 import { Callout } from "../_shell/blocks.tsx";
-import { latestPlan, sessionsOf, simDay } from "../_shell/course.ts";
+import { latestPlan, sessionsOf, simDay, unique } from "../_shell/course.ts";
 import {
   arabicNumber,
   countOf,
@@ -49,14 +50,13 @@ import {
   SourceRow,
   StatusPill,
 } from "../_shell/ui.tsx";
+import { LessonBuilding, WritingHint } from "../lesson/terms.tsx";
 import styles from "./plan.module.css";
 import { Building, BuildingBody, BuildingLede, BuildingStatus, Road } from "./road.tsx";
 
 export const metadata: Metadata = { title: "الخطة" };
 
 const LANG_COUNT = ["", "بلغة واحدة", "بلغتين", "بثلاث لغات", "بأربع لغات"];
-
-const unique = <T,>(values: T[]) => [...new Set(values)];
 
 // The plan the page shows and what it must fit. Only the session's own plan takes edits.
 type PlanOnPage = { plan: CoursePlan; resources: Resource[]; limits: Limits; editable: boolean };
@@ -151,10 +151,14 @@ export default async function PlanPage() {
   const langs = unique(accepted.map((r) => r.lang));
   const totalWeeks = plan?.road.reduce((sum, m) => sum + m.weeks, 0) ?? 0;
   const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0);
-  // Lessons are written after the plan (#19); until then only the example's first one exists.
+  // The first lesson is written once the plan is ready (#19); the example's is the seed's.
   const first = sessions[0];
-  const firstLesson =
-    shown && !shown.editable && seed.lessons.find((l) => l.id === first?.lesson_id);
+  const firstReady =
+    !!first &&
+    (shown?.editable
+      ? !!(latest && savedLessons(store, DEMO_SESSION_ID, latest)?.lessons[first.lesson_id])
+      : seed.lessons.some((l) => l.id === first.lesson_id));
+  const writeFirst = !!(shown?.editable && first && !firstReady);
 
   const article = (
     <article className={styles.doc} aria-labelledby="plan-title">
@@ -280,7 +284,7 @@ export default async function PlanPage() {
 
       <ActivityFeed>
         <div className={styles.start}>
-          {firstLesson && first ? (
+          {firstReady && first ? (
             <>
               <Link
                 href="/lesson"
@@ -295,7 +299,12 @@ export default async function PlanPage() {
               </p>
             </>
           ) : (
-            <>
+            <LessonBuilding
+              key={`${plan?.id}-${first?.lesson_id}`}
+              sessionId={DEMO_SESSION_ID}
+              lessonId={first?.lesson_id ?? ""}
+              build={writeFirst}
+            >
               <button
                 type="button"
                 className={buttonClass("primary", "lg", { className: styles.startButton })}
@@ -304,11 +313,15 @@ export default async function PlanPage() {
                 ابدأ الجلسة الأولى
                 <DirIcon icon={ArrowRight} />
               </button>
-              <p className={styles.startHint} data-locked>
-                <Lock aria-hidden />
-                يُفتح حين يجهز الدرس الأول
-              </p>
-            </>
+              {writeFirst ? (
+                <WritingHint className={styles.startHint} titleId="plan-title" />
+              ) : (
+                <p className={styles.startHint} data-locked>
+                  <Lock aria-hidden />
+                  يُفتح حين يجهز الدرس الأول
+                </p>
+              )}
+            </LessonBuilding>
           )}
         </div>
       </ActivityFeed>

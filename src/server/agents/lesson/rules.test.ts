@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { GlossaryEntry, Lesson, LessonDraft } from "../../../../contracts/index.ts";
-import { excerptOf, lessonViolations, mergeGlossary, type Source } from "./rules.ts";
+import {
+  excerptOf,
+  lessonViolations,
+  mergeGlossary,
+  type Source,
+  sourceMarks,
+  termMarks,
+} from "./rules.ts";
 
 // Page text as the page fetcher keeps it: one line, with footnote marks, edit links and a space
 // before a punctuation mark where a tag closed.
@@ -53,7 +60,12 @@ const LESSON: Lesson = {
   glossary_ids: ["g1", "g2", "g3", "g4", "g5", "g6"],
 };
 
-const entry = (id: string, lang: "en" | "fr" | "ru", term: string, ar: string): GlossaryEntry => ({
+const entry = (
+  id: string,
+  lang: GlossaryEntry["src"]["lang"],
+  term: string,
+  ar: string,
+): GlossaryEntry => ({
   id,
   ar,
   ar_diacritized: ar,
@@ -90,6 +102,17 @@ describe("excerptOf", () => {
     );
   });
 
+  // Microsoft Excel on fr.wikipedia, as the page fetcher read it.
+  it("drops a run of footnote marks with the commas between them", () => {
+    const page: Source = {
+      id: "r_fr",
+      lang: "fr",
+      text: "Une feuille compte 17 179 869 184 cellules par feuilles [ 5 ] , [ 14 ] . Elle a des colonnes.",
+    };
+
+    expect(excerptOf(page, 1, 1)).toBe("Une feuille compte 17 179 869 184 cellules par feuilles.");
+  });
+
   it("ends a Chinese sentence at its full stop", () => {
     const zh: Source = { id: "r_zh", lang: "zh", text: "数据透视表是一种表格。它可以汇总数据。" };
 
@@ -115,6 +138,26 @@ describe("lessonViolations", () => {
     const arabic = `${(LESSON.sections[0] as Section).arabic} اكتب =SUM(B2:B9) في الخلية C10، أو احفظ الملف بصيغة CSV (comma-separated values).`;
 
     expect(lessonViolations(withSection(0, { arabic }), GLOSSARY)).toEqual([]);
+  });
+
+  it("accepts a dotted name from code or a spreadsheet, which is not a web address", () => {
+    const arabic = `${(LESSON.sections[0] as Section).arabic} استدعِ (df.info()) في إطار (ASP.NET Core) أو المكتبة (System.IO)، أو الدالة (STDEV.S) على الملف (sales.xlsx).`;
+
+    expect(lessonViolations(withSection(0, { arabic }), GLOSSARY)).toEqual([]);
+  });
+
+  it.each([
+    ["free-templates.xyz", "free-templates.xyz"],
+    ["ocw.mit.edu", "ocw.mit.edu"],
+    ["youtu.be/abc", "youtu.be"],
+    ["discord.gg/abc", "discord.gg"],
+    ["Example.com", "Example.com"],
+  ])("catches the address %s in a tip", (written, found) => {
+    const lesson = withSection(1, { notes_ar: `حمّل القالب من (${written}) الآن.` });
+
+    expect(lessonViolations(lesson, GLOSSARY)).toContainEqual(
+      `section 2's tip has a web address or email: "${found}"`,
+    );
   });
 
   it.each([
@@ -183,8 +226,77 @@ describe("lessonViolations", () => {
       GLOSSARY,
       /section 2's explanation has.*"verbose"/,
     ],
+    // Page text is a third party's: a page could ask the model to send the learner somewhere.
+    [
+      "a web address in a tip",
+      withSection(1, { notes_ar: "للمزيد زر الموقع (offers.example.com) واشترك." }),
+      GLOSSARY,
+      /section 2's tip has a web address or email: "offers\.example\.com"/,
+    ],
+    [
+      "an email in a glossary example",
+      LESSON,
+      [
+        {
+          ...(GLOSSARY[0] as GlossaryEntry),
+          example_ar: "راسل help@example.org لتحصل على القالب.",
+        },
+        ...GLOSSARY.slice(1),
+      ],
+      /"tableau croisé dynamique"'s example has a web address or email: "help@example\.org"/,
+    ],
   ])("catches %s", (_, lesson, glossary, en) => {
     expect(lessonViolations(lesson, glossary)).toContainEqual(expect.stringMatching(en));
+  });
+});
+
+describe("termMarks", () => {
+  it("marks each glossary term with its bracketed source term, in the order they come", () => {
+    const text =
+      "يجمع الجدول المحوري الصفوف حسب الحقل (champ)، ثم يلخّصها بالجدول المحوري (tableau croisé dynamique) والمتوسط.";
+
+    const marks = termMarks(text, GLOSSARY);
+
+    expect(marks.map((m) => [text.slice(m.start, m.end), m.id])).toEqual([
+      ["الحقل (champ)", "g2"],
+      ["بالجدول المحوري (tableau croisé dynamique)", "g1"],
+    ]);
+  });
+
+  it("marks only the bracket after another Arabic term", () => {
+    const text = "الجدول الديناميكي (tableau croisé dynamique) أداة.";
+
+    const [mark] = termMarks(text, GLOSSARY);
+
+    expect(mark && text.slice(mark.start, mark.end)).toBe("(tableau croisé dynamique)");
+  });
+});
+
+describe("sourceMarks", () => {
+  const slices = (text: string, glossary: GlossaryEntry[]) =>
+    sourceMarks(text, glossary).map((m) => [text.slice(m.start, m.end), m.id]);
+
+  it("marks where the excerpt writes each source term, as a whole word, the longer term first", () => {
+    const text = "Un tableau croisé dynamique regroupe les champs. Le Tableau garde sa moyenne.";
+    const glossary = [
+      entry("g7", "fr", "tableau", "الجدول"),
+      entry("g8", "fr", "dynamique", "الديناميكي"),
+      ...GLOSSARY,
+    ];
+
+    expect(slices(text, glossary)).toEqual([
+      ["tableau croisé dynamique", "g1"],
+      ["Tableau", "g7"],
+      ["moyenne", "g4"],
+    ]);
+  });
+
+  it("finds a Chinese term inside its sentence", () => {
+    const text = "数据透视表是一种表格。";
+
+    expect(slices(text, [entry("g9", "zh", "数据透视表", "الجدول المحوري")])).toEqual([
+      ["数据透视表", "g9"],
+    ]);
   });
 });
 

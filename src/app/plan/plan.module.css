@@ -33,6 +33,10 @@
   color: var(--ink-3);
   font-weight: 400;
 }
+.startHint[data-failed] {
+  flex-wrap: wrap;
+  color: var(--fail-ink);
+}
 
 .doc {
   min-width: 0;

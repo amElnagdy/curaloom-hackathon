@@ -94,10 +94,12 @@ describe("plan routes", () => {
     expect(broken.status).toBe(400);
     expect(await broken.json()).toEqual({ error: expect.any(String), violations: [BROKEN] });
     expect(early.status).toBe(409);
+    expect(early.headers.get("retry-after")).toBeNull();
     expect(await early.json()).toEqual({ error: "no plan yet" });
   });
 
-  it("answer 409 to a call while the session's plan is still being built", async () => {
+  // Retry-After tells the page to ask again; a 409 without it will not clear by waiting.
+  it("answer 409 with Retry-After to a call while the session's plan is still being built", async () => {
     let finish = () => {};
     const { planner } = stubPlanner(undefined, new Promise((resolve) => (finish = resolve)));
 
@@ -106,6 +108,7 @@ describe("plan routes", () => {
     finish();
 
     expect(second.status).toBe(409);
+    expect(second.headers.get("retry-after")).toBe("3");
     expect((await first).status).toBe(200);
     expect((await post(planner, "build", {}, "busy")).status).toBe(200);
   });

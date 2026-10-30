@@ -21,8 +21,9 @@ export const sentencesOf = (text: string) =>
     .map((sentence) => sentence.trim())
     .filter(Boolean);
 
-// Sentences first to last of the page, counted from 1, without footnote marks, edit links or the
-// space the page fetcher leaves where a tag closed; undefined for sentences the page lacks.
+// Sentences first to last of the page, counted from 1, without footnote marks (a run of them goes
+// with the commas between), edit links or the space the page fetcher leaves where a tag closed;
+// undefined for sentences the page lacks.
 export function excerptOf(source: Source, first: number, last: number): string | undefined {
   const sentences = sentencesOf(source.text);
   if (!Number.isInteger(first) || !Number.isInteger(last)) return undefined;
@@ -30,7 +31,7 @@ export function excerptOf(source: Source, first: number, last: number): string |
   return sentences
     .slice(first - 1, last)
     .join(" ")
-    .replace(/\[[^\]]{0,40}\]/g, " ")
+    .replace(/\[[^\]]{0,40}\](?:\s*,?\s*\[[^\]]{0,40}\])*/g, " ")
     .replace(/\s+/g, " ")
     .replace(/\s+([,.)])/g, "$1")
     .replace(/\(\s+/g, "(")
@@ -64,15 +65,40 @@ const foreignWords = (text: string) =>
     (word) => /\p{Ll}/u.test(word),
   );
 
+// A web address or email. The resources' text is a third party's, so a page could ask the model to
+// send the learner somewhere; no learner-facing text names an address. A bare domain ends in a
+// lowercase top-level domain and is not called, so a name from code (ASP.NET, System.IO, df.info())
+// or a spreadsheet (STDEV.S) is not one. An address spelled out in words is not caught.
+const ADDRESSES = [
+  /https?:\/\/\S+|www\.\S+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+/iu,
+  /\b[\w-]+(?:\.[\w-]+)*\.(?:com|org|net|edu|gov|int|io|ai|app|dev|info|biz|xyz|top|shop|store|online|site|link|live|me|ly|co|gg|gl|be|ee|to|tv|us|uk|de|ru|cn|fr|sa|ae|eg)\b(?!\()/u,
+];
+const addressIn = (text: string) =>
+  ADDRESSES.map((pattern) => text.match(pattern)?.[0]).find(Boolean);
+
 const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// Where the text writes the source term in brackets, and the words just before each.
-function bracketed(text: string, entry: GlossaryEntry): { before: string; words: string[] }[] {
-  const term = escaped(entry.src.term.trim()).replace(/\s+/g, "\\s+");
-  const length = stems(entry.ar).length;
+// A source term as a pattern: its words with any run of spaces between them.
+const termPattern = (term: string) => escaped(term.trim()).replace(/\s+/g, "\\s+");
+
+// Where the text writes the source term in brackets (open to end), and the words just before it, as
+// many as the glossary term has, with where they start.
+function bracketed(
+  text: string,
+  entry: GlossaryEntry,
+): { start: number; open: number; end: number; before: string; words: string[] }[] {
+  const term = termPattern(entry.src.term);
+  const lastWords = new RegExp(`(?:\\S+\\s+){0,${stems(entry.ar).length - 1}}\\S+\\s*$`, "u");
   return [...text.matchAll(new RegExp(`\\(\\s*${term}\\s*\\)`, "giu"))].map((match) => {
-    const before = text.slice(0, match.index).trim().split(/\s+/).slice(-length).join(" ");
-    return { before, words: arabicWords(before) };
+    const head = lastWords.exec(text.slice(0, match.index));
+    const before = head?.[0].trim() ?? "";
+    return {
+      start: head?.index ?? match.index,
+      open: match.index,
+      end: match.index + match[0].length,
+      before,
+      words: arabicWords(before),
+    };
   });
 }
 
@@ -92,6 +118,23 @@ export function lessonViolations(lesson: Lesson, glossary: GlossaryEntry[]): str
     violations.push(
       `the lesson has ${glossary.length} glossary terms; a lesson has at least ${MIN_TERMS}`,
     );
+  }
+
+  const learnerText: [string, string][] = [
+    ...lesson.objectives_ar.map((o, i): [string, string] => [`objective ${i + 1}`, o]),
+    ...lesson.sections.flatMap((s, i): [string, string][] => [
+      [`section ${i + 1}'s explanation`, s.arabic],
+      [`section ${i + 1}'s tip`, s.notes_ar],
+    ]),
+    ...glossary.flatMap((e): [string, string][] => [
+      [`the glossary term "${e.src.term}"'s Arabic term`, `${e.ar} ${e.ar_diacritized}`],
+      [`the glossary term "${e.src.term}"'s definition`, e.definition_ar],
+      [`the glossary term "${e.src.term}"'s example`, e.example_ar],
+    ]),
+  ];
+  for (const [where, text] of learnerText) {
+    const address = addressIn(text);
+    if (address) violations.push(`${where} has a web address or email: "${address}"`);
   }
 
   lesson.sections.forEach(({ source_excerpt: excerpt, arabic }, i) => {
@@ -139,6 +182,53 @@ export function lessonViolations(lesson: Lesson, glossary: GlossaryEntry[]): str
     }
   }
   return violations;
+}
+
+export type TermMark = { start: number; end: number; id: string };
+
+// In text order, the longer of two marks that start together, and none overlapping one kept.
+function apart(marks: TermMark[]): TermMark[] {
+  let end = 0;
+  return marks
+    .toSorted((a, b) => a.start - b.start || b.end - a.end)
+    .filter((mark) => {
+      if (mark.start < end) return false;
+      end = mark.end;
+      return true;
+    });
+}
+
+// Where the text names each glossary term, for the page to mark: the Arabic term and its bracketed
+// source term, or the bracket alone after another Arabic term.
+export function termMarks(text: string, glossary: GlossaryEntry[]): TermMark[] {
+  return apart(
+    glossary.flatMap((entry) =>
+      bracketed(text, entry).map((use) => ({
+        start: writesTerm(use.words, entry) ? use.start : use.open,
+        end: use.end,
+        id: entry.id,
+      })),
+    ),
+  );
+}
+
+// A Latin or Cyrillic term is a whole word; a Chinese one sits inside its sentence.
+const LETTER = "[\\p{Script=Latin}\\p{Script=Cyrillic}]";
+
+// Where an excerpt writes each glossary term's source term, for the page to mark while its card is
+// open.
+export function sourceMarks(text: string, glossary: GlossaryEntry[]): TermMark[] {
+  return apart(
+    glossary.flatMap((entry) => {
+      const term = termPattern(entry.src.term);
+      const word = new RegExp(`(?<!${LETTER})${term}(?!${LETTER})`, "giu");
+      return [...text.matchAll(word)].map((match) => ({
+        start: match.index,
+        end: match.index + match[0].length,
+        id: entry.id,
+      }));
+    }),
+  );
 }
 
 type DraftTerm = LessonDraft["glossary"][number];

@@ -299,6 +299,7 @@ export default function BidiPage() {
               key={`${excerpt.resource_id}-${excerpt.locator}`}
               excerpt={excerpt}
               resource={resource(excerpt.resource_id)}
+              sample
             />
           ))}
         </div>

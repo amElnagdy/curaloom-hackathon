@@ -9,14 +9,7 @@
 
 import { CalendarClock, Check, Hourglass, RotateCcw, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
-  useTransition,
-} from "react";
+import { createContext, type ReactNode, useContext, useState, useTransition } from "react";
 import type { CoursePlan, Resource } from "../../../contracts/index.ts";
 import {
   applyEdit,
@@ -31,6 +24,7 @@ import { Callout } from "../_shell/blocks.tsx";
 import { type Session, sessionsOf, simDay } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, ordinalF, WEEKS } from "../_shell/format.ts";
 import { BidiText, buttonClass, cx, LangBadge, StatusPill } from "../_shell/ui.tsx";
+import { useBuild } from "../_shell/use-build.ts";
 import styles from "./plan.module.css";
 
 type Op = PlanEdit["op"];
@@ -46,9 +40,6 @@ const post = (sessionId: string, action: string, body: object, signal?: AbortSig
     signal,
   });
 
-// While another request builds the plan the server answers 409; this one waits and asks again.
-const BUSY_RETRY_MS = 3000;
-
 const BuildFailed = createContext({ failed: false, retry: () => {} });
 
 // The page keys it by the learner's profile, so a new profile starts a new build. It stays mounted
@@ -62,30 +53,11 @@ export function Building({
   build: boolean;
   children: ReactNode;
 }) {
-  const router = useRouter();
-  const [failed, setFailed] = useState(false);
-  const [, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (!build || failed) return;
-    const abort = new AbortController();
-    (async () => {
-      while (!abort.signal.aborted) {
-        const res = await post(sessionId, "build", {}, abort.signal).catch(() => null);
-        if (abort.signal.aborted) return;
-        if (res?.status === 409) {
-          await new Promise((resolve) => setTimeout(resolve, BUSY_RETRY_MS));
-          continue;
-        }
-        if (res?.ok) startTransition(() => router.refresh());
-        else setFailed(true);
-        return;
-      }
-    })();
-    return () => abort.abort();
-  }, [build, failed, sessionId, router]);
-
-  return <BuildFailed value={{ failed, retry: () => setFailed(false) }}>{children}</BuildFailed>;
+  return (
+    <BuildFailed value={useBuild(build ? planUrl(sessionId, "build") : null)}>
+      {children}
+    </BuildFailed>
+  );
 }
 
 export function BuildingLede({ name }: { name: string }) {

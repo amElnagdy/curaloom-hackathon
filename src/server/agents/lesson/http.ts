@@ -3,7 +3,7 @@
 // their glossary.
 
 import Type from "typebox";
-import { BadRequest, jsonBody, parse } from "../../clock/http.ts";
+import { BadRequest, jsonBody, parse, stillBuilding } from "../../clock/http.ts";
 import { StepFailed } from "../../orchestrator/orchestrator.ts";
 import { InvalidNameError } from "../../store/store.ts";
 import { type LessonBuilder, LessonConflict, LessonNotFound } from "./lesson.ts";
@@ -20,7 +20,7 @@ export async function lessonResponse(
   builder: LessonBuilder,
 ): Promise<Response> {
   if (busy.has(sessionId)) {
-    return Response.json({ error: "A lesson is still being written" }, { status: 409 });
+    return stillBuilding("A lesson is still being written");
   }
   busy.add(sessionId);
   try {

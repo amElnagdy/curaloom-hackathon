@@ -2,7 +2,7 @@
 // the session's saved plan with every version (null after a reset).
 
 import Type from "typebox";
-import { BadRequest, jsonBody, parse } from "../../clock/http.ts";
+import { BadRequest, jsonBody, parse, stillBuilding } from "../../clock/http.ts";
 import { StepFailed } from "../../orchestrator/orchestrator.ts";
 import { InvalidNameError } from "../../store/store.ts";
 import { PlanConflict, PlanEditRejected, type Planner, type SavedPlan } from "./architect.ts";
@@ -45,7 +45,7 @@ export async function planResponse(
   const run = Object.hasOwn(ACTIONS, action) ? ACTIONS[action] : undefined;
   if (!run) return new Response(null, { status: 404 });
   if (busy.has(sessionId)) {
-    return Response.json({ error: "The plan is still being built" }, { status: 409 });
+    return stillBuilding("The plan is still being built");
   }
   busy.add(sessionId);
   try {

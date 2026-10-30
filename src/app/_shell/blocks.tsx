@@ -27,15 +27,18 @@ export function MetaItem({ icon: Icon, children }: { icon: LucideIcon; children:
   );
 }
 
-// The page's one h1, with an optional pill beside it, a meta line, a lede and actions.
+// The page's one h1, with an optional pill beside it, a meta line, a lede and actions. `titleId`
+// lets the page move focus to the title.
 export function PageHead({
   title,
+  titleId,
   pill,
   meta,
   lede,
   actions,
 }: {
   title: ReactNode;
+  titleId?: string;
   pill?: ReactNode;
   meta?: ReactNode;
   lede?: ReactNode;
@@ -45,7 +48,9 @@ export function PageHead({
     <header className={styles.head}>
       <div className={styles.headText}>
         <div className={styles.titleRow}>
-          <h1 className={styles.title}>{title}</h1>
+          <h1 className={styles.title} id={titleId} tabIndex={titleId ? -1 : undefined}>
+            {title}
+          </h1>
           {pill}
         </div>
         {meta && <div className={styles.meta}>{meta}</div>}
@@ -267,14 +272,33 @@ const RESOURCE_TYPE: Record<Resource["type"], string> = {
   course: "دورة",
 };
 
+// A source's call mark and language, as the excerpt and the lesson's sources name it: its id, or
+// the `label` a page numbers its sources by.
+export function CallMark({ resource, label }: { resource: Resource; label?: string }) {
+  return (
+    <span className={styles.callMark} dir="ltr" lang="en" title="رمز المصدر">
+      {label ?? resource.id.toUpperCase()}
+      <span className={styles.callMarkLang}>{resource.lang.toUpperCase()}</span>
+    </span>
+  );
+}
+
 // The original text beside the Arabic: language, locator and licence on top, the excerpt in its
 // own direction, then a catalogue-style source mark (call mark, original title, type, address).
+// `children` is the excerpt with its terms marked, `callMark` the page's label for the source, and
+// `sample` says the source is the seed's.
 export function SourceExcerpt({
   excerpt,
   resource,
+  callMark,
+  sample = false,
+  children,
 }: {
   excerpt: Excerpt;
   resource: Resource | undefined;
+  callMark?: string;
+  sample?: boolean;
+  children?: ReactNode;
 }) {
   return (
     <figure className={styles.excerpt}>
@@ -290,14 +314,11 @@ export function SourceExcerpt({
         )}
       </div>
       <blockquote className={styles.excerptText} lang={excerpt.lang} dir="ltr">
-        {excerpt.text}
+        {children ?? excerpt.text}
       </blockquote>
       {resource && (
         <figcaption className={styles.cite}>
-          <span className={styles.callMark} dir="ltr" lang="en" title="رمز المصدر">
-            {resource.id.toUpperCase()}
-            <span className={styles.callMarkLang}>{resource.lang.toUpperCase()}</span>
-          </span>
+          <CallMark resource={resource} label={callMark} />
           <span className={styles.citeText}>
             <bdi className={styles.citeTitle} lang={resource.lang}>
               {resource.title}
@@ -305,8 +326,12 @@ export function SourceExcerpt({
             <span className={styles.citeMeta}>
               {RESOURCE_TYPE[resource.type]}
               <Sep />
-              مصدر تجريبي
-              <Sep />
+              {sample && (
+                <>
+                  مصدر تجريبي
+                  <Sep />
+                </>
+              )}
               <a
                 href={resource.url}
                 title={resource.url}

@@ -1,14 +1,43 @@
-// The lesson (#15 slot; the lesson builder is #19): lesson L1 from Omar's seed. Each section puts
-// the Arabic beside the original excerpt (language, locator, licence, source mark), then the
-// glossary with the term in every source language.
+// The learner's first lesson (#19). Each section puts the Arabic beside the original excerpt; a
+// glossary term in the Arabic opens its card and marks the source term in the excerpt. Under the
+// lesson, the sources it quotes with their licences and what the Arabic changed, then the glossary.
+// Before the intake it shows the seed's lesson as an example; once the plan is ready and its first
+// lesson is not, the page asks the lesson builder for it.
 
-import { ArrowRight, BookOpen, Check, Clock, Languages, Layers, Lightbulb } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Clock,
+  ExternalLink,
+  Languages,
+  Layers,
+  Library,
+  Lightbulb,
+  PenLine,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { type GlossaryEntry, type Resource, SOURCE_LANGS } from "../../../contracts/index.ts";
+import { connection } from "next/server";
+import { Fragment, type ReactNode } from "react";
+import type {
+  CoursePlan,
+  GlossaryEntry,
+  Lesson,
+  Quiz,
+  Resource,
+} from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
+import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
+import { planFor } from "../../server/agents/architect/architect.ts";
+import { savedProfile } from "../../server/agents/intake/intake.ts";
+import { savedLessons } from "../../server/agents/lesson/lesson.ts";
+import { sourceMarks, type TermMark, termMarks } from "../../server/agents/lesson/rules.ts";
+import { createFileStore } from "../../server/store/store.ts";
 import {
+  CallMark,
   Callout,
   EmptyState,
   MetaItem,
@@ -17,7 +46,7 @@ import {
   Panel,
   SourceExcerpt,
 } from "../_shell/blocks.tsx";
-import { latestPlan, lessonPlace, sessionsOf } from "../_shell/course.ts";
+import { latestPlan, lessonPlace, sessionsOf, unique } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, percent, QUESTIONS } from "../_shell/format.ts";
 import {
   BidiText,
@@ -25,34 +54,315 @@ import {
   DirIcon,
   LANG_NAMES,
   LangBadge,
+  LicenceTag,
   Meta,
   StatusPill,
 } from "../_shell/ui.tsx";
 import styles from "./lesson.module.css";
+import {
+  CopyButton,
+  ExcerptMark,
+  LessonBuilding,
+  Term,
+  Terms,
+  WritingBody,
+  WritingDone,
+  WritingLede,
+  WritingStatus,
+} from "./terms.tsx";
 
 export const metadata: Metadata = { title: "الدرس" };
 
-// The GlossaryEntry contract holds one source-language term (`src`). These sample translations
-// show an entry in the course's other source languages until the lesson builder (#19) writes
-// them. Display-only sample data, like the rest of the seed.
-const SAMPLE_TERMS: Record<string, Partial<Record<Resource["lang"], string>>> = {
-  g1: { ru: "сводная таблица", zh: "数据透视表", fr: "tableau croisé dynamique" },
-};
+// What the page shows: nothing yet before the plan, the first lesson while it is written, or a
+// lesson, the seed's (`sample`) or the learner's.
+type Shown =
+  | { kind: "waiting" }
+  | { kind: "writing"; name: string; plan: CoursePlan; lessonId: string }
+  | {
+      kind: "lesson";
+      sample: boolean;
+      plan: CoursePlan | undefined;
+      lesson: Lesson;
+      // The lesson's own entries of the course glossary.
+      glossary: GlossaryEntry[];
+      sources: QuotedSource[];
+      quiz: Quiz | undefined;
+    };
 
-function termsOf(entry: GlossaryEntry): [Resource["lang"], string][] {
-  const terms: Partial<Record<Resource["lang"], string>> = {
-    ...SAMPLE_TERMS[entry.id],
-    [entry.src.lang]: entry.src.term,
-  };
-  return SOURCE_LANGS.flatMap((lang) => {
-    const term = terms[lang];
-    return term ? [[lang, term] as [Resource["lang"], string]] : [];
+// The lesson's sources in the order it first quotes them, each with the call mark that ties its
+// excerpts to its card: R1, R2.
+type QuotedSource = { resource: Resource; mark: string };
+const quotedSources = (lesson: Lesson, resources: Resource[]): QuotedSource[] =>
+  unique(lesson.sections.map((s) => s.source_excerpt.resource_id)).flatMap((id, i) =>
+    resources.filter((r) => r.id === id).map((resource) => ({ resource, mark: `R${i + 1}` })),
+  );
+
+const shownWith = (
+  lesson: Lesson,
+  course: { sample: boolean; plan: CoursePlan | undefined; quiz: Quiz | undefined },
+  glossary: GlossaryEntry[],
+  resources: Resource[],
+): Shown => ({
+  kind: "lesson",
+  ...course,
+  lesson,
+  glossary: lesson.glossary_ids.flatMap((id) => glossary.filter((g) => g.id === id)),
+  sources: quotedSources(lesson, resources),
+});
+
+function shownLesson(): Shown {
+  const store = createFileStore();
+  const seed = loadOmarSeed(config.demoTopic);
+  const learner = savedProfile(store, DEMO_SESSION_ID);
+  if (!learner) {
+    const plan = latestPlan(seed);
+    const firstId = plan && sessionsOf(plan)[0]?.lesson_id;
+    const lesson = seed.lessons.find((l) => l.id === firstId) ?? seed.lessons[0];
+    if (!lesson) return { kind: "waiting" };
+    const quiz = seed.quizzes.find((q) => q.lesson_id === lesson.id);
+    return shownWith(lesson, { sample: true, plan, quiz }, seed.glossary, seed.resources);
+  }
+  const saved = planFor(store, DEMO_SESSION_ID, learner);
+  const plan = saved?.versions.at(-1);
+  const lessonId = plan && sessionsOf(plan)[0]?.lesson_id;
+  if (!saved || !plan || !lessonId) return { kind: "waiting" };
+  const written = savedLessons(store, DEMO_SESSION_ID, plan);
+  const lesson = written?.lessons[lessonId];
+  if (!written || !lesson) return { kind: "writing", name: learner.name, plan, lessonId };
+  const course = { sample: false, plan, quiz: undefined };
+  return shownWith(lesson, course, written.glossary, saved.resources);
+}
+
+// The text cut at the marks: the parts between them as they are, each mark through `mark`.
+function cut(
+  text: string,
+  marks: TermMark[],
+  plain: (part: string) => ReactNode,
+  mark: (part: string, m: TermMark, i: number) => ReactNode,
+): ReactNode[] {
+  const parts: ReactNode[] = [];
+  let at = 0;
+  marks.forEach((m, i) => {
+    parts.push(
+      <Fragment key={`t${at}`}>{plain(text.slice(at, m.start))}</Fragment>,
+      <Fragment key={`m${m.start}`}>{mark(text.slice(m.start, m.end), m, i)}</Fragment>,
+    );
+    at = m.end;
   });
+  parts.push(<Fragment key="end">{plain(text.slice(at))}</Fragment>);
+  return parts;
+}
+
+function LessonSection({
+  section,
+  index,
+  glossary,
+  source,
+  sample,
+}: {
+  section: Lesson["sections"][number];
+  index: number;
+  glossary: GlossaryEntry[];
+  source: QuotedSource | undefined;
+  sample: boolean;
+}) {
+  const byId = new Map(glossary.map((e) => [e.id, e]));
+  const marks = termMarks(section.arabic, glossary);
+  const arabic = cut(
+    section.arabic,
+    marks,
+    (part) => <BidiText text={part} />,
+    (part, m, i) => {
+      const entry = byId.get(m.id);
+      const text = <BidiText text={part} />;
+      return entry ? (
+        <Term entry={entry} section={index} index={i}>
+          {text}
+        </Term>
+      ) : (
+        text
+      );
+    },
+  );
+  const used = glossary.filter((e) => marks.some((m) => m.id === e.id));
+  const { text } = section.source_excerpt;
+  const excerpt = cut(
+    text,
+    sourceMarks(text, used),
+    (part) => part,
+    (part, m) => (
+      <ExcerptMark id={m.id} section={index}>
+        {part}
+      </ExcerptMark>
+    ),
+  );
+  return (
+    <section
+      id={`section-${index + 1}`}
+      className={styles.section}
+      aria-label={`القسم ${ordinal(index)}`}
+    >
+      <div className={styles.arabic}>
+        <div className={styles.columnHead}>
+          <LangBadge lang="ar" full />
+          <span>الشرح</span>
+        </div>
+        <p className={styles.reading}>{arabic}</p>
+        <Callout icon={Lightbulb} tone="accent">
+          <BidiText text={section.notes_ar} />
+        </Callout>
+      </div>
+      <SourceExcerpt
+        excerpt={section.source_excerpt}
+        resource={source?.resource}
+        callMark={source?.mark}
+        sample={sample}
+      >
+        {excerpt}
+      </SourceExcerpt>
+    </section>
+  );
+}
+
+const SHARE_ALIKE = /-SA(-|$)/;
+
+// The ShareAlike licence the Arabic carries, when one can hold every quoted source: the sources
+// under it, and the rest open and not ShareAlike. A source under it that is limited to personal
+// study fits only a NonCommercial one. Otherwise the Arabic carries none the note can name.
+function carriedLicence(licences: Resource["licence"][]): string | undefined {
+  const shareAlike = unique(licences.map((l) => l.spdx).filter((id) => SHARE_ALIKE.test(id)));
+  const [only] = shareAlike.length === 1 ? shareAlike : [];
+  if (!only) return undefined;
+  const fits = (l: Resource["licence"]) =>
+    l.spdx === only
+      ? l.use === "open" || /-NC(-|$)/.test(only)
+      : l.use === "open" && !SHARE_ALIKE.test(l.spdx);
+  return licences.every(fits) ? only : undefined;
+}
+
+// The sources the lesson quotes, a row each with what a reuser needs to credit it, and what the
+// Arabic changed.
+function SourcesPanel({ lesson, sources }: { lesson: Lesson; sources: QuotedSource[] }) {
+  if (!sources.length) return null;
+  const quotedIds = lesson.sections.map((s) => s.source_excerpt.resource_id);
+  const licences = unique(sources.map((s) => s.resource.licence.spdx));
+  const [sharedLicence] = licences.length === 1 ? licences : [];
+  const carried = carriedLicence(sources.map((s) => s.resource.licence));
+  const single = sources.length === 1;
+  return (
+    <details className={styles.sources} id="sources">
+      <summary>
+        <span className={styles.sourcesIcon} aria-hidden>
+          <Library />
+        </span>
+        <span className={styles.sourcesText}>
+          <span className={styles.sourcesTitle}>المصادر والتراخيص</span>
+          <span className={styles.sourcesSub}>
+            الشرح العربي مبني على مقتطفات من {single ? "مصدر الدرس" : "مصادر الدرس"}، وليس ترجمة
+            لها.
+          </span>
+        </span>
+        <span className={styles.sourcesMarks}>
+          {unique(sources.map((s) => s.resource.lang)).map((lang) => (
+            <LangBadge key={lang} lang={lang} />
+          ))}
+          {sharedLicence && (
+            <span className={styles.sourcesLicence} lang="en" dir="ltr">
+              {sharedLicence}
+            </span>
+          )}
+        </span>
+        <ChevronDown className={styles.chev} aria-hidden />
+      </summary>
+      <div className={styles.sourcesBody}>
+        <ul className={styles.sourceList}>
+          {sources.map(({ resource: r, mark }) => (
+            <li key={r.id} className={styles.sourceItem}>
+              <div className={styles.sourceHead}>
+                <CallMark resource={r} label={mark} />
+                <a
+                  className={styles.sourceTitle}
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <bdi lang={r.lang}>{r.title}</bdi>
+                  <ExternalLink aria-hidden />
+                  <span className="sr-only"> (يفتح في نافذة جديدة)</span>
+                </a>
+              </div>
+              <dl className={styles.facts}>
+                <div>
+                  <dt>اللغة</dt>
+                  <dd className={styles.factLang}>
+                    <LangBadge lang={r.lang} />
+                    {LANG_NAMES[r.lang]}
+                  </dd>
+                </div>
+                <div>
+                  <dt>الترخيص</dt>
+                  <dd className={styles.factLicence}>
+                    <LicenceTag licence={r.licence} />
+                    <a href={r.licence.evidence_url} target="_blank" rel="noopener noreferrer">
+                      حيث وجده الكود
+                      <span className="sr-only"> (يفتح في نافذة جديدة)</span>
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>في الدرس</dt>
+                  <dd>
+                    {quotedIds
+                      .flatMap((id, i) => (id === r.id ? [i] : []))
+                      .map((i, n) => (
+                        <Fragment key={i}>
+                          {n > 0 && "، "}
+                          <a href={`#section-${i + 1}`}>القسم {ordinal(i)}</a>
+                        </Fragment>
+                      ))}
+                  </dd>
+                </div>
+              </dl>
+              <CopyButton
+                text={`«${r.title}»، ${r.url}، بترخيص ${r.licence.spdx}. الشرح العربي في ${config.appName} مبني على مقتطفات منه، مع تغييرات.`}
+              />
+            </li>
+          ))}
+        </ul>
+        <div className={styles.changes}>
+          <PenLine aria-hidden />
+          <div>
+            <h3>ما الذي غيّرناه</h3>
+            <p>
+              الشرح العربي في هذا الدرس ليس ترجمة {single ? "لهذا المصدر" : "لهذه المصادر"}. كتبه
+              صانع الدروس شرحًا مبنيًا على المقتطفات المعروضة بجانبه، فاختصر وأعاد الترتيب وأضاف أمثلة
+              من عملك، أما المقتطفات نفسها فمنقولة كما هي، بلا ما كان بين أقواس مربعة، كأرقام
+              الحواشي وملاحظات المحررين.
+              {carried && carried === sharedLicence && (
+                <>
+                  {" "}
+                  ولأن {single ? "المصدر" : "المصادر"} بترخيص <bdi lang="en">{carried}</bdi>، فالشرح
+                  العربي متاح بالترخيص نفسه.
+                </>
+              )}
+              {carried && carried !== sharedLicence && (
+                <>
+                  {" "}
+                  ولأن من المصادر ما ترخيصه <bdi lang="en">{carried}</bdi>، فالشرح العربي متاح بهذا
+                  الترخيص.
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    </details>
+  );
 }
 
 function GlossaryItem({ entry }: { entry: GlossaryEntry }) {
   return (
-    <div className={styles.glossItem}>
+    <div className={styles.glossItem} id={`glossary-${entry.id}`}>
       <dt className={styles.glossTerm}>
         <b>{entry.ar}</b>
         <span className={styles.diacritized}>{entry.ar_diacritized}</span>
@@ -64,27 +374,128 @@ function GlossaryItem({ entry }: { entry: GlossaryEntry }) {
         <p className={styles.example}>
           مثال: <BidiText text={entry.example_ar} />
         </p>
-        <ul className={styles.glossLangs} aria-label="المصطلح في لغات المصادر">
-          {termsOf(entry).map(([lang, term]) => (
-            <li key={lang}>
-              <LangBadge lang={lang} />
-              <bdi lang={lang}>{term}</bdi>
-              {lang === entry.src.lang && <span className={styles.fromSource}>من مصدر الدرس</span>}
-            </li>
-          ))}
-        </ul>
+        <p className={styles.glossSrc}>
+          <LangBadge lang={entry.src.lang} />
+          <bdi lang={entry.src.lang}>{entry.src.term}</bdi>
+          <span>كما يكتبه المصدر</span>
+        </p>
       </dd>
     </div>
   );
 }
 
-export default function LessonPage() {
-  const seed = loadOmarSeed(config.demoTopic);
-  const plan = latestPlan(seed);
-  const firstLessonId = plan && sessionsOf(plan)[0]?.lesson_id;
-  const lesson = seed.lessons.find((l) => l.id === firstLessonId) ?? seed.lessons[0];
+function LessonView({ shown }: { shown: Extract<Shown, { kind: "lesson" }> }) {
+  const { lesson, sample, quiz, sources, glossary } = shown;
+  return (
+    <>
+      <Terms>
+        <article className={styles.lesson} aria-label="نص الدرس">
+          <section className={styles.objectives} aria-labelledby="objectives-title">
+            <h2 id="objectives-title">ستتعلم في هذا الدرس</h2>
+            <ul>
+              {lesson.objectives_ar.map((objective) => (
+                <li key={objective}>
+                  <Check aria-hidden />
+                  <span>
+                    <BidiText text={objective} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-  if (!lesson) {
+          {lesson.sections.map((section, i) => (
+            <LessonSection
+              key={`${section.source_excerpt.resource_id}:${section.source_excerpt.text}`}
+              section={section}
+              index={i}
+              glossary={glossary}
+              source={sources.find((s) => s.resource.id === section.source_excerpt.resource_id)}
+              sample={sample}
+            />
+          ))}
+
+          <footer className={styles.footer}>
+            <p>
+              {quiz ? (
+                <>
+                  بعد الدرس اختبار قصير فيه {countOf(quiz.items.length, QUESTIONS)}، وتجتاز الدرس
+                  حين تحصل على {percent(quiz.pass_threshold)} أو أكثر.
+                </>
+              ) : (
+                "بعد الدرس اختبار قصير يكتبه الممتحن من الدرس نفسه."
+              )}
+            </p>
+            <Link href="/quiz" className={buttonClass("secondary")}>
+              اطّلع على الاختبار
+              <DirIcon icon={ArrowRight} />
+            </Link>
+          </footer>
+        </article>
+      </Terms>
+
+      <SourcesPanel lesson={lesson} sources={sources} />
+
+      {glossary.length > 0 && (
+        <Panel
+          id="glossary-title"
+          title="المصطلحات"
+          sub="كل مصطلح بالعربية مع تشكيله، ومعه اسمه كما يكتبه المصدر."
+        >
+          <dl className={styles.gloss}>
+            {glossary.map((entry) => (
+              <GlossaryItem key={entry.id} entry={entry} />
+            ))}
+          </dl>
+        </Panel>
+      )}
+    </>
+  );
+}
+
+// The page head for a lesson being written, the seed's example or the learner's lesson.
+function headOf(shown: Exclude<Shown, { kind: "waiting" }>): {
+  title: string;
+  pill: ReactNode;
+  lede: ReactNode;
+  sources: QuotedSource[];
+} {
+  if (shown.kind === "writing") {
+    const planned = shown.plan.committed.lessons.find((l) => l.id === shown.lessonId);
+    return {
+      title: planned?.title_ar ?? "",
+      pill: <WritingStatus />,
+      lede: <WritingLede name={shown.name} />,
+      sources: [],
+    };
+  }
+  const { lesson, sources } = shown;
+  if (!shown.sample) {
+    return {
+      title: lesson.title_ar,
+      pill: <StatusPill status="ready">جاهز</StatusPill>,
+      lede: undefined,
+      sources,
+    };
+  }
+  return {
+    title: lesson.title_ar,
+    pill: <StatusPill status="neutral">مثال</StatusPill>,
+    lede: (
+      <>
+        <b>هذا درس مثال.</b> أكمل <Link href="/intake">المقابلة</Link> لنكتب دروسك أنت من مصادر
+        دورتك.
+      </>
+    ),
+    sources,
+  };
+}
+
+export default async function LessonPage() {
+  await connection();
+  const shown = shownLesson();
+
+  if (shown.kind === "waiting") {
     return (
       <Page width="reading">
         <PageHead
@@ -94,114 +505,59 @@ export default function LessonPage() {
         <EmptyState
           icon={BookOpen}
           text="يكتب صانع الدروس درسك الأول بعد أن تجهز خطتك، ويظهر هنا بجانب نصه الأصلي."
+          actions={
+            <Link href="/plan" className={buttonClass("secondary")}>
+              إلى الخطة
+              <DirIcon icon={ArrowRight} />
+            </Link>
+          }
         />
       </Page>
     );
   }
 
-  const position = seed.lessons.indexOf(lesson);
+  const { plan } = shown;
+  const lessonId = shown.kind === "writing" ? shown.lessonId : shown.lesson.id;
+  const position = Math.max(0, plan?.committed.lessons.findIndex((l) => l.id === lessonId) ?? 0);
   const { session, module } = plan
-    ? lessonPlace(plan, lesson.id)
+    ? lessonPlace(plan, lessonId)
     : { session: undefined, module: undefined };
-  const resource = (id: string) => seed.resources.find((r) => r.id === id);
-  const sourceIds = [...new Set(lesson.sections.map((s) => s.source_excerpt.resource_id))];
-  const langs = [...new Set(lesson.sections.map((s) => s.source_excerpt.lang))];
-  const fromSources = `من ${sourceIds.length === 1 ? "مصدر" : "مصادر"} ب${langs.map((l) => LANG_NAMES[l]).join(" و")}`;
-  const quiz = seed.quizzes.find((q) => q.lesson_id === lesson.id);
-  const glossary = lesson.glossary_ids
-    .map((id) => seed.glossary.find((g) => g.id === id))
-    .filter((g) => g !== undefined);
+  const head = headOf(shown);
+  const langs = unique(head.sources.map((s) => s.resource.lang));
 
   return (
-    <Page>
-      <PageHead
-        title={<BidiText text={lesson.title_ar} />}
-        pill={<StatusPill status="ready">جاهز</StatusPill>}
-        meta={
-          <>
-            <MetaItem icon={BookOpen}>الدرس {ordinal(position)}</MetaItem>
-            {module && (
-              <MetaItem icon={Layers}>
-                <Meta parts={[`الوحدة ${arabicNumber(module.index + 1)}`, module.title]} />
-              </MetaItem>
-            )}
-            {session && <MetaItem icon={Clock}>{countOf(session.minutes, MINUTES)}</MetaItem>}
-            <MetaItem icon={Languages}>{fromSources}</MetaItem>
-          </>
-        }
-      />
-
-      <article className={styles.lesson} aria-label="نص الدرس">
-        <section className={styles.objectives} aria-labelledby="objectives-title">
-          <h2 id="objectives-title">ستتعلم في هذا الدرس</h2>
-          <ul>
-            {lesson.objectives_ar.map((objective) => (
-              <li key={objective}>
-                <Check aria-hidden />
-                <span>
-                  <BidiText text={objective} />
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {lesson.sections.map((section, i) => (
-          <section
-            key={`${section.source_excerpt.resource_id}-${section.source_excerpt.locator}`}
-            className={styles.section}
-            aria-label={`القسم ${ordinal(i)}`}
-          >
-            <div className={styles.arabic}>
-              <div className={styles.columnHead}>
-                <LangBadge lang="ar" full />
-                <span>الشرح</span>
-              </div>
-              <p className={styles.reading}>
-                <BidiText text={section.arabic} />
-              </p>
-              <Callout icon={Lightbulb} tone="accent">
-                <BidiText text={section.notes_ar} />
-              </Callout>
-            </div>
-            <SourceExcerpt
-              excerpt={section.source_excerpt}
-              resource={resource(section.source_excerpt.resource_id)}
-            />
-          </section>
-        ))}
-
-        <footer className={styles.footer}>
-          <p>
-            {quiz ? (
-              <>
-                بعد الدرس اختبار قصير فيه {countOf(quiz.items.length, QUESTIONS)}، وتجتاز الدرس حين
-                تحصل على {percent(quiz.pass_threshold)} أو أكثر.
-              </>
-            ) : (
-              "بعد الدرس اختبار قصير يكتبه الممتحن من الدرس نفسه."
-            )}
-          </p>
-          <Link href="/quiz" className={buttonClass("secondary")}>
-            اطّلع على الاختبار
-            <DirIcon icon={ArrowRight} />
-          </Link>
-        </footer>
-      </article>
-
-      {glossary.length > 0 && (
-        <Panel
-          id="glossary-title"
-          title="المصطلحات"
-          sub="كل مصطلح بالعربية مع تشكيله، ومعه اسمه في لغات المصادر."
-        >
-          <dl className={styles.gloss}>
-            {glossary.map((entry) => (
-              <GlossaryItem key={entry.id} entry={entry} />
-            ))}
-          </dl>
-        </Panel>
-      )}
-    </Page>
+    <LessonBuilding
+      key={`${plan?.id}-${lessonId}`}
+      sessionId={DEMO_SESSION_ID}
+      lessonId={lessonId}
+      build={shown.kind === "writing"}
+    >
+      <Page>
+        <PageHead
+          titleId="lesson-title"
+          title={<BidiText text={head.title} />}
+          pill={head.pill}
+          lede={head.lede}
+          meta={
+            <>
+              <MetaItem icon={BookOpen}>الدرس {ordinal(position)}</MetaItem>
+              {module && (
+                <MetaItem icon={Layers}>
+                  <Meta parts={[`الوحدة ${arabicNumber(module.index + 1)}`, module.title]} />
+                </MetaItem>
+              )}
+              {session && <MetaItem icon={Clock}>{countOf(session.minutes, MINUTES)}</MetaItem>}
+              {langs.length > 0 && (
+                <MetaItem icon={Languages}>
+                  {`من ${head.sources.length === 1 ? "مصدر" : "مصادر"} ب${langs.map((l) => LANG_NAMES[l]).join(" و")}`}
+                </MetaItem>
+              )}
+            </>
+          }
+        />
+        <WritingDone />
+        {shown.kind === "writing" ? <WritingBody /> : <LessonView shown={shown} />}
+      </Page>
+    </LessonBuilding>
   );
 }

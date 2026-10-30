@@ -157,7 +157,8 @@ export function TraceDrawer({
   useEffect(() => {
     if (!drawerOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeDrawer();
+      // An open glossary card takes the Escape first (lesson/terms.tsx).
+      if (e.key === "Escape" && !e.defaultPrevented) closeDrawer();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);

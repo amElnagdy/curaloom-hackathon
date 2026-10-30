@@ -28,6 +28,8 @@ export type CourseModule = {
 // A state as a status pill shows it.
 export type Shown = { status: Status; label: string };
 
+export const unique = <T>(values: T[]) => [...new Set(values)];
+
 // The newest version: a re-plan is a new version, never an edit (ADR-006).
 export function latestPlan(seed: Seed): CoursePlan | undefined {
   return seed.plans.reduce<CoursePlan | undefined>(
