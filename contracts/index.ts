@@ -251,6 +251,44 @@ export const GlossaryEntry = Obj({
   example_ar: Type.String(),
 });
 
+// The lesson builder (#19). The model fills LessonDraft, naming each excerpt by a range of its
+// resource's numbered sentences; code cuts the excerpts and builds the Lesson and its GlossaryEntry
+// list, the BuiltLesson.
+export const LessonDraft = Obj({
+  objectives_ar: Type.Array(Type.String(), {
+    description: "two to four things the learner can do after the lesson, in Arabic",
+  }),
+  sections: Type.Array(
+    Obj({
+      resource_id: Type.String({
+        description: "id of the resource the excerpt is from, copied exactly",
+      }),
+      first_sentence: Type.Integer({
+        description: "the number of the excerpt's first sentence in that resource's numbered text",
+      }),
+      last_sentence: Type.Integer({ description: "the number of its last sentence" }),
+      locator: Type.String({
+        description:
+          "the heading in the resource the excerpt sits under, as the resource writes it",
+      }),
+      arabic: Type.String({ description: "the explanation of the excerpt, in Arabic" }),
+      notes_ar: Type.String({ description: "one practical tip or example, in Arabic" }),
+    }),
+  ),
+  glossary: Type.Array(
+    Obj({
+      lang: SourceLang,
+      term: Type.String({ description: "the term as the source writes it" }),
+      ar: Type.String({ description: "the standard Arabic term, without tashkeel" }),
+      ar_diacritized: Type.String({ description: "the Arabic term with full tashkeel" }),
+      definition_ar: Type.String(),
+      example_ar: Type.String(),
+    }),
+  ),
+});
+
+export const BuiltLesson = Obj({ lesson: Lesson, glossary: Type.Array(GlossaryEntry) });
+
 export const Quiz = Obj({
   id: Type.String(),
   lesson_id: Type.String(),
@@ -315,6 +353,8 @@ export const CONTRACTS = {
   CoursePlan,
   Lesson,
   GlossaryEntry,
+  LessonDraft,
+  BuiltLesson,
   Quiz,
   QuizAttempt,
   Mastery,
@@ -324,7 +364,8 @@ export type ContractName = keyof typeof CONTRACTS;
 
 // Schemas a model fills in through `provider.structured`; each has a recorded smoke test.
 // Resource and ScoutResult are not: the scout builds them in code from model-filled Candidates.
-// Nor is CoursePlan: the architect builds it from a PlanDraft.
+// Nor is CoursePlan: the architect builds it from a PlanDraft. Nor are Lesson and GlossaryEntry:
+// the lesson builder builds them from a LessonDraft.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
   "IntakeReply",
@@ -332,8 +373,7 @@ export const AGENT_OUTPUTS = [
   "ScoutQueries",
   "Candidates",
   "PlanDraft",
-  "Lesson",
-  "GlossaryEntry",
+  "LessonDraft",
   "Quiz",
   "QuizAttempt",
   "CoachEvent",
@@ -352,6 +392,8 @@ export type PlanDraft = Static<typeof PlanDraft>;
 export type CoursePlan = Static<typeof CoursePlan>;
 export type Lesson = Static<typeof Lesson>;
 export type GlossaryEntry = Static<typeof GlossaryEntry>;
+export type LessonDraft = Static<typeof LessonDraft>;
+export type BuiltLesson = Static<typeof BuiltLesson>;
 export type Quiz = Static<typeof Quiz>;
 export type QuizAttempt = Static<typeof QuizAttempt>;
 export type Mastery = Static<typeof Mastery>;

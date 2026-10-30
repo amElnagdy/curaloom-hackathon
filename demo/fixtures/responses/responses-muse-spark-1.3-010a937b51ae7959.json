@@ -1,0 +1,291 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: beginner\nBackground: accountant, excel\nLesson: «ما الجدول المحوري ولماذا يستخدمه محلل البيانات», in the module «الأساسيات: فهم إكسل ومفهوم الجدول المحوري», about 45 minutes of study\n\nCourse glossary so far (source language | source term | Arabic term):\nfr | tableur | برنامج جداول البيانات\nfr | feuille de calcul | ورقة العمل\nfr | cellule | خلية\nfr | tableau croisé dynamique | جدول محوري\nfr | filtrage | تصفية\nfr | tri | فرز\n\nResources:\n\n### r_8babb86b | ru | Сводная таблица\n[1] Сводная таблица — Википедия https://creativecommons.org/licenses/by-sa/4.0/deed.ru Перейти к содержанию Главное меню Главное меню переместить в боковую панель скрыть Навигация Заглавная страница Содержание Избранные статьи Случайная статья Текущие события Участие Сообщить об ошибке Как править статьи Сообщество Форум Справка Свежие правки Новые страницы Служебные страницы На других языках العربية Deutsch English Español فارسی Français Italiano 日本語 한국어 Nederlands Norsk bokmål Polski Simple English Türkçe Українська اردو 粵語 中文 Править ссылки Википедия свободная энциклопедия Поиск Найти Внешний вид Пожертвовать Создать учётную запись Войти Персональные инструменты Пожертвовать Создать учётную запись Войти Содержание переместить в боковую панель скрыть Начало 1 История 2 Пример сводной таблицы 3 Как работает сводная таблица 4 Фильтр Отчёта 5 Названия столбцов 6 Названия строк 7 Суммирование значений 8 Поддержка в приложениях 9 Сводная таблица как клиент к OLAP 10 Примечания 11 Ссылки Отобразить/Скрыть содержание Сводная таблица 18 языков العربية Deutsch English Español فارسی Français Italiano 日本語 한국어 Nederlands Norsk bokmål Polski Simple English Türkçe Українська اردو 粵語 中文 Править ссылки Статья Обсуждение русский Читать Править Править код История Инструменты Инструменты переместить в боковую панель скрыть Действия Читать Править Править код История Основное Ссылки сюда Связанные правки Постоянная ссылка Сведения о странице Цитировать страницу Получить сокращённый URL Переключиться на устаревший парсер Печать/экспорт Скачать как PDF Версия для печати В других проектах Элемент Викиданных Внешний вид переместить в боковую панель скрыть Материал из Википедии — свободной энциклопедии Сводная таблица ( англ.\n[2] Pivot table ) — инструмент обработки данных, служащий для их обобщения.\n[3] Этот инструмент используется, прежде всего, в программах визуализации данных, таких как электронные таблицы или программное обеспечение для бизнес-анализа.\n[4] Кроме того, сводная таблица может автоматически сортировать, рассчитывать суммы или получить среднее значение из данных, записанных в электронной таблице.\n[5] Она отображает результаты во второй таблице (называемой «сводной таблицей») в виде суммированных данных.\n[6] Обычно пользователь настраивает и изменяет структуру сводной таблицы простым перетаскиванием элементов в графическом режиме.\n[7] Термин «сводная таблица» используется различными производителями.\n[8] В США корпорация Microsoft владела (до 3 апреля 2020 г.) торговой маркой конкретного вида сводной таблицы [ 1 ] .\n[9] Сводные таблицы можно рассматривать также как некое упрощение концепции OLAP .\n[10] История [ править | править код ] Первое упоминание о сводных таблицах было в книге «Анализ данных в сводных таблицах» авторов Билла Елена и Майка Александера [ 2 ] .\n[11] Основателем термина «сводная таблица» считается Пито Салас.\n[12] Он разработал первую программу (Lotus Improv), которая помогала пользователям увидеть закономерности в данных электронных таблиц для быстрого построения моделей данных.\n[13] В этой программе пользователь мог определять и сохранять наборы категорий, затем изменять представление с помощью перетаскивания категории мышкой.\n[14] Эта особенность, в дальнейшем, превратилась в базовую для сводных таблиц.\n[15] Lotus Development выпустила программу в 1991 году на платформе NeXT .\n[16] Несколько месяцев спустя, технология появилась на компьютерах Mac и называлась DataPivot [ 3 ] .\n[17] Компания Borland купила технологию DataPivot в 1992 году и внедрила её в свой проект электронных таблиц ( Quattro Pro ).\n[18] В 1993 году, во время того, как появилась версия Improv.\n[19] Эта функциональность была значительно улучшена в последующих версиях Microsoft Excel: Excel 97 включал в себя PivotTable Wizard, который позволял разработчикам писать макросы на языке Visual Basic для создания или модификации сводных таблиц.\n[20] Excel 2000 представил технологию Pivot Charts для графического представления табличных данных.\n[21] Пример сводной таблицы [ править | править код ] Типичное представление и хранение данных представляет собой плоскую таблицу.\n[22] Это означает, что таблица содержит только столбцы (атрибуты) и строки (кортежи соответствующих значений атрибутов), как в нижеприведенном примере, показывающем данные по типам одежды: Region Gender Style Ship date Units Price Cost East Boy Tee 1/31/2005 12 11.04 10.42 East Boy Golf 1/31/2005 12 13 12.6 East Boy Fancy 1/31/2005 12 11.96 11.74 East Girl Tee 1/31/2005 10 11.27 10.56 East Girl Golf 1/31/2005 10 12.12 11.95 East Girl Fancy 1/31/2005 10 13.74 13.33 West Boy Tee 1/31/2005 11 11.44 10.94 West Boy Golf 1/31/2005 11 12.63 11.73 West Boy Fancy 1/31/2005 11 12.06 11.51 West Girl Tee 1/31/2005 15 13.42 13.29 West Girl Golf 1/31/2005 15 11.48 10.67 В то время, как такие таблицы могут содержать большое количество данных, довольно сложно воспринимать какую-то резюмированную информацию по ним.\n[23] Сводная таблица может быстро объединять данные и выделять нужную информацию.\n[24] Использование сводных таблиц очень распространено и зависит от ситуации.\n[25] Первый вопрос, который надо задать перед составлением сводной таблицы: «Что мне нужно получить?» В нижеприведенном примере, вопрос может быть сформулирован следующим образом: «Сколько единиц продукции мы продали в каждом регионе для каждой даты поставки?».\n[26] Сводная таблица обычно содержит строки, колонки и поля данных (или фактов).\n[27] В этом случае, столбец — Ship Date, строка — Region.\n[28] Нужные нам данные — это сумма единиц продукции (sum of Units).\n[29] Эти поля допускают несколько видов функций агрегации, включая суммирование, нахождение среднего, стандартное отклонение , количество элементов и другие.\n[30] В нашем случае, суммарное количество поставленных единиц продукции отражено в виде операции суммирования.\n[31] Как работает сводная таблица [ править | править код ] Используя вышеприведенный пример, программное обеспечение будет искать все различные значения для Региона.\n[32] В этом случае: North, South, East, West.\n[33] Кроме того, оно найдет все различные значения для Ship Date.\n[34] В соответствии с типом агрегации, будет найдена сумма фактов и отражена на многомерном графике.\n[35] В примере, первое значение искомой информации — 66.\n[36] Это число было получено в результате поиска всех записей, где значением региона был East и Ship Date был равен 1/31/2005.\n[37] Затем все единицы продукции из полученной коллекции (ячейки с E2 до E7), были просуммированы в финальный результат.\n[38] Сводные таблицы не создаются автоматически.\n[39] Для начала нужно выбрать все данные в исходной таблице (например, в MS Excel), затем найти функцию вставки сводной таблицы.\n[40] Это создаст список полей сводной таблицы.\n[41] Например, если у нас есть таблица, отражающая данные по продажам компании, которые включают дату продажи, имя продавца, название проданной единицы, её цвет, количество проданных единиц, цену для каждой и суммарную цену.\n[42] Новые поля появятся на правой стороне листа.\n[43] По умолчанию, под этим списком будет размещен макет дизайна сводной таблицы.\n[44] Каждое из полей списка можно будет перетаскивать на этот макет, который будет содержать четыре опции: — Фильтр отчетов; — Название столбцов; — Название строк; — Суммирование значений.\n[45] Фильтр Отчёта [ править | править код ] «Фильтр Отчёта» используется в Excel для применения определенного фильтра ко всей таблице.\n[46] Например, если перетащить поле «Цвет элемента» в данную область, то над созданной таблицы появятся фильтры.\n[47] Этот фильтр имеет выпадающие списки («Чёрный», «Красный» и «Белый» как в приведённом выше примере).\n[48] При выборе определенной опции из списка (например «Чёрный»), видимая область таблицы будет содержать данные только тех строк, в которых «Цвет Элемента = Чёрный».\n[49] Названия столбцов [ править | править код ] «Названия Столбцов» используется в Excel для применения фильтра к одному или нескольким столбцам, которые должны быть представлены в сводной таблице.\n[50] Например, если мы перетащим поле «Sales Person» в данную область, то построенная таблица будет иметь значения из столбца «Sales Person», то есть число столбцов будет равно числу «Sales Person».\n[51] Также будет добавлен столбец «Total».\n[52] Касательно вышеприведенного примера, оператор создаст в таблице 3 столбца — «Harry», «Larry» и «Grand Total».\n[53] Над данными появится фильтр «Названия Столбцов», где можно выбрать или отменить выбор конкретного менеджера по продажам для сводной таблицы.\n[54] Таблица не будет содержать ни численных величин, ни выбранных числовых полей, но при выборе таковых, происходит автоматическое обновление столбца \" Grand Total \".\n[55] Названия строк [ править | править код ] «Названия Строк» используется в Excel для применения фильтра к одной или нескольким строкам, которые должны быть представлены в сводной таблице.\n[56] Например, если мы перетащим поле «Sales Person» в данную область, то построенная таблица будет иметь значения из столбца «Sales Person», то есть число строк будет равно числу «Sales Person».\n[57] Также будет добавлена строка «Total».\n[58] Касательно вышеприведенного примера, данный оператор создаст в таблице 3 строки — «Harry», «Larry» и «Grand Total».\n[59] Над данными появится фильтр «Названия Строк», где можно выбрать или отменить выбор конкретного менеджера по продажам из сводной таблицы.\n[60] Таблица не будет содержать ни численных величин, ни выбранных числовых полей, но при выборе таковых, происходит автоматическое обновление строки \" Grand Total \".\n[61] Суммирование значений [ править | править код ] Как правило, это имеет отношение к полям, имеющим числовые значения и которые могут быть использованы для различных типов вычислений.\n[62] Однако использование текстовых значений также не было бы неправильным, но вместо суммы оператор выдаст их количество.\n[63] Таким образом в вышеприведенном примере, если мы перетащим «Units Sold» в данную область вместе с со строкой «Sales Person», то тогда оператором будет добавлен новый столбец «Sum of Units Sold», содержащий значения напротив каждого продавца.\n[64] Row Labels Sum of Units Sold Harry 14 Larry 18 Grand Total 32 Поддержка в приложениях [ править | править код ] Сводные таблицы в настоящее время рассматриваются как неотъемлемая часть электронных таблиц.\n[65] Конкурирующие с Microsoft Excel программы, такие как LibreOffice Calc , обеспечивают схожий функционал; в OpenOffice.org и LibreOffice вплоть до версии 3.3 сводная таблица называлась DataPilot, а начиная с версии 3.4 DataPilot был переименован в «Сводную Таблицу».\n[66] Другие компании, такие как Quantrix и numberGo, также обеспечивают схожую функциональность.\n[67] Сводная таблица также реализуется как часть инструментов визуализации данных, например, в программах класса business intelligence ( бизнес-аналитика ).\n[68] Google Docs позволяет создавать простые сводные таблицы посредством специальных приложений-гаджетов Panorama Analytics, но к 2011 году их функциональность все еще оставалась ограниченной.\n[69] В мае 2011 года компания Google объявила о развертывании изначально размещенной функции сводных таблиц в электронных таблицах редактора Google [ 4 ] .\n[70] Ajax платформа ZK также позволяет встраивание сводных таблиц в Веб-приложениях.\n[71] PostgreSQL , свободная объектно-реляционная система управления базами данных (СУБД), позволяет создавать сводные таблицы, используя модуль tablefunc [ 5 ] .\n[72] Сводная таблица как клиент к OLAP [ править | править код ] Сводные таблицы в Excel включают в себя функцию прямых запросов к OLAP -серверу для получения данных вместо их агрегирования из таблиц Excel.\n[73] В такой конфигурации сводная таблица является простым клиентом OLAP-сервера.\n[74] Сводная таблица в Excel позволяет подключаться не только к решениям от Microsoft (Analysis Service), но и к любому XML совместимому для аналитики ( XMLA [англ.] , стандарта OLAP) серверу.\n[75] Существуют и другие клиенты OLAP-серверов: JPivot, Dundas, IcCube (Клиентская библиотека).\n[76] Примечания [ править | править код ] ↑ United States Trademark Serial Number 74472929 (27 декабря 1994).\n[77] Дата обращения: 17 февраля 2013.\n[78] Архивировано 4 апреля 2013 года.\n[79] ↑ Jelen, Bill [англ.] ; Alexander, Michael.\n[80] Pivot table data crunching .\n[81] — Indianapolis: Que, 2006.\n[82] — С.\n[83] 274 .\n[84] — ISBN 0-7897-3435-4 .\n[85] ↑ Edholm, Yorgen H.; Edholm; McNall, Kristen N.; Lew, Karl M., Patent #5915257 , Дата обращения: 16 февраля 2010 {{ citation }} : | first1= пропущен | last1= ( справка ) ↑ \"},\"access-date\":{\"wt\":\"2014-03-25\"},\"archive-date\":{\"wt\":\"2014-12-02\"},\"archive-url\":{\"wt\":\"https://web.archive.org/web/20141202192632/http://googledocs.blogspot.com/2011/05/summarize-your-data-with-pivot-tables.html\"},\"url-status\":{\"wt\":\"live\"}},\"i\":0}}]}'> Docs Blog: Summarize your data with pivot tables .\n[86] Дата обращения: 25 марта 2014.\n[87] Архивировано 2 декабря 2014 года.\n[88] ↑ PostgreSQL: Documentation: 9.2: tablefunc .\n[89] Дата обращения: 25 марта 2014.\n[90] Архивировано 9 марта 2018 года.\n[91] Ссылки [ править | править код ] Create your first Pivot Table in 5 minutes!\n[92] Introduction to pivot tables by Microsoft Business Solutions Источник — https://ru.wikipedia.org/w/index.php?title=Сводная_таблица&oldid=142847233 Категории : Microsoft Office Электронные таблицы Скрытые категории: Википедия:Cite web (не указан язык) Страницы, использующие волшебные ссылки ISBN Википедия:Ошибки CS1 (пропущено имя) Страница в последний раз была отредактирована 21 января 2025 года в 16:55.\n[93] Страница была сгенерирована с помощью Parsoid .\n[94] Текст доступен по лицензии Creative Commons «С указанием авторства — С сохранением условий» (CC BY-SA) ; в отдельных случаях могут действовать дополнительные условия.\n[95] Подробнее см.\n[96] Условия использования .\n[97] Wikipedia® — зарегистрированный товарный знак некоммерческой организации «Фонд Викимедиа» (Wikimedia Foundation, Inc.) Политика конфиденциальности Описание Википедии Отказ от ответственности Свяжитесь с нами Контакты по вопросам права и безопасности Кодекс поведения Разработчики Статистика Заявление о куки Мобильная версия Wikimedia Foundation Powered by MediaWiki Поиск Найти Отобразить/Скрыть содержание Сводная таблица 18 языков Добавить тему\n\n### r_9109c80f | en | Pivot table - Wikipedia\n[1] Pivot table - Wikipedia https://creativecommons.org/licenses/by-sa/4.0/deed.en Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Wikipedia The Free Encyclopedia Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 History 2 Mechanics 3 Implementation Toggle Implementation subsection 3.1 Filters 3.2 Columns 3.3 Rows 3.4 Values 4 Application support Toggle Application support subsection 4.1 Spreadsheets 4.2 Database support 4.3 Web applications 4.4 Programming languages and libraries 5 Online analytical processing 6 See also 7 References 8 Further reading Toggle the table of contents Pivot table 18 languages العربية Deutsch Español فارسی Français Italiano 日本語 한국어 Nederlands Norsk bokmål Polski Русский Simple English Türkçe Українська اردو 粵語 中文 Edit links Article Talk English Read Edit View history Tools Tools move to sidebar hide Actions Read Edit View history General What links here Related changes Upload file Permanent link Page information Cite this page Get shortened URL Switch to legacy parser Print/export Download as PDF Printable version In other projects Wikidata item Appearance move to sidebar hide From Wikipedia, the free encyclopedia Table that summarizes data from another table For cross-tabulation that aggregates only by counting (rather than summing, averaging, etc.), see Contingency table .\n[2] For tables used to resolve many-to-many relationships, see Associative entity .\n[3] A pivot table is a table of values which are aggregations of groups of individual values from a more extensive table (such as from a database , spreadsheet , or business intelligence program ) within one or more discrete categories.\n[4] The aggregations or summaries of the groups of the individual terms might include sums, averages, counts, or other statistics.\n[5] A pivot table is the outcome of the statistical processing of tabularized raw data and can be used for decision-making.\n[6] Although pivot table is a generic term, Microsoft held a trademark on the term in the United States from 1994 to 2020.\n[7] [ 1 ] History [ edit ] In their book Pivot Table Data Crunching , [ 2 ] Bill Jelen and Mike Alexander refer to Pito Salas as the \"father of pivot tables\".\n[8] While working on a concept for a new program that would eventually become Lotus Improv , Salas noted that spreadsheets have patterns of data.\n[9] A tool that could help the user recognize these patterns would help to build advanced data models quickly.\n[10] With Improv, users could define and store sets of categories, then change views by dragging category names with the mouse.\n[11] This core functionality would provide the model for pivot tables.\n[12] Lotus Development released Improv in 1991 on the NeXT platform.\n[13] A few months after the release of Improv, Brio Technology published a standalone Macintosh implementation, called DataPivot (with technology eventually patented in 1999).\n[14] [ 3 ] Borland purchased the DataPivot technology in 1992 and implemented it in their own spreadsheet application, Quattro Pro .\n[15] In 1993 the Microsoft Windows version of Improv appeared.\n[16] Early in 1994 Microsoft Excel 5 [ 4 ] brought a new functionality called a \"PivotTable\" to market.\n[17] Microsoft further improved this feature in later versions of Excel: Excel 97 included a new and improved PivotTable Wizard, the ability to create calculated fields, and new pivot cache objects that allow developers to write Visual Basic for Applications macros to create and modify pivot tables Excel 2000 introduced \"Pivot Charts\" to represent pivot-table data graphically Office 365 added the PIVOTBY function to Excel allowing users to create summary of data via a function versus building a Pivot Table.\n[18] [ 5 ] In 2007 Oracle Corporation made PIVOT and UNPIVOT operators available in Oracle Database 11g.\n[19] [ 6 ] Mechanics [ edit ] For typical data entry and storage, data usually appear in flat tables, meaning that they consist of only columns and rows, as in the following portion of a sample spreadsheet showing data on shirt types: A B C D E F G 1 Region Gender Style Ship date Units Price Cost 2 East Boy Tee 2005-01-31 12 11.04 10.42 3 East Boy Golf 2005-01-31 12 13.00 12.60 4 East Boy Fancy 2005-01-31 12 11.96 11.74 5 East Girl Tee 2005-01-31 10 11.27 10.56 6 East Girl Golf 2005-01-31 10 12.12 11.95 7 East Girl Fancy 2005-01-31 10 13.74 13.33 8 West Boy Tee 2005-01-31 11 11.44 10.94 9 West Boy Golf 2005-01-31 11 12.63 11.73 10 West Boy Fancy 2005-01-31 11 12.06 11.51 11 West Girl Tee 2005-01-31 15 13.42 13.29 12 West Girl Golf 2005-01-31 15 11.48 10.67 ⋮ ...\n[20] ...\n[21] ...\n[22] ...\n[23] ...\n[24] ...\n[25] ...\n[26] While tables such as these can contain many data items, it can be difficult to get summarized information from them.\n[27] A pivot table can help quickly summarize the data and highlight the desired information.\n[28] The usage of a pivot table is extremely broad and depends on the situation.\n[29] The first question to ask is, \"What am I seeking?\" In the example here, let us ask, \"How many Units did we sell in each Region for every Ship Date?\n[30] \": Sum of units Ship date ▼ Region ▼ 2005-01-31 2005-02-28 2005-03-31 2005-04-30 2005-05-31 2005-06-30 East 66 80 102 116 127 125 North 96 117 138 151 154 156 South 123 141 157 178 191 202 West 78 97 117 136 150 157 (blank) Grand total 363 435 514 581 622 640 A pivot table usually consists of row , column and data (or fact ) fields.\n[31] In this case, the column is ship date , the row is region and the data we would like to see is (sum of) units .\n[32] These fields allow several kinds of aggregations , including: sum, average, standard deviation , count, etc.\n[33] In this case, the total number of units shipped is displayed here using a sum aggregation.\n[34] Implementation [ edit ] Using the example above, the software will find all distinct values for Region .\n[35] In this case, they are: North , South , East , West .\n[36] Furthermore, it will find all distinct values for Ship date .\n[37] Based on the aggregation type, sum , it will summarize the fact, the quantities of Unit , and display them in a multidimensional chart.\n[38] In the example above, the first datum is 66.\n[39] This number was obtained by finding all records where both Region was East and Ship Date was 2005-01-31 , and adding the Units of that collection of records ( i.e.\n[40] , cells E2 to E7) together to get a final result.\n[41] Pivot tables are not created automatically.\n[42] For example, in Microsoft Excel one must first select all of the data in the original table and then go to the Insert tab and select \"Pivot Table\" (or \"Pivot Chart\").\n[43] The user then has the option of either inserting the pivot table into an existing sheet or creating a new sheet to house the pivot table.\n[44] A pivot table field list is provided to the user which lists all the column headers present in the data.\n[45] For instance, if a table represents sales data of a company, it might include Date of sale, Sales person, Item sold, Color of item, Units sold, Per unit price, and Total price.\n[46] This makes the data more readily accessible.\n[47] Date of sale Sales person Item sold Color of item Units sold Per unit price Total price 2013-10-01 Jones Notebook Black 8 25 000 200 000 2013-10-02 Prince Laptop Red 4 35 000 140 000 2013-10-03 George Mouse Red 6 850 5100 2013-10-04 Larry Notebook White 10 27 000 270 000 2013-10-05 Jones Mouse Black 4 700 2800 A LibreOffice Calc pivot table and its dialog with inspected fields circled The fields that would be created will be visible on the right hand side of the worksheet.\n[48] By default, the pivot table layout design will appear below this list.\n[49] Pivot Table fields are the building blocks of pivot tables.\n[50] Each of the fields from the list can be dragged on to this layout, which has four options: Filters Columns Rows Values Some uses of pivot tables are related to the analysis of questionnaires with optional responses but some implementations of pivot tables do not allow these use cases.\n[51] For example the implementation in LibreOffice Calc since 2012 is not able to process empty cells.\n[52] [ 7 ] [ 8 ] Filters [ edit ] Report filter is used to apply a filter to an entire table.\n[53] For example, if the \"Color of Item\" field is dragged to this area, then the table constructed will have a report filter inserted above the table.\n[54] This report filter will have drop-down options (Black, Red, and White in the example above).\n[55] When an option is chosen from this drop-down list (\"Black\" in this example), then the table that would be visible will contain only the data from those rows that have the \"Color of Item= Black\".\n[56] Columns [ edit ] Column labels are used to apply a filter to one or more columns that have to be shown in the pivot table.\n[57] For instance if the \"Salesperson\" field is dragged to this area, then the table constructed will have values from the column \"Sales Person\", i.e.\n[58] , one will have a number of columns equal to the number of \"Salesperson\".\n[59] There will also be one added column of Total.\n[60] In the example above, this instruction will create five columns in the table — one for each salesperson, and Grand Total.\n[61] There will be a filter above the data — column labels — from which one can select or deselect a particular salesperson for the pivot table.\n[62] This table will not have any numerical values as no numerical field is selected but when it is selected, the values will automatically get updated in the column of \"Grand total\".\n[63] Rows [ edit ] Row labels are used to apply a filter to one or more rows that have to be shown in the pivot table.\n[64] For instance, if the \"Salesperson\" field is dragged on this area then the other output table constructed will have values from the column \"Salesperson\", i.e.\n[65] , one will have a number of rows equal to the number of \"Sales Person\".\n[66] There will also be one added row of \"Grand Total\".\n[67] In the example above, this instruction will create five rows in the table — one for each salesperson, and Grand Total.\n[68] There will be a filter above the data — row labels — from which one can select or deselect a particular salesperson for the Pivot table.\n[69] This table will not have any numerical values, as no numerical field is selected, but when it is selected, the values will automatically get updated in the Row of \"Grand Total\".\n[70] Values [ edit ] This usually takes a field that has numerical values that can be used for different types of calculations.\n[71] However, using text values would also not be wrong; instead of Sum, it will give a count.\n[72] So, in the example above, if the \"Units sold\" field is dragged to this area along with the row label of \"Salesperson\", then the instruction will add a new column, \"Sum of units sold\", which will have values against each salesperson.\n[73] Row labels Sum of units sold Jones 12 Prince 4 George 6 Larry 10 Grand total 32 Application support [ edit ] Pivot tables or pivot functionality are an integral part of many spreadsheet applications and some database software , as well as being found in other data visualization tools and business intelligence packages.\n[74] Spreadsheets [ edit ] Microsoft Excel supports PivotTables, which can be visualized through PivotCharts.\n[75] [ 9 ] Apache POI [ 10 ] LibreOffice Calc and Openoffice Calc support pivot tables.\n[76] Prior to version 3.4, this feature was named \"DataPilot\".\n[77] [ citation needed ] Calligra Sheets supports pivot tables.\n[78] [ 11 ] Google Sheets natively supports pivot tables.\n[79] [ 12 ] Numbers , from Apple Inc.\n[80] , gained pivot table support in version 11.2.\n[81] [ 13 ] Database support [ edit ] PostgreSQL , an object–relational database management system , allows the creation of pivot tables using the tablefunc module.\n[82] [ 14 ] MariaDB , a MySQL fork, allows pivot tables using the CONNECT storage engine.\n[83] [ 15 ] Microsoft Access supports pivot queries under the name \"crosstab\" query.\n[84] [ citation needed ] Microsoft SQL Server supports pivot as of SQL Server 2016 with the FROM...PIVOT keywords [ 16 ] Oracle Database supports the PIVOT operation.\n[85] [ citation needed ] Some popular databases that do not directly support pivot functionality, such as SQLite , can usually simulate pivot functionality using embedded functions, dynamic SQL or subqueries.\n[86] The issue with pivoting in such cases is usually that the number of output columns must be known at the time the query starts to execute; for pivoting this is not possible as the number of columns is based on the data itself.\n[87] Therefore, the names must be hard coded or the query to be executed must itself be created dynamically (meaning, prior to each use) based upon the data.\n[88] [ citation needed ] Web applications [ edit ] Several JavaScript UI frameworks and web application libraries provide components for embedding pivot tables in web applications.\n[89] ZK, an Ajax framework, allows embedding pivot tables in web applications.[citation needed] Webix , a JavaScript UI library, includes a Pivot component for embedding interactive pivot table functionality in web applications.\n[90] [ 17 ] Programming languages and libraries [ edit ] Programming languages and libraries suited to work with tabular data contain functions that allow the creation and manipulation of pivot tables.\n[91] Python data analysis toolkit pandas has the function pivot_table [ 18 ] and the xs method useful to obtain sections of pivot tables.\n[92] [ citation needed ] R has the Tidyverse metapackage, which contains a collection of tools providing pivot table functionality, [ 19 ] [ 20 ] as well as the pivottabler package.\n[93] [ 21 ] The example specific to this article can be implemented in tidyr (in the Tidyverse metapackage) directly via the pivot_wider function.\n[94] [ 22 ] Online analytical processing [ edit ] Excel pivot tables include the feature to directly query an online analytical processing (OLAP) server for retrieving data instead of getting the data from an Excel spreadsheet.\n[95] On this configuration, a pivot table is a simple client of an OLAP server.\n[96] Excel's PivotTable not only allows for connecting to Microsoft's Analysis Service, but to any XML for Analysis (XMLA) OLAP standard-compliant server.\n[97] See also [ edit ] Aggregate function Business reporting Comparison of office suites Comparison of OLAP servers Contingency table , a crosstab that tallies counts, rather than totals Data drilling Data mining Data visualization Data warehouse Extract, transform, load Fold (higher-order function) OLAP cube Relational algebra Wide and narrow data References [ edit ] ↑ \"United States Trademark Serial Number 74472929\" .\n[98] December 27, 1994 .\n[99] Retrieved March 23, 2022 .\n[100] ↑ Jelen, Bill ; Alexander, Michael (2006).\n[101] Pivot table data crunching .\n[102] Indianapolis: Que.\n[103] pp.\n[104] 274 .\n[105] ISBN 0-7897-3435-4 .\n[106] ↑ Gartung, Daniel L.; Edholm, Yorgen H.; Edholm, Kay-Martin; McNall, Kristen N.; Lew, Karl M., Patent #5915257 , retrieved February 16, 2010 ↑ Darlington, Keith (August 6, 2012).\n[107] VBA For Excel Made Simple .\n[108] Routledge (published 2012).\n[109] p.\n[110] 19.\n[111] ISBN 9781136349775 .\n[112] Retrieved September 10, 2014 .\n[113] [...] Excel 5, released in early 1994, included the first version of VBA.\n[114] ↑ \"PIVOTBY function - Microsoft Support\" .\n[115] support.microsoft.com .\n[116] Retrieved May 9, 2025 .\n[117] ↑ Shah, Sharanam; Shah, Vaishali (2008).\n[118] Oracle for Professionals – Covers Oracle 9i, 10g and 11g .\n[119] Shroff Publishing Series.\n[120] Navi Mumbai: Shroff Publishers (published July 2008).\n[121] p.\n[122] 549.\n[123] ISBN 9788184045260 .\n[124] Retrieved September 10, 2014 .\n[125] One of the most useful new features of the Oracle Database 11g from the SQL perspective is the introduction of Pivot and Unpivot operators.\n[126] ↑ \"LibreOffice Calc and Pivot table with empty cells\" .\n[127] StackOverflow .\n[128] June 17, 2021 .\n[129] Retrieved June 17, 2021 .\n[130] ↑ \"Functionality request for PIVOTTABLE\" .\n[131] LibreOffice bugs .\n[132] March 19, 2012 .\n[133] Retrieved June 17, 2021 .\n[134] ↑ Dalgleish, Debra (2007).\n[135] Beginning PivotTables in Excel 2007: From Novice to Professional .\n[136] Apress.\n[137] pp.\n[138] 233– 257.\n[139] ISBN 9781430204336 .\n[140] Retrieved September 18, 2018 .\n[141] ↑ \"Busy Developers' Guide to HSSF and XSSF Features\" .\n[142] poi.apache.org .\n[143] Retrieved December 9, 2022 .\n[144] ↑ \"Pivot Tables\" .\n[145] ↑ \"Create & use pivot tables\" .\n[146] Docs Editors Help .\n[147] Google Inc .\n[148] Retrieved August 6, 2020 .\n[149] ↑ \"iWork update brings major changes to Mac, iPhone, and iPad apps\" .\n[150] Macworld .\n[151] Retrieved September 28, 2021 .\n[152] ↑ \"PostgreSQL: Documentation: 9.2: tablefunc\" .\n[153] postgresql.org .\n[154] November 9, 2017.\n[155] ↑ \"CONNECT Table Types – PIVOT Table Type\" .\n[156] mariadb.com .\n[157] ↑ \"FROM clause plus JOIN, APPLY, PIVOT (T-SQL) – SQL Server\" .\n[158] ↑ \"Webix Pivot documentation\" .\n[159] Webix Docs .\n[160] Retrieved March 16, 2026 .\n[161] ↑ \"pandas.pivot_table\" .\n[162] Retrieved November 21, 2023 .\n[163] ↑ dplyr and Pivot Tables .\n[164] ↑ Pivoting .\n[165] ↑ \"pivottabler\" .\n[166] ↑ \"pivoting in tidyr\" .\n[167] Retrieved October 12, 2025 .\n[168] Further reading [ edit ] A Complete Guide to PivotTables: A Visual Approach ( ISBN 1-59059-432-0 ) (in-depth review at slashdot.org) Excel 2007 PivotTables and PivotCharts: Visual blueprint ( ISBN 978-0-470-13231-9 ) Pivot Table Data Crunching (Business Solutions) ( ISBN 0-7897-3435-4 ) Beginning Pivot Tables in Excel 2007 ( ISBN 1-59059-890-3 ) Retrieved from \" https://en.wikipedia.org/w/index.php?title=Pivot_table&oldid=1380518523 \" Categories : Data analysis Tables (information) Microsoft Office Spreadsheet software 1991 introductions Hidden categories: Articles with short description Short description is different from Wikidata Use mdy dates from August 2024 All articles with unsourced statements Articles with unsourced statements from November 2022 Articles with unsourced statements from November 2023 This page was last edited on 16 October 2026, at 05:56 (UTC) .\n[169] Page was rendered with Parsoid .\n[170] Text is available under the Creative Commons Attribution-ShareAlike 4.0 License ; additional terms may apply.\n[171] By using this site, you agree to the Terms of Use and Privacy Policy .\n[172] Wikipedia® is a registered trademark of the Wikimedia Foundation, Inc.\n[173] , a non-profit organization.\n[174] Privacy policy About Wikipedia Disclaimers Contact Wikipedia Legal & safety contacts Code of Conduct Developers Statistics Cookie statement Mobile view Wikimedia Foundation Powered by MediaWiki Search Search Toggle the table of contents Pivot table 18 languages Add topic",
+      "instructions": "You write one lesson of a personal course for an adult Arabic-speaking learner, taught from the openly licensed resources given with their text. Write 3 to 5 sections. Each section quotes one run of consecutive sentences of one resource, named by the numbers of its first and last sentence in the resource's numbered text below, 40 to 250 words in all; never quote menus, footers or licence notices. Its locator is the heading of the resource the passage sits under. Beside each excerpt, explain it in clear Modern Standard Arabic for this learner: what it says and why it matters for their goal, with an example from their background, in Arabic words only; any word in another language goes in brackets. Do not translate the excerpt line by line. Add one practical tip in notes_ar. List 5 to 8 key terms in the glossary, each in a language this lesson quotes, with that language and the term as the quoted source writes it, the standard Arabic term without tashkeel, the same term with full tashkeel, a one-sentence Arabic definition and an Arabic example. In each section's explanation, introduce each glossary term it uses at its first mention there as the Arabic term from the glossary followed by the source term in brackets, e.g. الجدول المحوري (pivot table), choosing a place where that form fits the sentence; after that, write the term in Arabic only, in whatever form the sentence needs, such as a plural. A term already in the course glossary keeps the Arabic term given there, and so does the same concept in another language. The objectives are two to four things the learner can do after the lesson.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "LessonDraft",
+          "schema": {
+            "type": "object",
+            "required": [
+              "objectives_ar",
+              "sections",
+              "glossary"
+            ],
+            "properties": {
+              "objectives_ar": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "two to four things the learner can do after the lesson, in Arabic"
+              },
+              "sections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "resource_id",
+                    "first_sentence",
+                    "last_sentence",
+                    "locator",
+                    "arabic",
+                    "notes_ar"
+                  ],
+                  "properties": {
+                    "resource_id": {
+                      "type": "string",
+                      "description": "id of the resource the excerpt is from, copied exactly"
+                    },
+                    "first_sentence": {
+                      "type": "integer",
+                      "description": "the number of the excerpt's first sentence in that resource's numbered text"
+                    },
+                    "last_sentence": {
+                      "type": "integer",
+                      "description": "the number of its last sentence"
+                    },
+                    "locator": {
+                      "type": "string",
+                      "description": "the heading in the resource the excerpt sits under, as the resource writes it"
+                    },
+                    "arabic": {
+                      "type": "string",
+                      "description": "the explanation of the excerpt, in Arabic"
+                    },
+                    "notes_ar": {
+                      "type": "string",
+                      "description": "one practical tip or example, in Arabic"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "glossary": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "lang",
+                    "term",
+                    "ar",
+                    "ar_diacritized",
+                    "definition_ar",
+                    "example_ar"
+                  ],
+                  "properties": {
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "term": {
+                      "type": "string",
+                      "description": "the term as the source writes it"
+                    },
+                    "ar": {
+                      "type": "string",
+                      "description": "the standard Arabic term, without tashkeel"
+                    },
+                    "ar_diacritized": {
+                      "type": "string",
+                      "description": "the Arabic term with full tashkeel"
+                    },
+                    "definition_ar": {
+                      "type": "string"
+                    },
+                    "example_ar": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "LessonDraft",
+        "schema": {
+          "required": [
+            "objectives_ar",
+            "sections",
+            "glossary"
+          ],
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "glossary": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "ar": {
+                    "description": "the standard Arabic term, without tashkeel",
+                    "type": "string"
+                  },
+                  "ar_diacritized": {
+                    "description": "the Arabic term with full tashkeel",
+                    "type": "string"
+                  },
+                  "definition_ar": {
+                    "type": "string"
+                  },
+                  "example_ar": {
+                    "type": "string"
+                  },
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "term": {
+                    "description": "the term as the source writes it",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "lang",
+                  "term",
+                  "ar",
+                  "ar_diacritized",
+                  "definition_ar",
+                  "example_ar"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "objectives_ar": {
+              "description": "two to four things the learner can do after the lesson, in Arabic",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "sections": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "arabic": {
+                    "description": "the explanation of the excerpt, in Arabic",
+                    "type": "string"
+                  },
+                  "first_sentence": {
+                    "description": "the number of the excerpt's first sentence in that resource's numbered text",
+                    "type": "integer"
+                  },
+                  "last_sentence": {
+                    "description": "the number of its last sentence",
+                    "type": "integer"
+                  },
+                  "locator": {
+                    "description": "the heading in the resource the excerpt sits under, as the resource writes it",
+                    "type": "string"
+                  },
+                  "notes_ar": {
+                    "description": "one practical tip or example, in Arabic",
+                    "type": "string"
+                  },
+                  "resource_id": {
+                    "description": "id of the resource the excerpt is from, copied exactly",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "resource_id",
+                  "first_sentence",
+                  "last_sentence",
+                  "locator",
+                  "arabic",
+                  "notes_ar"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae4d818fa674b217c2b49f8",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793382423,
+    "completed_at": 1793382424,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae4d818fa674b217c2b49f8:rs_f0a08d79-eef1-45fa-8dbc-c80c233594e0",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_5cad0265-7922-46d8-b859-fa9ba508e541",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"glossary\": [{\"ar\": \"جدول محوري\", \"ar_diacritized\": \"جَدْوَلٌ مِحْوَرِيٌّ\", \"definition_ar\": \"هو تقرير ملخص يجمع البيانات الكثيرة حسب الفئات ليعطي الإجماليات والمؤشرات.\", \"example_ar\": \"أنشأ المحاسب جدولا محوريا ليعرف إجمالي المبيعات في كل منطقة.\", \"lang\": \"en\", \"term\": \"pivot table\"}, {\"ar\": \"صف\", \"ar_diacritized\": \"صَفٌّ\", \"definition_ar\": \"هو الخط الأفقي في الجدول الذي يعرض بيانات عنصر واحد.\", \"example_ar\": \"كل صف في التقرير يعرض مبيعات منطقة واحدة.\", \"lang\": \"en\", \"term\": \"row\"}, {\"ar\": \"عمود\", \"ar_diacritized\": \"عَمُودٌ\", \"definition_ar\": \"هو الخط العمودي في الجدول الذي يعرض نوعا واحدا من البيانات.\", \"example_ar\": \"كل عمود في التقرير يعرض مبيعات تاريخ واحد.\", \"lang\": \"en\", \"term\": \"column\"}, {\"ar\": \"تصفية\", \"ar_diacritized\": \"تَصْفِيَةٌ\", \"definition_ar\": \"هي إظهار جزء محدد من البيانات وإخفاء الباقي مؤقتا.\", \"example_ar\": \"استخدمت التصفية لعرض مبيعات اللون الأسود فقط.\", \"lang\": \"en\", \"term\": \"filter\"}, {\"ar\": \"قيمة\", \"ar_diacritized\": \"قِيمَةٌ\", \"definition_ar\": \"هي الرقم الذي نجري عليه الحساب مثل عدد الوحدات وسعرها.\", \"example_ar\": \"وضع المحلل عدد الوحدات في منطقة القيم ليحسب الإجمالي.\", \"lang\": \"en\", \"term\": \"values\"}, {\"ar\": \"مجموع\", \"ar_diacritized\": \"مَجْمُوعٌ\", \"definition_ar\": \"هو ناتج جمع الأرقام كلها معا.\", \"example_ar\": \"حسب الجدول مجموع مبيعات كل مندوب على حدة.\", \"lang\": \"en\", \"term\": \"Sum\"}], \"objectives_ar\": [\"يشرح المتعلم ما هو الجدول المحوري ولماذا يفيد محلل البيانات في تلخيص البيانات.\", \"يحدد المتعلم سؤالا تحليليا واضحا ويوزع الحقول على الصفوف والأعمدة.\", \"ينشئ المتعلم جدولا محوريا بسيطا ويستخدم التصفية والقيم لاستخراج الإجماليات.\"], \"sections\": [{\"arabic\": \"يشرح هذا المقطع أن جداول التسجيل العادية تكون مسطحة وكثيرة التفاصيل فيصعب استخراج الخلاصة منها، وهنا تظهر فائدة الجدول المحوري (pivot table) الذي يلخص البيانات بسرعة ويبرز المعلومة المطلوبة. الفكرة المهمة لمحلل البيانات هي أن تبدأ بسؤال واضح مثل كم بعنا في كل منطقة حسب تاريخ الشحن، ثم تضع التواريخ في العمود (column) والمناطق في الصف (row). فالصف يجمع مبيعات منطقة واحدة معا والعمود يجمع مبيعات تاريخ واحد معا، وهذا يشبه عملك كمحاسب عندما تجمع قيود دفتر اليومية حسب الحساب والشهر لتعرف الإجمالي بسرعة دون مراجعة كل قيد. بعد هذا التلخيص يصبح اتخاذ القرار أسهل لأنك ترى الصورة الكاملة في جدول صغير.\", \"first_sentence\": 26, \"last_sentence\": 30, \"locator\": \"Mechanics [ edit ]\", \"notes_ar\": \"اختر جدول مبيعات صغير من عملك واكتب سؤالا واحدا يبدأ بكم ثم حدد ما الذي سيذهب إلى الصفوف وما الذي سيذهب إلى الأعمدة قبل فتح البرنامج.\", \"resource_id\": \"r_9109c80f\"}, {\"arabic\": \"يوضح هذا المقطع أن الجدول المحوري (pivot table) لا ينشأ من تلقاء نفسه بل بخطوات بسيطة داخل برنامج الجداول، فتحدد أولا كامل بيانات المبيعات ثم تختار أمر الإدراج ثم إنشاء الجدول في ورقة جديدة أو موجودة. بعد ذلك تظهر لك قائمة الحقول التي تعرض أسماء الأعمدة الأصلية مثل تاريخ البيع واسم البائع والصنف المباع وسعر الوحدة. هذه القائمة تشبه دليل الحسابات عندك كمحاسب، فأنت تسحب كل حقل إلى مكانه المناسب في التصميم لتبني التقرير. أهمية ذلك لمحلل البيانات أنه يحول البيانات الخام المبعثرة إلى هيكل جاهز للتحليل دون كتابة معادلات معقدة في البداية.\", \"first_sentence\": 41, \"last_sentence\": 46, \"locator\": \"Implementation [ edit ]\", \"notes_ar\": \"افتح نسخة تجريبية من بياناتك في (Excel) وحدد الجدول كاملا ثم أنشئ جدولا محوريا في ورقة جديدة وتعرف على قائمة الحقول بالسحب فقط دون خوف من الخطأ.\", \"resource_id\": \"r_9109c80f\"}, {\"arabic\": \"يشرح هذا المقطع كيف تساعد التصفية (filter) على عرض جزء محدد من الجدول المحوري (pivot table) دون تغيير البيانات الأصلية. فعند سحب حقل لون الصنف إلى منطقة التصفية يظهر أعلى التقرير قائمة منسدلة فيها الأسود والأحمر والأبيض، وعند اختيار الأسود تظهر فقط السجلات التي لونها أسود. هذا مفيد جدا للمحاسب الذي يريد مراجعة مبيعات فرع واحد أو صنف واحد من دفتر كبير، ولمحلل البيانات الذي يريد مقارنة شريحة معينة قبل عرض النتيجة على الإدارة. بهذه الطريقة تجيب عن أسئلة دقيقة بسرعة وتبقي التقرير نظيفا ومركزا.\", \"first_sentence\": 52, \"last_sentence\": 55, \"locator\": \"Filters [ edit ]\", \"notes_ar\": \"جرب سحب حقل واحد إلى منطقة التصفية ثم اختر قيمة واحدة وراقب كيف يتغير التقرير، ثم امسح التصفية لتعود إلى الصورة الكاملة.\", \"resource_id\": \"r_9109c80f\"}, {\"arabic\": \"يوضح هذا المقطع أن القيمة (values) هي الحقل الرقمي الذي يجري عليه الحساب داخل الجدول المحوري (pivot table)، مثل عدد الوحدات المباعة أو سعر الوحدة. فإذا وضعت اسم البائع في جانب العرض ووضعت الوحدات المباعة في جانب القيم تحصل على حقل جديد فيه المجموع (Sum) لكل بائع، وإذا كانت البيانات نصية تحصل بدلا من ذلك على العدد. هذا يشبه عملك كمحاسب عندما تجمع إجمالي المبيعات لكل مندوب لتعرف من حقق أعلى أداء، وهو أساس عمل محلل البيانات الذي يحول الأرقام الكثيرة إلى مؤشرات واضحة مثل الإجمالي والمتوسط والعدد. فهم هذه الفكرة يجعلك تختار الحساب الصحيح لكل سؤال.\", \"first_sentence\": 70, \"last_sentence\": 72, \"locator\": \"Values [ edit ]\", \"notes_ar\": \"ضع نفس حقل الوحدات المباعة مرتين مرة لحساب المجموع ومرة لحساب العدد وقارن بين النتيجتين لتفهم الفرق عمليا.\", \"resource_id\": \"r_9109c80f\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You write one lesson of a personal course for an adult Arabic-speaking learner, taught from the openly licensed resources given with their text. Write 3 to 5 sections. Each section quotes one run of consecutive sentences of one resource, named by the numbers of its first and last sentence in the resource's numbered text below, 40 to 250 words in all; never quote menus, footers or licence notices. Its locator is the heading of the resource the passage sits under. Beside each excerpt, explain it in clear Modern Standard Arabic for this learner: what it says and why it matters for their goal, with an example from their background, in Arabic words only; any word in another language goes in brackets. Do not translate the excerpt line by line. Add one practical tip in notes_ar. List 5 to 8 key terms in the glossary, each in a language this lesson quotes, with that language and the term as the quoted source writes it, the standard Arabic term without tashkeel, the same term with full tashkeel, a one-sentence Arabic definition and an Arabic example. In each section's explanation, introduce each glossary term it uses at its first mention there as the Arabic term from the glossary followed by the source term in brackets, e.g. الجدول المحوري (pivot table), choosing a place where that form fits the sentence; after that, write the term in Arabic only, in whatever form the sentence needs, such as a plural. A term already in the course glossary keeps the Arabic term given there, and so does the same concept in another language. The objectives are two to four things the learner can do after the lesson.",
+    "usage": {
+      "input_tokens": 9153,
+      "input_tokens_details": {
+        "cached_tokens": 113
+      },
+      "output_tokens": 11402,
+      "output_tokens_details": {
+        "reasoning_tokens": 9704
+      },
+      "total_tokens": 20555
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 73463
+}

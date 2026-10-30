@@ -59,15 +59,10 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
     instructions: ARABIC,
     input: `${LEARNER} المصادر: r1 (مقال إنجليزي عن الجداول المحورية)، r2 (كتاب روسي عن الإحصاء الوصفي). ضع طريقًا من 3 وحدات، ودروس الأسبوعين الأولين فقط بجلسات من 40 دقيقة في الأيام 0 إلى 13.`,
   },
-  Lesson: {
+  LessonDraft: {
     role: "agent_default",
     instructions: ARABIC,
-    input: `${LEARNER} اكتب درسًا قصيرًا عن الجدول المحوري بقسم واحد، مع مقتطف إنجليزي قصير من المصدر r1.`,
-  },
-  GlossaryEntry: {
-    role: "agent_default",
-    instructions: ARABIC,
-    input: "أنشئ مدخل مسرد للمصطلح الإنجليزي pivot table بالعربية مع التشكيل الكامل.",
+    input: `${LEARNER} اكتب درسًا قصيرًا عن الجدول المحوري بقسم واحد يقتبس الجملتين 1 و2 من المصدر r1، ومدخل مسرد واحد للمصطلح pivot table بالعربية مع التشكيل الكامل.\n\n### r1 | en | Pivot table\n[1] A pivot table is a table of values which are aggregations of groups of individual values from a more extensive table.\n[2] It lets the user summarize the data by the categories they choose.`,
   },
   Quiz: {
     role: "agent_default",

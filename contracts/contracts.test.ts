@@ -39,6 +39,8 @@ describe("contracts", () => {
         "GlossaryEntry",
         "LearnerProfile",
         "Lesson",
+        "LessonDraft",
+        "BuiltLesson",
         "Mastery",
         "Quiz",
         "QuizAttempt",

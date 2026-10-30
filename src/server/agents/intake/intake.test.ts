@@ -3,20 +3,24 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  type CoursePlan,
   contractErrors,
   type Diagnostic,
   type IntakeReply,
   LearnerProfile,
+  type Lesson,
 } from "../../../../contracts/index.ts";
 import { loadConfig } from "../../../config.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
-import { createFileCache, createFileStore } from "../../store/store.ts";
+import { createFileCache, createFileStore, type Store } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
 import { createPlanner } from "../architect/architect.ts";
 import { planViolations } from "../architect/rules.ts";
+import { createLessonBuilder } from "../lesson/lesson.ts";
+import { wordCount } from "../lesson/rules.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
 import { DONT_KNOW } from "./diagnostic.ts";
 import { createIntake, IntakeConflict, savedProfile } from "./intake.ts";
@@ -393,40 +397,9 @@ describe("intake, replaying Omar's recorded interview", () => {
 
   // The demo's path: the plan page builds on the profile the interview saved, not on the seed's.
   it("plans his course from the profile his interview saved", async () => {
-    const { store, cache, orchestrator } = await interview();
-    const pages = createPageFetcher({
-      profile: recording ? "record" : "replay",
-      userAgent: `${loadConfig(process.env).appName}-scout/0.1 (checks the licence of open learning resources)`,
-      transport: recording
-        ? undefined
-        : async () => {
-            throw new Error("replay must not touch the network");
-          },
-    });
-    const planner = createPlanner({
-      orchestrator,
-      store,
-      tracer: createTracer(store, "s1"),
-      sessionId: "s1",
-      profile: () => {
-        const profile = savedProfile(store, "s1");
-        if (!profile) throw new Error("the interview saved no profile");
-        return profile;
-      },
-      findResources: async (learner) =>
-        (
-          await runScout({
-            orchestrator,
-            sessionId: "s1",
-            brief: scoutBrief(learner),
-            pages,
-            cache,
-          })
-        ).resources,
-    });
+    const { store, saved } = await planned();
 
-    const { versions, resources, limits } = await planner.build();
-
+    const { versions, resources, limits } = saved;
     const [plan] = versions;
     if (!plan) throw new Error("no plan");
     expect(limits.budget_minutes).toBe(5 * 60);
@@ -437,13 +410,95 @@ describe("intake, replaying Omar's recorded interview", () => {
       expect(session.resource_ids.length).toBeGreaterThan(0);
       for (const id of session.resource_ids) expect(found).toContain(id);
     }
-    const models = store
-      .readTrace<TraceEvent>("s1")
-      .filter((e) => e.agent === "architect" && e.kind === "model_call")
-      .map((e) => e.model);
     // Wonder's first reply in this recording broke the rules and the retry kept them; a re-record
     // may need one attempt or two.
-    expect(models.length).toBeGreaterThan(0);
-    expect(new Set(models)).toEqual(new Set(["muse-wonder-1.0"]));
+    expect(modelsOf(store, "architect").length).toBeGreaterThan(0);
+    expect(new Set(modelsOf(store, "architect"))).toEqual(new Set(["muse-wonder-1.0"]));
+  }, 600_000);
+
+  // The plan page starts the first lesson once the plan is ready; later lessons share its glossary.
+  it("writes his first two lessons from the plan, one glossary for both", async () => {
+    const { store, orchestrator, pages, saved } = await planned();
+    const builder = createLessonBuilder({
+      orchestrator,
+      store,
+      sessionId: "s1",
+      pages,
+      profile: () => savedProfile(store, "s1") as LearnerProfile,
+    });
+    const plan = saved.versions[0] as CoursePlan;
+    const [first, second] = plan.committed.lessons.map((l) => l.id);
+    if (!first || !second) throw new Error("the plan has fewer than two lessons");
+
+    const afterFirst = await builder.build(first);
+    const afterSecond = await builder.build(second);
+
+    for (const id of [first, second]) {
+      const lesson = afterSecond.lessons[id] as Lesson;
+      const resources = new Set(
+        plan.committed.sessions.filter((s) => s.lesson_id === id).flatMap((s) => s.resource_ids),
+      );
+      expect(lesson.sections.length).toBeGreaterThanOrEqual(3);
+      for (const { source_excerpt: excerpt } of lesson.sections) {
+        expect(resources).toContain(excerpt.resource_id);
+        expect(wordCount(excerpt.text)).toBeLessThanOrEqual(300);
+        expect(excerpt.locator).not.toBe("");
+      }
+      expect(lesson.glossary_ids.length).toBeGreaterThanOrEqual(5);
+      const quoted = new Set(lesson.sections.map((s) => s.source_excerpt.lang));
+      for (const term of afterSecond.glossary.filter((e) => lesson.glossary_ids.includes(e.id))) {
+        expect(quoted).toContain(term.src.lang);
+      }
+      expect(afterSecond.glossary.map((e) => e.id)).toEqual(
+        expect.arrayContaining(lesson.glossary_ids),
+      );
+    }
+    // The second lesson leaves the first's entries as they were, and each source term has one entry.
+    expect(afterSecond.glossary.slice(0, afterFirst.glossary.length)).toEqual(afterFirst.glossary);
+    const terms = afterSecond.glossary.map((e) => `${e.src.lang}:${e.src.term.toLowerCase()}`);
+    expect(new Set(terms).size).toBe(terms.length);
+    expect(new Set(modelsOf(store, "lesson_builder"))).toEqual(new Set(["muse-spark-1.3"]));
   }, 600_000);
 });
+
+const modelsOf = (store: Store, agent: string) =>
+  store
+    .readTrace<TraceEvent>("s1")
+    .filter((e) => e.agent === agent && e.kind === "model_call")
+    .map((e) => e.model);
+
+// Omar's interview, then his plan, as the plan page builds it.
+async function planned() {
+  const { store, cache, orchestrator } = await interview();
+  const pages = createPageFetcher({
+    profile: recording ? "record" : "replay",
+    userAgent: `${loadConfig(process.env).appName}-scout/0.1 (checks the licence of open learning resources)`,
+    transport: recording
+      ? undefined
+      : async () => {
+          throw new Error("replay must not touch the network");
+        },
+  });
+  const planner = createPlanner({
+    orchestrator,
+    store,
+    tracer: createTracer(store, "s1"),
+    sessionId: "s1",
+    profile: () => {
+      const profile = savedProfile(store, "s1");
+      if (!profile) throw new Error("the interview saved no profile");
+      return profile;
+    },
+    findResources: async (learner) =>
+      (
+        await runScout({
+          orchestrator,
+          sessionId: "s1",
+          brief: scoutBrief(learner),
+          pages,
+          cache,
+        })
+      ).resources,
+  });
+  return { store, orchestrator, pages, saved: await planner.build() };
+}
