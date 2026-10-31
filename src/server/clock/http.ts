@@ -49,7 +49,15 @@ const ConsentBody = Type.Object(
   { additionalProperties: false },
 );
 
-export class BadRequest extends Error {}
+// A request the route refuses before any work: 400, or 413 for a body over MAX_BODY_BYTES.
+export class BadRequest extends Error {
+  status: 400 | 413;
+
+  constructor(message: string, status: 400 | 413 = 400) {
+    super(message);
+    this.status = status;
+  }
+}
 
 // A 409 that clears by waiting: another request is still building what this one asks for. The page
 // asks again after Retry-After; a 409 without it, such as one before there is a plan, does not clear.
@@ -75,7 +83,8 @@ const ACTIONS: Record<string, (sim: Sim, body: unknown) => Promise<SimResult>> =
 
 // Every state-changing route reads its body here. There are no accounts yet, so a request from
 // another site is refused, and the body must be typed as JSON: a cross-site form or a no-cors fetch
-// cannot send that type without a preflight, which these routes never answer.
+// cannot send that type without a preflight, which these routes never answer. Nothing in front of
+// the app limits a body, so one over MAX_BODY_BYTES is refused before it is parsed.
 export async function jsonBody(request: Request): Promise<unknown> {
   if (request.headers.get("sec-fetch-site") === "cross-site") {
     throw new BadRequest("Requests from another site are refused");
@@ -83,7 +92,7 @@ export async function jsonBody(request: Request): Promise<unknown> {
   const type = request.headers.get("content-type") ?? "";
   if (!/^application\/json\b/i.test(type))
     throw new BadRequest("Body must be sent as application/json");
-  const text = await request.text();
+  const text = await cappedText(request);
   if (!text.trim()) return {};
   try {
     return JSON.parse(text);
@@ -92,8 +101,30 @@ export async function jsonBody(request: Request): Promise<unknown> {
   }
 }
 
+// The largest body is a quiz attempt: 20 answers of 2,000 characters, about 80 KB of Arabic.
+const MAX_BODY_BYTES = 128 * 1024;
+const TOO_LARGE = "Body must be 128 KB or less";
+
+// A content-length over the cap is refused unread. Any other body is read only until it passes the
+// cap, so a missing or false length gets no more through; leaving the loop cancels the stream.
+async function cappedText(request: Request): Promise<string> {
+  if (Number(request.headers.get("content-length")) > MAX_BODY_BYTES) {
+    throw new BadRequest(TOO_LARGE, 413);
+  }
+  if (!request.body) return "";
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  for await (const chunk of request.body) {
+    bytes += chunk.byteLength;
+    if (bytes > MAX_BODY_BYTES) throw new BadRequest(TOO_LARGE, 413);
+    text += decoder.decode(chunk, { stream: true });
+  }
+  return text + decoder.decode();
+}
+
 // 409 for a clock move into the past or a tap on a message the learner cannot answer, 400 for a bad
-// body or session id.
+// body or session id, 413 for a body too large.
 async function answer(work: () => Promise<unknown>): Promise<Response> {
   try {
     return Response.json(await work());
@@ -101,7 +132,8 @@ async function answer(work: () => Promise<unknown>): Promise<Response> {
     if (e instanceof ClockError || e instanceof CheckinConflict) {
       return Response.json({ error: e.message }, { status: 409 });
     }
-    if (e instanceof BadRequest || e instanceof InvalidNameError) {
+    if (e instanceof BadRequest) return Response.json({ error: e.message }, { status: e.status });
+    if (e instanceof InvalidNameError) {
       return Response.json({ error: e.message }, { status: 400 });
     }
     throw e;

@@ -63,7 +63,8 @@ export async function planResponse(
     if (e instanceof PlanEditRejected) {
       return Response.json({ error, violations: e.violations }, { status: 400 });
     }
-    if (e instanceof BadRequest || e instanceof InvalidNameError) {
+    if (e instanceof BadRequest) return Response.json({ error }, { status: e.status });
+    if (e instanceof InvalidNameError) {
       return Response.json({ error }, { status: 400 });
     }
     if (e instanceof PlanConflict) return Response.json({ error }, { status: 409 });

@@ -214,4 +214,58 @@ describe("sim and inbox routes", () => {
       (await move({ "content-type": "application/json", "sec-fetch-site": "same-origin" })).status,
     ).toBe(200);
   });
+
+  it("answer 413 for a content-length over 128 KB without reading the body", async () => {
+    const { deps } = setup();
+    const request = new Request("http://localhost/x", {
+      method: "POST",
+      headers: { ...JSON_TYPE, "content-length": String(LIMIT + 1) },
+      body: JSON.stringify({ day: 2 }),
+    });
+
+    const res = await simResponse(request, "s_1", "set", deps);
+
+    expect(res.status).toBe(413);
+    expect(request.bodyUsed).toBe(false);
+  });
+
+  it("read a body sent without a length up to 128 KB, and stop reading it past that with 413", async () => {
+    const { deps } = setup();
+    // Node sends a stream body only with `duplex`, which the DOM's RequestInit does not name.
+    const move = (body: ReadableStream<Uint8Array>) => {
+      const init: RequestInit & { duplex: "half" } = {
+        method: "POST",
+        headers: JSON_TYPE,
+        body,
+        duplex: "half",
+      };
+      return simResponse(new Request("http://localhost/x", init), "s_1", "set", deps);
+    };
+    const fits = streamed(JSON.stringify({ day: 2 }).padEnd(LIMIT));
+    const over = streamed(JSON.stringify({ day: 3 }).padEnd(4 * LIMIT));
+
+    expect((await move(fits.body)).status).toBe(200);
+    expect((await move(over.body)).status).toBe(413);
+    expect(over.cancelled()).toBe(true);
+  });
 });
+
+const LIMIT = 128 * 1024;
+
+// A body streamed in 16 KB chunks with no content-length, as a chunked upload arrives.
+function streamed(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  let at = 0;
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (at >= bytes.length) return controller.close();
+      controller.enqueue(bytes.subarray(at, at + 16 * 1024));
+      at += 16 * 1024;
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  return { body, cancelled: () => cancelled };
+}

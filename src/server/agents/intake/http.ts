@@ -52,7 +52,8 @@ export async function intakeResponse(
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     if (e instanceof IntakeConflict) return Response.json({ error }, { status: 409 });
-    if (e instanceof BadRequest || e instanceof InvalidAnswers || e instanceof InvalidNameError) {
+    if (e instanceof BadRequest) return Response.json({ error }, { status: e.status });
+    if (e instanceof InvalidAnswers || e instanceof InvalidNameError) {
       return Response.json({ error }, { status: 400 });
     }
     // The model failed the step twice; the trace has why.

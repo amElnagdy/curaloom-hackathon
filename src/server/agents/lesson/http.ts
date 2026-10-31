@@ -28,7 +28,8 @@ export async function lessonResponse(
     return Response.json({ lessons: await builder.build(lessonId) });
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    if (e instanceof BadRequest || e instanceof InvalidNameError) {
+    if (e instanceof BadRequest) return Response.json({ error }, { status: e.status });
+    if (e instanceof InvalidNameError) {
       return Response.json({ error }, { status: 400 });
     }
     if (e instanceof LessonNotFound) return Response.json({ error }, { status: 404 });

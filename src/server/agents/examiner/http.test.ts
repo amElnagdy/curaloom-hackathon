@@ -105,6 +105,29 @@ describe("attempt route", () => {
     expect(calls).toEqual([["attempt", "L1", "q1", ANSWERS]]);
   });
 
+  it("takes the longest attempt its body allows, and answers 413 for a body over 128 KB", async () => {
+    const { examiner, calls } = stubExaminer();
+    const answers = (length: number) =>
+      Array.from({ length: 20 }, (_, i) => ({ item_id: `i${i}`, response: "ا".repeat(length) }));
+
+    const longest = await attemptResponse(
+      request({ quiz_id: "q1", answers: answers(2000) }),
+      `s${++sessions}`,
+      "L1",
+      examiner,
+    );
+    const over = await attemptResponse(
+      request({ quiz_id: "q1", answers: answers(4000) }),
+      `s${++sessions}`,
+      "L1",
+      examiner,
+    );
+
+    expect(longest.status).toBe(200);
+    expect(over.status).toBe(413);
+    expect(calls).toHaveLength(1);
+  });
+
   it.each([
     ["no quiz id", { answers: ANSWERS }],
     ["answers that are not a list", { quiz_id: "q1", answers: "كلها" }],

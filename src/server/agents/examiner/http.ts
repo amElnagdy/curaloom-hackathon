@@ -44,7 +44,8 @@ async function answer(key: string, busyError: string, work: () => Promise<unknow
     return Response.json(await work());
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    if (e instanceof BadRequest || e instanceof InvalidNameError || e instanceof AttemptInvalid) {
+    if (e instanceof BadRequest) return Response.json({ error }, { status: e.status });
+    if (e instanceof InvalidNameError || e instanceof AttemptInvalid) {
       return Response.json({ error }, { status: 400 });
     }
     if (e instanceof QuizNotFound) return Response.json({ error }, { status: 404 });
