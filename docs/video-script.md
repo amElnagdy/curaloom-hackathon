@@ -26,7 +26,7 @@ What each model does, as `config/models.yaml` routes it:
 
 - **Muse Spark 1.3:**
   - the interview (`agent_default`);
-  - the scout's web search with citations and its licence checks (`agent_default`);
+  - the scout's web search with citations and its description of each source (`agent_default`); code reads each source's page and verifies its licence;
   - lesson writing (`agent_default`);
   - quiz writing (`agent_default`) and grading of short answers (`judge`);
   - the coach's messages (`coach`);
@@ -37,8 +37,24 @@ What each model does, as `config/models.yaml` routes it:
 
 ## Presenter steps
 
-To fill from #30's tested path: what to click and what to pick at each shot, with the replay chips for typed text.
+The clicks are the numbered steps in [demo.md](demo.md#presenter-steps), walked twice on the replay build with no missing recording. Each shot covers these steps:
+
+| Shot      | Steps in demo.md | What the viewer must see                                                                             |
+| --------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
+| 0:20–0:45 | 1 to 3           | Each «املأ الرسالة المسجّلة» chip filling Omar's message, and the five facts filling in on the right   |
+| 0:45–1:10 | 4                | The activity column naming each agent's work, and the trace drawer with a model call's role and cost |
+| 1:10–1:35 | 5                | A term card pinned, and «المصادر والتراخيص» open                                                     |
+| 1:35–1:55 | 6 and 7          | 75% under the 80% mark, then 100% and lesson 2 opening                                               |
+| 1:55–2:15 | 8 and 9          | The three markers on the demo bar, and each message arriving on the phone                            |
+| 2:15–2:40 | 10 and 11        | The recap in place on /plan, then the proposal with the lines from old days to new days              |
+| 2:40–2:50 | 12 and 13        | Version 2 on /plan, and «تاريخ خطتك» on /progress                                                    |
+
+Typed text replays only as recorded, so use the chips and pick the listed answers exactly.
+
+## Timing
+
+The scripted walk took 2:08 of app time at the demo pace. Building the plan and lesson 1 takes about 50 seconds, which is longer than its 25-second shot. Cut that wait in the edit and mark it on screen as sped up («مُسرَّع»), so the video stays honest about time.
 
 ## Rehearsal
 
-To do on Nov 3 with `pnpm demo:replay`. Time each shot, and cut narration where a shot runs long.
+Rehearse on Nov 3 with `pnpm demo:replay`. Time each shot, and cut narration where a shot runs long. Reset between takes with `pnpm demo:reset` (see [demo.md](demo.md#reset)).
