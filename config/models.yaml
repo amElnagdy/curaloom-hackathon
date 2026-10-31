@@ -6,6 +6,8 @@ roles:
   # Wonder's output tokens, reasoning included, are the plan's main cost (#18).
   curriculum: { provider: meta, model: muse-wonder-1.0, max_output_tokens: 12000 }
   judge: { provider: meta, model: muse-spark-1.3 }
+  # The coach's short messages (#25); #29 can move them to Glimmer here.
+  coach: { provider: meta, model: muse-spark-1.3, reasoning: low }
   transcribe: { provider: meta, model: muse-voice-transcribe-1.0 }
   segment: { provider: meta, model: sam-3.1 }
   image_edit: { provider: meta, model: muse-image-1.0 }

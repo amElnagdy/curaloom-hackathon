@@ -81,10 +81,11 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
     input:
       "Grade the short answer by its rubric.\n\ni2. اذكر مثالًا من عملك يمكن تلخيصه بجدول محوري.\nRubric: تُقبل أي حالة فيها تجميع بيانات حسب فئة وحساب مجموع أو متوسط.\nAnswer: أجمع المصروفات حسب القسم وأطلع مجموع كل قسم",
   },
-  CoachEvent: {
-    role: "agent_default",
+  CoachDraft: {
+    role: "coach",
     instructions: ARABIC,
-    input: `${LEARNER} لم يدخل منذ يومين. اكتب رسالة تذكير قصيرة له في اليوم الثاني.`,
+    input:
+      "لم يدرس المتعلم منذ يومين. اكتب له رسالة تذكير قصيرة تقترح مهمة من عشر دقائق، واكتب {name} مرة واحدة مكان اسمه.",
   },
 };
 

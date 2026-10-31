@@ -11,14 +11,16 @@ import {
   type Lesson,
   type Quiz,
 } from "../../../../contracts/index.ts";
+import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
+import { sessionSim } from "../../coach/session.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
 import { createFileCache, createFileStore, type Store } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
-import { createPlanner } from "../architect/architect.ts";
+import { createPlanner, type SavedPlan } from "../architect/architect.ts";
 import { planViolations } from "../architect/rules.ts";
 import { courseOf, createExaminer, QuizConflict, savedQuizzes } from "../examiner/examiner.ts";
 import { lessonOpen, quizViolations } from "../examiner/rules.ts";
@@ -510,6 +512,57 @@ describe("intake, replaying Omar's recorded interview", () => {
     expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
     expect(new Set(modelsOf(store, "examiner"))).toEqual(new Set(["muse-spark-1.3"]));
   }, 600_000);
+
+  // The coach page's path after the intake: he passed lesson 1 on day 0 and studies no more. His
+  // consent is the consent screen's default with messages on.
+  it("chases him in Spark's words to the day-10 check-in, where «جلسات أقصر» gives plan v2", async () => {
+    const { store, orchestrator, saved, first } = await passedFirst();
+    const sim = () => sessionSim(store, "s1", loadOmarSeed(RECORDED_TOPIC), orchestrator).sim;
+    sim().setConsent({
+      messages: true,
+      quiet_hours: { start: "22:00", end: "08:00" },
+      intensity: "gentle",
+    });
+
+    const fired = [];
+    for (const day of [2, 5, 10]) fired.push(...(await sim().set(day)).events);
+    const answer = await sim().answer({
+      event_id: "checkin_a0_d10",
+      choice: "shrink",
+      pause_days: 7,
+    });
+
+    expect(fired.map((e) => [e.id, e.status])).toEqual([
+      ["nudge_a0_d2", "sent"],
+      ["replan_a0_d5", "sent"],
+      ["checkin_a0_d10", "sent"],
+    ]);
+    for (const { message_ar } of fired) {
+      expect(message_ar.length).toBeLessThanOrEqual(160);
+      expect(message_ar.split(LEARNER.name)).toHaveLength(2);
+    }
+    expect(new Set(modelsOf(store, "coach"))).toEqual(new Set(["muse-spark-1.3"]));
+    const fallbacks = store
+      .readTrace<TraceEvent>("s1")
+      .filter((e) => e.agent === "coach" && /template/.test(e.summary_en));
+    expect(fallbacks).toEqual([]);
+
+    expect(answer).toEqual({ choice: "shrink", paused_until: null, plan_version: 2 });
+    const [before, after] = store.readDoc<SavedPlan>("s1", "plan")?.versions ?? [];
+    if (!before || !after) throw new Error("no second plan version");
+    expect(after).toMatchObject({ id: before.id, version: 2, reason: "shrink" });
+    expect(planViolations(after, saved.limits)).toEqual([]);
+    const sessions = before.committed.sessions.map((s, i) => [
+      s.lesson_id,
+      s.minutes,
+      after.committed.sessions[i]?.minutes,
+    ]);
+    for (const [lesson, was, now] of sessions) {
+      if (lesson === first) expect(now).toBe(was);
+      else expect(now).toBeLessThanOrEqual(Math.max(10, 0.6 * Number(was)));
+    }
+    expect(sessions.some(([, was, now]) => Number(now) < Number(was))).toBe(true);
+  }, 600_000);
 });
 
 // Omar's short answers, in Gulf dialect, to the first quiz's short items in order: the first earns
@@ -562,7 +615,7 @@ async function quizzed() {
     sessionId: "s1",
     course: () => courseOf(store, "s1", profile()),
   });
-  return { store, saved, builder, examiner, first, second, lesson, lessonIds };
+  return { store, orchestrator, saved, builder, examiner, first, second, lesson, lessonIds };
 }
 
 // Omar's plan once he passed lesson 1's quiz on his second try, the way the quiz page leaves it.

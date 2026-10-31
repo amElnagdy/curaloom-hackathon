@@ -1,18 +1,32 @@
 // The coach (#25): the ladder's rungs as the scheduler's rules, each with its Arabic template, its
-// button and the reason the trace gives, and the learner's answers to its check-in. The rungs come
-// from the learner's study facts and their answers on every call, so the coach stores only those
-// answers and the anchor it last saw, which lets it trace a reset once.
+// button and the reason the trace gives, and the learner's answers to its check-in. Spark words each
+// message from a brief that names no one; code puts the learner's name in, and sends the template
+// when the wording fails or the learner has the messages off. The rungs come from the learner's
+// study facts and their answers on every call, so the coach stores only those answers and the anchor
+// it last saw, which lets it trace a reset once.
 
 import {
   CHECKIN_CHOICES,
   type CheckinChoice,
   type CheckinReply,
+  CoachDraft,
+  type Consent,
+  validate,
 } from "../../../contracts/index.ts";
+import { PASS_THRESHOLD } from "../agents/examiner/examiner.ts";
+import { addressIn } from "../agents/lesson/rules.ts";
 import { arabicSimTime } from "../clock/clock.ts";
 import type { CoachRule, RuleSource } from "../clock/scheduler.ts";
 import { formatSimTime, parseSimTime, type SimTime } from "../clock/time.ts";
+import { type GateDecision, gate } from "../notifier/gate.ts";
 import type { Cta, Notifier } from "../notifier/notifier.ts";
-import type { Store } from "../store/store.ts";
+import {
+  type Agent,
+  type createOrchestrator,
+  StepFailed,
+  withFeedback,
+} from "../orchestrator/orchestrator.ts";
+import { contentHash, type Store } from "../store/store.ts";
 import type { Tracer } from "../trace/trace.ts";
 import {
   anchorOf,
@@ -58,6 +72,8 @@ export const NO_PLAN: Replanned = {
   why: { en: "the learner has no plan of their own yet", ar: "سنجعل جلساتك أقصر حين تجهز خطتك." },
 };
 export type CoachDeps = {
+  // Runs the coach writer; null sends every message as its template.
+  steps: Pick<ReturnType<typeof createOrchestrator>, "runStep"> | null;
   study(): Study;
   // #26's re-planner widens the reasons.
   replan(reason: "shrink"): Promise<Replanned>;
@@ -73,7 +89,17 @@ export type AnswerResult = {
 };
 
 type Lesson = Study["lesson"];
-type RungMessage = { template: string; cta(lesson: Lesson): Cta | null; why_ar: string };
+// `purpose` tells the coach writer what the message is for, and `score` whether it hears the best
+// quiz score: only the nudge, whose short task could take them through the gate. `name_ar` names
+// the message in the trace.
+type RungMessage = {
+  template: string;
+  cta(lesson: Lesson): Cta | null;
+  why_ar: string;
+  purpose: string;
+  score: boolean;
+  name_ar: string;
+};
 
 const OPEN_PLAN: Cta = { label_ar: "افتح خطتي", action: "open_plan" };
 
@@ -83,12 +109,19 @@ const RUNG_MESSAGES: Record<RungKind, RungMessage> = {
     cta: (lesson) =>
       lesson && { label_ar: "ابدأ مهمة ١٠ دقائق", action: "open_lesson", lesson_id: lesson.id },
     why_ar: "مرّ يومان دون دراسة، فاقترح المدرب مهمة من عشر دقائق",
+    purpose: "a nudge after two days without study: suggest one 10-minute task on their lesson",
+    score: true,
+    name_ar: "تذكير اليوم الثاني",
   },
   d5: {
     template:
       "{name}، يبدو أن أسبوعك مزدحم. يمكن أن نجعله أخف: جلسات أقصر والهدف نفسه. افتح خطتك واختر ما يناسبك.",
     cta: () => OPEN_PLAN,
     why_ar: "مرّت خمسة أيام دون دراسة، فعرض المدرب أسبوعًا أخف",
+    purpose:
+      "an offer after five days without study: they can make this week lighter, with shorter sessions and the same goal; the button under the message opens their plan",
+    score: false,
+    name_ar: "عرض الأسبوع الأخف",
   },
   d10: {
     template:
@@ -98,12 +131,20 @@ const RUNG_MESSAGES: Record<RungKind, RungMessage> = {
       options: CHECKIN_CHOICES.map((choice) => ({ choice, label_ar: CHOICE_LABEL[choice] })),
     }),
     why_ar: "مرّت عشرة أيام دون دراسة، فسأل المدرب عمّا يناسبه",
+    purpose:
+      "a check-in ten days after their last quiz: say a break is fine, and ask what suits them now",
+    score: false,
+    name_ar: "سؤال اليوم العاشر",
   },
   weekly: {
     template: "{name}، مكانك في الدورة محفوظ. عُد متى شئت، وابدأ بمراجعة قصيرة.",
     cta: (lesson) =>
       lesson && { label_ar: "مراجعة قصيرة", action: "open_lesson", lesson_id: lesson.id },
     why_ar: "مرّ أسبوع آخر دون دراسة، فأرسل المدرب رسالته الأسبوعية",
+    purpose:
+      "the weekly message while they are away: their place in the course is kept, and they can come back any time, starting with a short review",
+    score: false,
+    name_ar: "الرسالة الأسبوعية",
   },
 };
 
@@ -115,6 +156,102 @@ export function fillTemplate(text: string, vars: Record<string, string>): string
     return value;
   });
 }
+
+// Why the gate holds every message back, for the trace of a message written with no model call.
+type OffRule = Extract<GateDecision, { status: "suppressed_opt_out" }>["rule"];
+const MESSAGES_OFF: Record<OffRule, { ar: string; en: string }> = {
+  opted_out: { ar: "أوقف المتعلم رسائل المدرب", en: "opted out" },
+  not_granted: { ar: "لم يوافق المتعلم على رسائل المدرب بعد", en: "no consent" },
+};
+
+// The longest draft for each tone, counting {name} as written.
+export const MAX_DRAFT = { gentle: 160, normal: 260 } as const satisfies Record<
+  Consent["intensity"],
+  number
+>;
+const TONE: Record<Consent["intensity"], string> = {
+  gentle: "gentle: one or two short, soft sentences",
+  normal: "plain and direct",
+};
+
+// What the coach writer knows: the rung, the days since the last quiz, the tone the learner chose
+// and the lesson they are on. No name, id, topic or time, so a recording fits any learner at the
+// same place on the ladder.
+export type CoachBrief = {
+  rung: RungKind;
+  inactive_days: number;
+  intensity: Consent["intensity"];
+  lesson_title_ar: string | null;
+  best_percent: number | null;
+  gate_percent: number;
+  template_ar: string;
+  choices_ar: string[];
+};
+
+const WRITE = [
+  "You write one short message from a learning coach to an Arabic-speaking adult who has not studied for some days. It goes to their phone.",
+  "Write in Modern Standard Arabic: warm and respectful, with no guilt, blame or pressure. Never reproach them for the days away.",
+  "Write it in your own words for this learner; do not copy the template. The template shows the message's purpose and the facts to keep. Make no offer, promise or number that the template and the brief do not give.",
+  "You may name the current lesson in a few words. When the brief gives the best score, you may say how close it is to the gate, as encouragement. Write numbers in Arabic-Indic digits.",
+  "Write {name} exactly once, where the learner's first name goes; code puts the name in. Write no other braces.",
+  "Write no links, no web or email addresses and no emoji.",
+  "Keep to the tone and the length the brief gives.",
+  "When the brief lists choices, invite them in that order and in those words; buttons under the message repeat them.",
+].join("\n");
+
+const briefLines = (brief: CoachBrief) =>
+  [
+    `Message: ${RUNG_MESSAGES[brief.rung].purpose}`,
+    `Days since their last quiz: ${brief.inactive_days}`,
+    `Tone: ${TONE[brief.intensity]}, at most ${MAX_DRAFT[brief.intensity]} characters`,
+    `Current lesson: ${brief.lesson_title_ar ?? "none yet"}`,
+    ...(brief.best_percent === null
+      ? []
+      : [`Best quiz score on it: ${brief.best_percent}% (the gate is ${brief.gate_percent}%)`]),
+    ...(brief.choices_ar.length
+      ? [`Choices to invite, in this order: ${brief.choices_ar.join("، ")}`]
+      : []),
+    `Template: ${brief.template_ar}`,
+  ].join("\n");
+
+// Why a draft cannot go to the learner. No reason quotes the draft, so the reasons can go into the
+// trace and back to the model.
+export function draftViolations(text: string, intensity: Consent["intensity"]): string[] {
+  const problems: string[] = [];
+  if (!/\p{Script=Arabic}/u.test(text)) problems.push("the message has no Arabic text");
+  const names = text.split("{name}").length - 1;
+  if (names !== 1) problems.push(`the message has {name} ${names} times; write it exactly once`);
+  if (/[{}]/.test(text.replaceAll("{name}", ""))) {
+    problems.push("the message has braces other than {name}");
+  }
+  if (addressIn(text)) problems.push("the message has a web address or email");
+  if (/\p{Extended_Pictographic}/u.test(text)) problems.push("the message has an emoji");
+  const max = MAX_DRAFT[intensity];
+  if (text.length > max) problems.push(`the message has ${text.length} characters; at most ${max}`);
+  return problems;
+}
+
+export const coachWriter: Agent<CoachBrief, typeof CoachDraft> = {
+  name: "coach",
+  output: CoachDraft,
+  async run(ctx, brief) {
+    const { json } = await ctx.provider.structured({
+      role: "coach",
+      trace: {
+        agent: "coach",
+        summary_ar: `يصوغ المدرب ${RUNG_MESSAGES[brief.rung].name_ar}`,
+        summary_en: `Wording the coach's ${brief.rung} message`,
+      },
+      instructions: WRITE,
+      input: withFeedback(ctx, briefLines(brief)),
+      schema: { name: "CoachDraft", schema: CoachDraft },
+    });
+    const message_ar = validate(CoachDraft, json).message_ar.trim();
+    const broken = draftViolations(message_ar, brief.intensity);
+    if (broken.length) throw new Error(`The message breaks its rules: ${broken.join("; ")}`);
+    return { message_ar };
+  },
+};
 
 // Two days away or more is a comeback, which #27 answers with a recap.
 const COMEBACK_DAYS = 2;
@@ -141,6 +278,7 @@ export function createCoach({
   tracer,
   notifier,
   learner,
+  steps,
   study,
   replan,
 }: CoachOptions) {
@@ -160,19 +298,67 @@ export function createCoach({
     return consent.granted && !consent.opted_out;
   };
 
+  // The rung's message in Spark's words, or its template when there is no writer, the learner has
+  // the messages off, or the wording fails.
+  const write = async (rung: Rung, lesson: Lesson, cta: Cta | null): Promise<string> => {
+    const message = RUNG_MESSAGES[rung.kind];
+    const template = fillTemplate(message.template, { name: learner.name });
+    if (!steps) return template;
+    const consent = notifier.consent();
+    const decision = gate(consent, rung.at);
+    if (decision.status === "suppressed_opt_out") {
+      const off = MESSAGES_OFF[decision.rule];
+      tracer.emit({
+        agent: "coach",
+        kind: "decision",
+        at: rung.at,
+        summary_ar: `${off.ar}، فسُجّلت الرسالة بنصها الجاهز دون استدعاء النموذج`,
+        summary_en: `${rung.id}: template, no model call: ${off.en}`,
+      });
+      return template;
+    }
+    const brief: CoachBrief = {
+      rung: rung.kind,
+      inactive_days: rung.inactive_days,
+      intensity: consent.intensity,
+      lesson_title_ar: lesson?.title_ar ?? null,
+      best_percent: message.score ? (lesson?.best_percent ?? null) : null,
+      gate_percent: Math.round(PASS_THRESHOLD * 100),
+      template_ar: message.template,
+      choices_ar: cta?.action === "choose" ? cta.options.map((o) => o.label_ar) : [],
+    };
+    try {
+      const { message_ar } = await steps.runStep(sessionId, coachWriter, brief, {
+        key: `coach:${rung.id}:${contentHash(brief)}`,
+      });
+      return fillTemplate(message_ar, { name: learner.name });
+    } catch (e) {
+      if (!(e instanceof StepFailed)) throw e;
+      tracer.emit({
+        agent: "coach",
+        kind: "decision",
+        at: rung.at,
+        summary_ar: "تعذّرت صياغة الرسالة بالنموذج، فأُرسل نصها الجاهز",
+        summary_en: `${rung.id}: the model's wording failed (${e.message}); sent the template`,
+      });
+      return template;
+    }
+  };
+
   const ruleOf = (rung: Rung, anchor: number, lesson: Lesson): CoachRule => {
     const message = RUNG_MESSAGES[rung.kind];
+    const cta = message.cta(lesson);
     return {
       key: rung.id,
       at: rung.at,
       type: rung.type,
       template: `coach_${rung.kind}`,
-      cta: message.cta(lesson),
+      cta,
       why: {
         ar: message.why_ar,
         en: `${rung.id}: ${rung.inactive_days} days without a quiz since day ${anchor} -> ${rung.state}`,
       },
-      write: async () => fillTemplate(message.template, { name: learner.name }),
+      write: () => write(rung, lesson, cta),
     };
   };
 

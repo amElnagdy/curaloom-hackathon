@@ -82,6 +82,7 @@ describe("parseModels", () => {
         "agent_default",
         "curriculum",
         "judge",
+        "coach",
         "transcribe",
         "segment",
         "image_edit",

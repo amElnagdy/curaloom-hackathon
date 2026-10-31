@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
-import { courseStatus, quizState, simDay } from "./course";
+import { startOfDay } from "../../server/clock/time";
+import { ladderAt } from "../../server/coach/ladder";
+import { courseStatus, ladderText, quizState, simDay } from "./course";
 
 const seed = () => loadOmarSeed("x");
 
@@ -64,5 +66,29 @@ describe("simDay", () => {
   it("names day 0 instead of showing an Arabic-Indic zero", () => {
     expect(simDay(0)).not.toMatch(/٠/);
     expect(simDay(3)).toBe("اليوم ٣");
+  });
+});
+
+describe("ladderText", () => {
+  const facts = { anchor: 0, pause: null, messages_on: true };
+
+  it("names where the coach is and the day of its next message", () => {
+    expect(ladderText(ladderAt(facts, startOfDay(5)))).toBe(
+      "المدرب عرض عليك أسبوعًا أخف. رسالته التالية في اليوم ١٠.",
+    );
+  });
+
+  it("gives the end of a pause the learner chose", () => {
+    const pause = { anchor: 0, from: startOfDay(10), until: startOfDay(17) };
+
+    expect(ladderText(ladderAt({ ...facts, pause }, startOfDay(12)))).toBe(
+      "المدرب في استراحة طلبتها حتى اليوم ١٧، ٩:٠٠ ص.",
+    );
+  });
+
+  it("names no next message while the messages are off", () => {
+    expect(ladderText(ladderAt({ ...facts, messages_on: false }, startOfDay(5)))).toBe(
+      "المدرب لا يرسل رسائل.",
+    );
   });
 });

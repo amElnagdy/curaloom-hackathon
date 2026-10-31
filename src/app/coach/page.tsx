@@ -38,7 +38,7 @@ import {
   Panel,
   Stack,
 } from "../_shell/blocks.tsx";
-import { COACH_STATUS, COACH_TITLE, simDay, simTimeText } from "../_shell/course.ts";
+import { COACH_STATUS, COACH_TITLE, ladderText, simDay, simTimeText } from "../_shell/course.ts";
 import { clockTime, countOf, HOURS } from "../_shell/format.ts";
 import { BidiText, buttonClass, cx, Meta, StatusPill } from "../_shell/ui.tsx";
 import styles from "./coach.module.css";
@@ -133,9 +133,10 @@ export default async function CoachPage() {
   const now = sim.now();
   const events = [...sim.coachEvents()].sort((a, b) => a.sim_day - b.sim_day);
   const thread = phoneThread(readInbox(store, DEMO_SESSION_ID), sim.outbox());
+  const ladder = sim.ladder();
   const answers: Answers = {
     chosen: new Map(sim.checkinReplies().map((r) => [r.event_id, r.choice])),
-    closed: sim.ladder().state === "opted_out",
+    closed: ladder.state === "opted_out",
   };
   const quiet = consent.quiet_hours;
   const quietText = quiet
@@ -187,6 +188,7 @@ export default async function CoachPage() {
                 })}
               </MarkList>
             )}
+            <p className={styles.note}>{ladderText(ladder)}</p>
             <p className={styles.note}>
               تُرسل الرسالة حين تبلغ الساعة المحاكاة يومها. الساعة الآن {simTimeText(now)}، وتحرّكها
               من <Link href="/settings">الإعدادات</Link>.

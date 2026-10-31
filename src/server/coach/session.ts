@@ -5,6 +5,7 @@
 
 import type { CoursePlan, Mastery, QuizAttempt } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
+import { config } from "../../config.ts";
 import { planFor, reviseLatest } from "../agents/architect/architect.ts";
 import { shrinkPlan } from "../agents/architect/rules.ts";
 import { savedQuizzes } from "../agents/examiner/examiner.ts";
@@ -14,8 +15,11 @@ import { EVENTS_DOC, LEDGER_DOC } from "../clock/scheduler.ts";
 import { createSim, type SimSeed } from "../clock/sim.ts";
 import { INBOX_DOC } from "../notifier/adapters.ts";
 import { CONSENT_DOC, OUTBOX_DOC } from "../notifier/notifier.ts";
+import { createOrchestrator } from "../orchestrator/orchestrator.ts";
+import { loadModels } from "../providers/models.ts";
+import { createProvider } from "../providers/provider.ts";
 import { contentHash, type Store } from "../store/store.ts";
-import { COACH_DOC, NO_PLAN, type Replanned, type Study } from "./coach.ts";
+import { COACH_DOC, type CoachDeps, NO_PLAN, type Replanned, type Study } from "./coach.ts";
 
 export type CoachSeed = SimSeed & Pick<Seed, "attempts" | "mastery" | "plans">;
 
@@ -122,8 +126,30 @@ async function shrinkLatest(store: Store, sessionId: string): Promise<Replanned>
   };
 }
 
-// The session's simulated coach and the learner it follows, as the pages read them.
-export function sessionSim(store: Store, sessionId: string, seed: CoachSeed) {
+// The coach writer's model calls, on the configured provider. A clock move waits for each message,
+// so a call gets 30 s, not the provider's default.
+export const coachSteps = (store: Store) =>
+  createOrchestrator({
+    store,
+    makeProvider: (onTrace) =>
+      createProvider({
+        models: loadModels(),
+        profile: config.providerProfile,
+        apiKey: config.modelApiKey,
+        onTrace,
+        timeoutMs: 30_000,
+      }),
+  });
+
+// The session's simulated coach and the learner it follows, as the pages read them. Only a clock
+// move writes coach messages, so only the sim route passes `steps` (coachSteps); without it each
+// message is its template.
+export function sessionSim(
+  store: Store,
+  sessionId: string,
+  seed: CoachSeed,
+  steps: CoachDeps["steps"] = null,
+) {
   const simSeed = sessionSimSeed(store, sessionId, seed);
   return {
     learner: simSeed.profile,
@@ -132,6 +158,7 @@ export function sessionSim(store: Store, sessionId: string, seed: CoachSeed) {
       sessionId,
       seed: simSeed,
       coach: {
+        steps,
         study: () => studyOf(store, sessionId, seed),
         replan: () => shrinkLatest(store, sessionId),
       },

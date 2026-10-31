@@ -80,7 +80,7 @@ src/server/orchestrator/
 src/server/providers/
 src/server/clock/    sim clock, coach scheduler, sim and inbox route handlers (#23)
 src/server/notifier/ notifier, consent gate, adapters (#22)
-src/server/coach/    the coach's view of a session: its learner and consent (#24)
+src/server/coach/    the coach: its ladder, messages and check-in answers (#25), and its view of a session (#24)
 src/server/demo/     dev-only dummy agent and its runner (#15)
 src/server/store/
 src/server/tools/    tools agents call, such as the page fetcher (#17)
@@ -113,11 +113,11 @@ Folders are created by the issue that first puts code in them.
 - `wallNow()` in `src/server/clock/clock.ts` is the one place that reads system time. `src/guards.test.ts` fails on `Date.now()` or an argless `new Date()` anywhere else in `src/` (ADR-004).
 - `createSimClock()` keeps each session's time in the `sim_clock` document. It only moves forward: `advance(by)`, `set(day)` to 09:00 of that day, and `reset()`. A move into the past throws `ClockError`. Each move emits a `clock` trace event.
 - The tracer stamps every event with the session's sim time as `sim_ts`, beside the wall-clock `ts`. With `SIM_CLOCK=false`, `sim_ts` is null.
-- `createScheduler()` (`scheduler.ts`) holds a rule table `{key, at, type, fire(ctx)}`. After each move it fires every rule due by the new time, in time order, and records its key in the `scheduler` document so a rule never fires twice. The rules for days 2, 5, 10 and 17 are placeholders with Arabic template text until the coach (#25) owns them.
-- `createSim()` (`sim.ts`) wires the clock, scheduler and notifier for one session. `reset()` deletes the session's documents (the trace stays), which restores the seeded state.
+- `createScheduler()` (`scheduler.ts`) fires the rules a `RuleSource` lists, each `{key, at, type, template, cta, why, write()}`. After each move it takes every rule due by the new time whose key is not in the `scheduler` document, oldest first and one at a time. For each one it waits for `write()` to give the message's text, saves the coach event, sends the message through the notifier and records the key, so a rule never fires twice. The coach's ladder (#25) is the source.
+- `createSim()` (`sim.ts`) wires the clock, the scheduler, the coach and the notifier for one session. A move is async and waits for each coach message's wording. `reset()` deletes the session's documents (the trace stays), which restores the seeded state.
 - `POST /api/sessions/{id}/sim/{advance,set,reset}` takes `{days?, minutes?}`, `{day}` or nothing. It answers `{now, events}` with the coach events the move fired, 409 for a move into the past, and 404 while `SIM_CLOCK=false`.
 - `useSimClock()` (`src/app/_shell/use-sim-clock.ts`) is the client side of those routes. The demo bar and Settings both use it. The top bar's clock pill reads the latest `clock` trace event, so every open tab follows a move.
-- The demo bar (`src/app/_shell/demo-bar.tsx`) docks at the bottom of every page while `SIM_CLOCK` is on. It shows a day timeline with one marker per coach rule. A marker ahead of the clock jumps to its day, and one the clock has passed turns green. It collapses to a chip and keeps that choice in `localStorage`. While it is open or collapsed it sets `html[data-demo-bar]`, and `--demo-bar-h` (`globals.css`) lets full-height columns such as the activity feed and the coach phone end above it. The prototype variants live on `prototype/23-demo-bar`.
+- The demo bar (`src/app/_shell/demo-bar.tsx`) docks at the bottom of every page while `SIM_CLOCK` is on. It shows a day timeline with one marker per rung of the coach's ladder, from `ladderMarks()`. A marker ahead of the clock jumps to its day, and one the clock has passed turns green. It collapses to a chip and keeps that choice in `localStorage`. While it is open or collapsed it sets `html[data-demo-bar]`, and `--demo-bar-h` (`globals.css`) lets full-height columns such as the activity feed and the coach phone end above it. The prototype variants live on `prototype/23-demo-bar`.
 
 ## Notifier (#22)
 
@@ -130,10 +130,19 @@ Folders are created by the issue that first puts code in them.
 
 ## Consent (#24)
 
-- Before the intake the coach follows the seed's Omar, with his seeded consent and coach events. After it, `sessionSimSeed()` (`src/server/coach/session.ts`) gives the sim the saved learner with no consent (quiet hours 22:00-08:00, intensity `gentle`, the softer tone) and no coach events, so no message reaches a learner who has not agreed. When the profile changes it deletes the coach's documents (consent, outbox, inbox, coach events, fired-rule ledger) and records the profile's hash in `coach_for`: what Omar agreed to, was sent or replied before the intake is not the new learner's. `sessionSim()` builds that sim for the pages, and the sim, inbox and consent handlers in `src/server/clock/http.ts` build it from the seed for each request.
+- Before the intake the coach follows the seed's Omar, with his seeded consent and coach events. After it, `sessionSimSeed()` (`src/server/coach/session.ts`) gives the sim the saved learner with no consent (quiet hours 22:00-08:00, intensity `gentle`, the softer tone) and no coach events, so no message reaches a learner who has not agreed. When the profile changes it deletes the coach's documents (consent, outbox, inbox, coach events, fired-rule ledger, check-in answers) and records the profile's hash in `coach_for`: what Omar agreed to, was sent or replied before the intake is not the new learner's. `sessionSim()` builds that sim. The pages call it directly. The sim, inbox and consent handlers in `src/server/clock/http.ts` take a `sim(sessionId)` factory, which each route builds on `sessionSim()` for every request. The handlers run one request per session at a time. Only the sim route passes the coach's model calls (`coachSteps()`), since only a clock move writes coach messages.
 - `setConsent({messages, quiet_hours, intensity}, at)` on the notifier saves the consent screen's choice. Turning messages on grants consent and clears an opt-out, keeping the day consent was first granted, and moves each held message to the end of the new quiet hours, or delivers it now if they have ended. Turning them off is the same opt-out as a stop word: it cancels held messages, but sends no confirmation, since the learner is on the screen. The sim then brings the coach events' statuses in line with the outbox.
 - `/consent` is the form (`consent-form.tsx`): the messages switch, quiet hours, intensity and the channel, where WhatsApp and email are marked «قريبًا». It explains what the coach sends while the learner is away. `POST /api/sessions/{id}/consent` with `{messages, quiet_hours: {start, end}, intensity}` answers `{consent}`, or 400 for a bad body or session id, or quiet hours that end when they start.
 - The plan page asks for consent under the lesson button until the learner answers. Settings shows the consent and links to `/consent`, whether the messages were stopped from the form or by «توقف».
+
+## Coach (#25)
+
+The coach chases a learner who stops studying. `docs/coach.md` has the ladder, its statechart, the check-in answers and the wording rules.
+
+- The ladder (`src/server/coach/ladder.ts`) is pure. From the day of the learner's last quiz it lists the rungs due by a time: a nudge on day 2, a lighter-week offer on day 5, a check-in on day 10, then a weekly message from day 17. It also gives the ladder's state. A rung's id carries the last quiz's day, so a quiz starts a new ladder with nothing stored.
+- `createCoach()` (`coach.ts`) turns the rungs into the scheduler's rules. Spark words each message through the orchestrator on the `coach` model role, from a brief with no name, id, topic or time, and code puts the learner's name in. A draft that breaks the rules gets one retry. After a second failure, or while the learner has the messages off, the coach sends the rung's Arabic template, and the trace says why.
+- The day-10 check-in carries three buttons: a pause of the coach's messages, shorter sessions (the plan's next version) or another source (recorded for #26). `coach.answer()` takes a tap and keeps it in the `coach` document.
+- `studyOf()` (`session.ts`) gives the coach the learner's quiz days and current lesson: the seed's before the intake, the saved plan's after it.
 
 ## Intake (#16)
 

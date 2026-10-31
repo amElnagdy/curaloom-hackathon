@@ -1,25 +1,41 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CheckinReply, CoursePlan, QuizAttempt } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed";
+import { loadConfig } from "../../config";
 import type { SavedPlan } from "../agents/architect/architect";
 import { planViolations } from "../agents/architect/rules";
 import { createSim } from "../clock/sim";
 import { readInbox } from "../notifier/adapters";
 import { isStopWord } from "../notifier/notifier";
+import { createOrchestrator, StepFailed } from "../orchestrator/orchestrator";
+import { loadModels } from "../providers/models";
+import { createProvider, type ModelResult, type Provider } from "../providers/provider";
 import { contentHash, createFileStore, type Store } from "../store/store";
 import type { TraceEvent } from "../trace/trace";
-import { CHOICE_LABEL, CheckinConflict, fillTemplate, NO_PLAN, type Study } from "./coach";
+import {
+  CHOICE_LABEL,
+  CheckinConflict,
+  type CoachDeps,
+  draftViolations,
+  fillTemplate,
+  MAX_DRAFT,
+  NO_PLAN,
+  type Study,
+} from "./coach";
 import { sessionSim } from "./session";
 
-const seed = loadOmarSeed("x");
+const TOPIC = "Excel pivot tables for data analysis";
+const seed = loadOmarSeed(TOPIC);
 
-function setup() {
+// `steps` writes the coach's messages; none sends the templates.
+function setup(steps: (store: Store) => CoachDeps["steps"] = () => null) {
   const store = createFileStore(mkdtempSync(join(tmpdir(), "coach-")));
+  const writer = steps(store);
   // A new sim per call, like one per HTTP request.
-  const sim = () => sessionSim(store, "s_1", seed).sim;
+  const sim = () => sessionSim(store, "s_1", seed, writer).sim;
   const phone = () => readInbox(store, "s_1");
   const trace = () => store.readTrace<TraceEvent>("s_1");
   return { store, sim, phone, trace };
@@ -173,26 +189,37 @@ describe("the coach's ladder on the seed's Omar", () => {
   });
 });
 
+const lastCoachTrace = (trace: TraceEvent[]) =>
+  trace.filter((e) => e.agent === "coach").at(-1)?.summary_en;
+
 describe("opt-out at every step", () => {
-  it.each(DAY_TABLE)("sends nothing on day $day after «توقف» the day before", async ({ day }) => {
-    const { sim, phone } = setup();
-    await sim().set(day - 1);
-    sim().reply("توقف");
-    const confirmed = phone().length;
+  it.each(DAY_TABLE)(
+    "sends nothing on day $day after «توقف» the day before, and asks the model nothing",
+    async ({ day, id }) => {
+      const model = fakeCoachModel(() => "{name}، نص من النموذج.");
+      const { sim, phone, trace } = setup(model.steps);
+      await sim().set(day - 1);
+      sim().reply("توقف");
+      const confirmed = phone().length;
+      const asked = model.calls.length;
 
-    const { events } = await sim().set(day);
-    await sim().advance({ minutes: 180 });
+      const { events } = await sim().set(day);
+      await sim().advance({ minutes: 180 });
 
-    expect(events.at(-1)).toMatchObject({ sim_day: day, status: "suppressed_opt_out" });
-    expect(phone().at(confirmed - 1)?.template).toBe("opt_out_confirmation");
-    expect(phone().slice(confirmed)).toEqual([]);
-    expect(sim().ladder().state).toBe("opted_out");
-  });
+      expect(events.at(-1)).toMatchObject({ sim_day: day, status: "suppressed_opt_out" });
+      expect(phone().at(confirmed - 1)?.template).toBe("opt_out_confirmation");
+      expect(phone().slice(confirmed)).toEqual([]);
+      expect(sim().ladder().state).toBe("opted_out");
+      expect(model.calls).toHaveLength(asked);
+      expect(lastCoachTrace(trace())).toBe(`${id}: template, no model call: opted out`);
+    },
+  );
 
   it.each(DAY_TABLE)(
-    "sends nothing on day $day to an interviewed learner who never agreed",
-    async ({ day }) => {
-      const { store, sim, phone } = setup();
+    "sends nothing on day $day to an interviewed learner who never agreed, and asks the model nothing",
+    async ({ day, id }) => {
+      const model = fakeCoachModel(() => "{name}، نص من النموذج.");
+      const { store, sim, phone, trace } = setup(model.steps);
       store.writeDoc("s_1", "profile", { ...seed.profile, id: "l_new", name: "سارة" });
 
       const { events } = await sim().set(day);
@@ -202,8 +229,124 @@ describe("opt-out at every step", () => {
       expect(events.every((e) => e.status === "suppressed_opt_out")).toBe(true);
       expect(phone()).toEqual([]);
       expect(sim().ladder().state).toBe("opted_out");
+      expect(model.calls).toEqual([]);
+      expect(lastCoachTrace(trace())).toBe(`${id}: template, no model call: no consent`);
     },
   );
+});
+
+// The coach's model, faked: it answers its nth call with `draft(n)` and keeps each prompt.
+function fakeCoachModel(draft: (n: number) => string) {
+  const calls: { role: string; prompt: string }[] = [];
+  const provider = {
+    async structured(call: Parameters<Provider["structured"]>[0]) {
+      calls.push({ role: call.role, prompt: `${call.instructions ?? ""}\n${String(call.input)}` });
+      return {
+        json: { message_ar: draft(calls.length) },
+        usage: { in: 0, out: 0, cost_usd: 0 },
+      } as unknown as ModelResult<never>;
+    },
+  } as unknown as Provider;
+  return {
+    calls,
+    steps: (store: Store) => createOrchestrator({ store, makeProvider: () => provider }),
+  };
+}
+
+describe("the coach's wording", () => {
+  it("asks the model with no name, id or topic, and puts the learner's name in itself", async () => {
+    const model = fakeCoachModel(() => "{name}، خطوة صغيرة اليوم تكفي.");
+    const { sim, phone } = setup(model.steps);
+
+    await sim().set(10);
+    await sim().advance({ minutes: 180 });
+
+    expect(model.calls.map((c) => c.role)).toEqual(["coach", "coach", "coach"]);
+    const told = [seed.profile.name, seed.profile.id, TOPIC];
+    expect(model.calls.flatMap((c) => told.filter((t) => c.prompt.includes(t)))).toEqual([]);
+    expect(phone().map((m) => m.text)).toEqual(Array(3).fill("عمر، خطوة صغيرة اليوم تكفي."));
+  });
+
+  it("keeps the messages' text out of the trace", async () => {
+    const model = fakeCoachModel(() => "{name}، خطوة صغيرة اليوم تكفي.");
+    const { sim, trace } = setup(model.steps);
+
+    await sim().set(24);
+    await sim().advance({ minutes: 180 });
+
+    const summaries = trace().flatMap((e) => [e.summary_ar, e.summary_en]);
+    expect(summaries.filter((s) => s.includes("خطوة صغيرة") || s.includes("عمر"))).toEqual([]);
+  });
+
+  it("sends the template, and traces why, when the wording step fails", async () => {
+    const runStep = vi.fn(async () => {
+      throw new StepFailed("Step coach:nudge_a0_d2 failed: model timed out");
+    });
+    const { sim, phone, trace } = setup(() => ({ runStep }));
+
+    await sim().set(2);
+    await sim().advance({ minutes: 180 });
+
+    expect(phone().at(-1)?.text).toBe(DAY_TABLE[0]?.text);
+    expect(
+      trace()
+        .filter((e) => e.agent === "coach")
+        .map((e) => [e.sim_ts, e.kind, e.summary_en]),
+    ).toEqual([
+      [
+        "day 2 09:00",
+        "decision",
+        expect.stringMatching(/^nudge_a0_d2: .*model timed out.*template/),
+      ],
+    ]);
+  });
+
+  it("asks once more for a draft too long for a gentle message, then sends the template", async () => {
+    const model = fakeCoachModel(() => `{name}، ${"ا".repeat(300)}`);
+    const { sim, phone, trace } = setup(model.steps);
+
+    await sim().set(2);
+    await sim().advance({ minutes: 180 });
+
+    expect(model.calls).toHaveLength(2);
+    expect(model.calls[1]?.prompt).toMatch(/previous attempt failed: .*308 characters/);
+    expect(phone().at(-1)?.text).toBe(DAY_TABLE[0]?.text);
+    const summaries = trace().flatMap((e) => [e.summary_ar, e.summary_en]);
+    expect(summaries.filter((s) => /nudge_a0_d2: .*sent the template/.test(s))).toHaveLength(1);
+    expect(summaries.filter((s) => s.includes("ااا"))).toEqual([]);
+  });
+});
+
+describe("draftViolations", () => {
+  it("passes a short Arabic message that names the learner once", () => {
+    expect(draftViolations("{name}، عشر دقائق اليوم تكفي.", "gentle")).toEqual([]);
+  });
+
+  it.each([
+    ["no Arabic", "Hi {name}, ten minutes today.", /no Arabic/],
+    ["no {name}", "عشر دقائق اليوم تكفي.", /\{name\} 0 times/],
+    ["{name} twice", "{name}، عشر دقائق تكفي يا {name}.", /\{name\} 2 times/],
+    ["another placeholder", "{name}، افتح درس {lesson}.", /braces/],
+    ["a link", "{name}، افتح https://example.com الآن.", /web address/],
+    ["an email address", "{name}، راسلنا على coach@example.com", /email/],
+    ["an emoji", "{name}، عشر دقائق تكفي 💪", /emoji/],
+  ])("refuses a message with %s", (_, text, why) => {
+    expect(draftViolations(text, "normal")).toEqual([expect.stringMatching(why)]);
+  });
+
+  // "{name}، " is 8 characters.
+  const ofLength = (n: number) => `{name}، ${"ا".repeat(n - 8)}`;
+
+  it("holds a gentle message to 160 characters and a normal one to 260", () => {
+    expect(draftViolations(ofLength(160), "gentle")).toEqual([]);
+    expect(draftViolations(ofLength(161), "gentle")).toEqual([
+      "the message has 161 characters; at most 160",
+    ]);
+    expect(draftViolations(ofLength(260), "normal")).toEqual([]);
+    expect(draftViolations(ofLength(261), "normal")).toEqual([
+      "the message has 261 characters; at most 260",
+    ]);
+  });
 });
 
 describe("activity", () => {
@@ -215,7 +358,7 @@ describe("activity", () => {
         store,
         sessionId: "s_1",
         seed,
-        coach: { study: () => study, replan: async () => NO_PLAN },
+        coach: { steps: null, study: () => study, replan: async () => NO_PLAN },
       });
     await sim().set(3);
     await sim().advance({ minutes: 60 });
@@ -241,7 +384,7 @@ describe("activity", () => {
         store,
         sessionId: "s_1",
         seed,
-        coach: { study: () => study, replan: async () => NO_PLAN },
+        coach: { steps: null, study: () => study, replan: async () => NO_PLAN },
       });
     await sim().set(10);
     await sim().advance({ minutes: 180 });
@@ -262,7 +405,7 @@ describe("activity", () => {
       store,
       sessionId: "s_1",
       seed,
-      coach: { study: () => study, replan: async () => NO_PLAN },
+      coach: { steps: null, study: () => study, replan: async () => NO_PLAN },
     });
 
     await sim.set(17);
@@ -523,4 +666,43 @@ describe("fillTemplate", () => {
     expect(fillTemplate("مرحبًا {name}", { name: "عمر" })).toBe("مرحبًا عمر");
     expect(() => fillTemplate("{name} و{lesson}", { name: "عمر" })).toThrow(/\{lesson\}/);
   });
+});
+
+// RECORD_FIXTURES is a test-only switch, as in contracts/smoke.test.ts: re-record with
+// `pnpm fixtures:record`.
+const recording = process.env.RECORD_FIXTURES === "1";
+if (recording) process.loadEnvFile(".env");
+const recordedWriter = (store: Store) =>
+  createOrchestrator({
+    store,
+    makeProvider: (onTrace) =>
+      createProvider({
+        models: loadModels(),
+        profile: recording ? "record" : "replay",
+        apiKey: recording ? loadConfig(process.env).modelApiKey : undefined,
+        onTrace,
+      }),
+  });
+
+describe("the coach's ladder in Spark's words, replaying the recorded messages", () => {
+  it.each(["gentle", "normal"] as const)(
+    "writes the seed's Omar each message to day 24 in the %s tone",
+    async (intensity) => {
+      const { sim, trace } = setup(recordedWriter);
+      sim().setConsent({ messages: true, quiet_hours: seed.consent.quiet_hours, intensity });
+
+      const { events } = await sim().set(24);
+
+      expect(events.map((e) => e.id)).toEqual(LADDER_IDS);
+      for (const { message_ar } of events) {
+        expect(message_ar.length).toBeLessThanOrEqual(MAX_DRAFT[intensity]);
+        expect(message_ar.split("عمر")).toHaveLength(2);
+        expect(message_ar).not.toMatch(/[{}]/);
+      }
+      const coach = trace().filter((e) => e.agent === "coach");
+      expect(coach.filter((e) => e.kind === "model_call").length).toBeGreaterThanOrEqual(5);
+      expect(coach.filter((e) => /template/.test(e.summary_en))).toEqual([]);
+    },
+    300_000,
+  );
 });

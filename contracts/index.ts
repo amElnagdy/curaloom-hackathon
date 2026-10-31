@@ -391,6 +391,14 @@ export const CoachEvent = Obj({
   status: StringEnum(["queued", "sent", "suppressed_quiet_hours", "suppressed_opt_out"]),
 });
 
+// The coach's wording of one message (#25). Code builds the CoachEvent around it.
+export const CoachDraft = Obj({
+  message_ar: Type.String({
+    description:
+      "the message in Modern Standard Arabic; write {name} exactly once where the learner's first name goes",
+  }),
+});
+
 // What a learner can answer to the coach's day-10 check-in (#25).
 export const CHECKIN_CHOICES = ["pause", "shrink", "switch"] as const;
 // A learner's answer to a check-in, from the phone's buttons (#25). pause_days counts only with pause.
@@ -423,6 +431,7 @@ export const CONTRACTS = {
   QuizAttempt,
   Mastery,
   CoachEvent,
+  CoachDraft,
   CheckinReply,
 };
 export type ContractName = keyof typeof CONTRACTS;
@@ -431,7 +440,8 @@ export type ContractName = keyof typeof CONTRACTS;
 // Resource and ScoutResult are not: the scout builds them in code from model-filled Candidates.
 // Nor is CoursePlan: the architect builds it from a PlanDraft. Nor are Lesson and GlossaryEntry:
 // the lesson builder builds them from a LessonDraft. Nor are Quiz and QuizAttempt: the examiner
-// builds them from a QuizDraft, a KeyCheck and ShortGrades.
+// builds them from a QuizDraft, a KeyCheck and ShortGrades. Nor is CoachEvent: the coach builds it
+// around a CoachDraft.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
   "IntakeReply",
@@ -443,7 +453,7 @@ export const AGENT_OUTPUTS = [
   "QuizDraft",
   "KeyCheck",
   "ShortGrades",
-  "CoachEvent",
+  "CoachDraft",
 ] as const satisfies readonly ContractName[];
 
 export type LearnerProfile = Static<typeof LearnerProfile>;
@@ -468,6 +478,7 @@ export type Quiz = Static<typeof Quiz>;
 export type QuizAttempt = Static<typeof QuizAttempt>;
 export type Mastery = Static<typeof Mastery>;
 export type CoachEvent = Static<typeof CoachEvent>;
+export type CoachDraft = Static<typeof CoachDraft>;
 export type CheckinChoice = (typeof CHECKIN_CHOICES)[number];
 export type CheckinReply = Static<typeof CheckinReply>;
 

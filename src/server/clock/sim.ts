@@ -31,8 +31,9 @@ export type SimOptions = {
 };
 
 // A learner with no quiz, no lesson and no plan yet: the ladder counts from day 0, no button opens a
-// lesson and a shrink changes nothing.
+// lesson, a shrink changes nothing and each message is its template.
 const NO_STUDY: CoachDeps = {
+  steps: null,
   study: () => ({ attempt_days: [], lesson: null }),
   replan: async () => NO_PLAN,
 };

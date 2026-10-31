@@ -19,6 +19,7 @@ export type CoachRule = {
   cta: Cta | null;
   // For the fire trace. It names the learner by id at most, and holds no message text.
   why: { ar: string; en: string };
+  // The message's text. A failed model call gives the template, so it rejects only on a fault.
   write(): Promise<string>;
 };
 

@@ -1,6 +1,15 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { compareSimTime, type SimTime, startOfDay } from "../clock/time";
-import { type LadderFacts, ladderAt, ladderMarks, pauseFor, rungsThrough } from "./ladder";
+import {
+  LADDER_STATES,
+  type LadderFacts,
+  ladderAt,
+  ladderMarks,
+  pauseFor,
+  rungsThrough,
+} from "./ladder";
 
 const facts = (over: Partial<LadderFacts> = {}): LadderFacts => ({
   anchor: 0,
@@ -166,5 +175,19 @@ describe("with messages off", () => {
 
     expect(ladderAt(f, startOfDay(day)).state).toBe("opted_out");
     expect(ids(f, startOfDay(day))).toEqual(fired);
+  });
+});
+
+describe("the statechart in docs/coach.md", () => {
+  it("draws every ladder state, and no other", () => {
+    const doc = readFileSync(join(process.cwd(), "docs/coach.md"), "utf8");
+    const chart = doc.match(/```mermaid\n([\s\S]*?)```/)?.[1] ?? "";
+
+    const drawn = new Set(
+      [...chart.matchAll(/^\s*(\[\*\]|\w+)\s*-->\s*(\w+)/gm)].flatMap((m) => [m[1], m[2]]),
+    );
+    drawn.delete("[*]");
+
+    expect([...drawn].sort()).toEqual([...LADDER_STATES].sort());
   });
 });

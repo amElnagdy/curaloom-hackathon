@@ -11,6 +11,7 @@ import type {
 } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { hhmm, type SimTime } from "../../server/clock/time.ts";
+import type { Ladder, LadderState } from "../../server/coach/ladder.ts";
 import { arabicNumber, clockTime, countOf, MODULES, ordinalF } from "./format.ts";
 import type { Status } from "./ui.tsx";
 
@@ -141,6 +142,25 @@ export const COACH_TITLE: Record<CoachEvent["type"], string> = {
   weekly: "رسالة الأسبوع",
   comeback: "رسالة للعودة",
 };
+
+// Where the coach's ladder stands (#25), after «المدرب».
+const LADDER_STATE: Record<LadderState, string> = {
+  active: "يتابع دراستك",
+  nudged_d2: "أرسل تذكير اليوم الثاني",
+  replan_offered_d5: "عرض عليك أسبوعًا أخف",
+  checkin_d10: "سألك عمّا يناسبك",
+  weekly: "يرسل رسالة واحدة كل أسبوع",
+  paused: "في استراحة طلبتها",
+  opted_out: "لا يرسل رسائل",
+};
+
+// The coach page's line on the ladder: its state, then when the pause ends or the next message is due.
+export function ladderText({ state, next, paused_until }: Ladder): string {
+  const now = `المدرب ${LADDER_STATE[state]}`;
+  if (state === "opted_out") return `${now}.`;
+  if (paused_until) return `${now} حتى ${simTimeText(paused_until)}.`;
+  return next ? `${now}. رسالته التالية في ${simDay(next.at.day)}.` : `${now}.`;
+}
 
 export const COACH_STATUS: Record<CoachEvent["status"], Shown> = {
   queued: { status: "waiting", label: "مجدولة" },

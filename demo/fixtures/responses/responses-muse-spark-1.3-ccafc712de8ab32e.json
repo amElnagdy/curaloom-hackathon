@@ -1,0 +1,111 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "لم يدرس المتعلم منذ يومين. اكتب له رسالة تذكير قصيرة تقترح مهمة من عشر دقائق، واكتب {name} مرة واحدة مكان اسمه.",
+      "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
+      "reasoning": {
+        "effort": "low"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "CoachDraft",
+          "schema": {
+            "type": "object",
+            "required": [
+              "message_ar"
+            ],
+            "properties": {
+              "message_ar": {
+                "type": "string",
+                "description": "the message in Modern Standard Arabic; write {name} exactly once where the learner's first name goes"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "low"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "CoachDraft",
+        "schema": {
+          "required": [
+            "message_ar"
+          ],
+          "properties": {
+            "message_ar": {
+              "description": "the message in Modern Standard Arabic; write {name} exactly once where the learner's first name goes",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae5eee75bef2a2c80c541eb",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793453799,
+    "completed_at": 1793453799,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae5eee75bef2a2c80c541eb:rs_f5d35ec5-26a2-48bd-8871-f1b264dd9774",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_0f351f6e-af97-4975-b144-d7dfc5e97bec",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"message_ar\":\"مرحباً {name}، لاحظت أنك لم تدرس منذ يومين، ما رأيك أن نعود بهدوء بمهمة صغيرة لعشر دقائق فقط لمراجعة ما تعلمته؟\"}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "أجب بالعربية حيث يكون النص موجّهًا للمتعلم.",
+    "usage": {
+      "input_tokens": 137,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 471,
+      "output_tokens_details": {
+        "reasoning_tokens": 407
+      },
+      "total_tokens": 608
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 3559
+}

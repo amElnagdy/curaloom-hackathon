@@ -1,0 +1,111 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Message: the weekly message while they are away: their place in the course is kept, and they can come back any time, starting with a short review\nDays since their last quiz: 24\nTone: plain and direct, at most 260 characters\nCurrent lesson: الجدول المحوري: تلخيص آلاف الصفوف في دقيقة\nTemplate: {name}، مكانك في الدورة محفوظ. عُد متى شئت، وابدأ بمراجعة قصيرة.",
+      "instructions": "You write one short message from a learning coach to an Arabic-speaking adult who has not studied for some days. It goes to their phone.\nWrite in Modern Standard Arabic: warm and respectful, with no guilt, blame or pressure. Never reproach them for the days away.\nWrite it in your own words for this learner; do not copy the template. The template shows the message's purpose and the facts to keep. Make no offer, promise or number that the template and the brief do not give.\nYou may name the current lesson in a few words. When the brief gives the best score, you may say how close it is to the gate, as encouragement. Write numbers in Arabic-Indic digits.\nWrite {name} exactly once, where the learner's first name goes; code puts the name in. Write no other braces.\nWrite no links, no web or email addresses and no emoji.\nKeep to the tone and the length the brief gives.\nWhen the brief lists choices, invite them in that order and in those words; buttons under the message repeat them.",
+      "reasoning": {
+        "effort": "low"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "CoachDraft",
+          "schema": {
+            "type": "object",
+            "required": [
+              "message_ar"
+            ],
+            "properties": {
+              "message_ar": {
+                "type": "string",
+                "description": "the message in Modern Standard Arabic; write {name} exactly once where the learner's first name goes"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "low"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "CoachDraft",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "message_ar": {
+              "description": "the message in Modern Standard Arabic; write {name} exactly once where the learner's first name goes",
+              "type": "string"
+            }
+          },
+          "required": [
+            "message_ar"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae5efc75aca9a5961f745ed",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793454023,
+    "completed_at": 1793454023,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae5efc75aca9a5961f745ed:rs_d4aaaf9b-10c3-4549-82fd-70e3c314e920",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_e2ac90ac-93ea-42aa-9d6c-b26e9d5415fb",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"message_ar\": \"{name}، مقعدك في الدورة ما زال بانتظارك. عودتك مرحب بها في أي وقت، وسنبدأ بمراجعة سريعة لدرس الجدول المحوري.\"}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You write one short message from a learning coach to an Arabic-speaking adult who has not studied for some days. It goes to their phone.\nWrite in Modern Standard Arabic: warm and respectful, with no guilt, blame or pressure. Never reproach them for the days away.\nWrite it in your own words for this learner; do not copy the template. The template shows the message's purpose and the facts to keep. Make no offer, promise or number that the template and the brief do not give.\nYou may name the current lesson in a few words. When the brief gives the best score, you may say how close it is to the gate, as encouragement. Write numbers in Arabic-Indic digits.\nWrite {name} exactly once, where the learner's first name goes; code puts the name in. Write no other braces.\nWrite no links, no web or email addresses and no emoji.\nKeep to the tone and the length the brief gives.\nWhen the brief lists choices, invite them in that order and in those words; buttons under the message repeat them.",
+    "usage": {
+      "input_tokens": 400,
+      "input_tokens_details": {
+        "cached_tokens": 241
+      },
+      "output_tokens": 937,
+      "output_tokens_details": {
+        "reasoning_tokens": 876
+      },
+      "total_tokens": 1337
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 4091
+}
