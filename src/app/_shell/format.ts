@@ -178,3 +178,12 @@ export function usd(amount: number): string {
 export function latency(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
+
+// The credit a reuser copies from a lesson's sources panel. scripts/notices.ts writes the same line
+// for each recorded source into THIRD_PARTY_NOTICES.md.
+export function creditLine(
+  source: { title: string; url: string; licence: { spdx: string } },
+  appName: string,
+): string {
+  return `«${source.title}»، ${source.url}، بترخيص ${source.licence.spdx}. الشرح العربي في ${appName} مبني على مقتطفات منه، مع تغييرات.`;
+}

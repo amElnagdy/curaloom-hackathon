@@ -43,6 +43,7 @@ import { unique } from "../../_shell/course.ts";
 import {
   arabicNumber,
   countOf,
+  creditLine,
   MINUTES,
   ordinal,
   percent,
@@ -321,9 +322,7 @@ function SourcesPanel({ lesson, sources }: { lesson: Lesson; sources: QuotedSour
                   </dd>
                 </div>
               </dl>
-              <CopyButton
-                text={`«${r.title}»، ${r.url}، بترخيص ${r.licence.spdx}. الشرح العربي في ${config.appName} مبني على مقتطفات منه، مع تغييرات.`}
-              />
+              <CopyButton text={creditLine(r, config.appName)} />
             </li>
           ))}
         </ul>

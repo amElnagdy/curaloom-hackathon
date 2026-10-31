@@ -14,7 +14,7 @@
     "demo:replay": "node demo/run.ts replay",
     "demo:live": "node demo/run.ts live",
     "demo:reset": "node demo/run.ts reset",
-    "prepare": "git config core.hooksPath .githooks",
+    "prepare": "git config core.hooksPath .githooks || exit 0",
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "next typegen && tsc --noEmit",
@@ -23,6 +23,7 @@
     "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts",
     "fixtures:record": "RECORD_FIXTURES=1 vitest run --exclude \".claude/**\" smoke.test intake.test architect.test examiner.test coach.test",
     "fixtures:prune": "node demo/fixtures/prune.ts",
+    "notices": "node --env-file-if-exists=.env scripts/notices.ts",
     "scout": "node --env-file-if-exists=.env src/server/agents/scout/cli.ts"
   },
   "dependencies": {

@@ -91,6 +91,7 @@ config/              .env.example, models.yaml (#12)
 evals/               model evals (#8)
 demo/fixtures/       seeded state, recorded responses and recorded pages
 docs/adr/            decisions
+scripts/             repo upkeep: notices.ts writes THIRD_PARTY_NOTICES.md (#32)
 spikes/              throwaway Day-1 spikes (Python, not in CI)
 ```
 
