@@ -193,16 +193,16 @@ describe("toActivityItem", () => {
 
   it("dates a line by its simulated time", async () => {
     const { store, orchestrator, trace } = setup();
-    createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") }).set(2);
+    await createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") }).set(2);
     await orchestrator.runStep("s_1", scout([{ found: 3 }]), null);
 
     expect(toActivityItem(trace().at(-1) as TraceEvent)?.simAt).toEqual({ day: 2, minute: 540 });
   });
 
-  it("leaves the clock, the coach scheduler, the notifier and a demo reset out of the feed", () => {
+  it("leaves the clock, the coach scheduler, the notifier and a demo reset out of the feed", async () => {
     const { store, trace } = setup();
     const sim = createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") });
-    sim.set(10);
+    await sim.set(10);
     sim.reset();
 
     expect(trace().map((e) => e.agent)).toEqual(expect.arrayContaining(["scheduler", "sim"]));
@@ -211,13 +211,13 @@ describe("toActivityItem", () => {
 });
 
 describe("clockNow", () => {
-  it("reads the simulated clock from the trace, back to day 0 on reset", () => {
+  it("reads the simulated clock from the trace, back to day 0 on reset", async () => {
     const { store, trace } = setup();
     const sim = () => createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") });
 
     expect(clockNow(trace())).toEqual({ day: 0, minute: 540 });
-    sim().set(10);
-    sim().advance({ minutes: 90 });
+    await sim().set(10);
+    await sim().advance({ minutes: 90 });
     expect(clockNow(trace())).toEqual(sim().now());
     sim().reset();
     expect(clockNow(trace())).toEqual({ day: 0, minute: 540 });

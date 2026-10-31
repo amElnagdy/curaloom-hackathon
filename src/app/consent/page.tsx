@@ -27,7 +27,7 @@ import { ConsentForm } from "./consent-form.tsx";
 
 export const metadata: Metadata = { title: "الموافقة" };
 
-// What the coach sends while the learner is away, counted from the last session they did (#25).
+// What the coach sends while the learner is away, counted from the last quiz they took (#25).
 const LADDER = [
   { mark: <Sunrise />, title: "بعد يومين", detail: "مهمة قصيرة من عشر دقائق تعيدك إلى درسك." },
   { mark: <CalendarClock />, title: "بعد خمسة أيام", detail: "اقتراح أسبوع أخف." },

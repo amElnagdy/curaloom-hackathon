@@ -115,7 +115,7 @@
           { "id": "L2", "title_ar": "الإحصاء الوصفي: المتوسط والوسيط والتشتت", "module": 1 }
         ],
         "sessions": [
-          { "id": "s1", "day": 1, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
+          { "id": "s1", "day": 0, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
           { "id": "s2", "day": 3, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
           { "id": "s3", "day": 8, "minutes": 45, "lesson_id": "L2", "resource_ids": ["r2"] },
           { "id": "s4", "day": 10, "minutes": 45, "lesson_id": "L2", "resource_ids": ["r2"] }
@@ -193,7 +193,7 @@
       "id": "a1",
       "quiz_id": "q1",
       "lesson_id": "L1",
-      "sim_day": 1,
+      "sim_day": 0,
       "answers": [
         {
           "item_id": "i1",
@@ -215,7 +215,7 @@
   "mastery": [{ "lesson_id": "L1", "best_score": 0.75, "passed": false, "attempts": 1 }],
   "coach_events": [
     {
-      "id": "c1",
+      "id": "nudge_a0_d2",
       "sim_day": 2,
       "type": "nudge",
       "channel": "simulated",

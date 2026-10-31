@@ -1,16 +1,18 @@
-// A session's simulated time (#23): the sim clock, the coach scheduler it drives and the notifier
-// the scheduler sends through (#22). Each move returns the new time and the coach events it fired;
-// a reply goes to the notifier's inbound handler. The HTTP routes are thin wrappers over it.
+// A session's simulated time (#23): the sim clock, the coach scheduler it drives, the coach whose
+// ladder the scheduler fires (#25) and the notifier the scheduler sends through (#22). Each move
+// returns the new time and the coach events it fired; a reply goes to the notifier's inbound
+// handler. The HTTP routes are thin wrappers over it.
 
 import type { CoachEvent, Consent } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config, type NotifierAdapterName } from "../../config.ts";
+import { type CoachDeps, createCoach } from "../coach/coach.ts";
 import { createAdapter } from "../notifier/adapters.ts";
 import { type ConsentChoice, createNotifier, type ReplyResult } from "../notifier/notifier.ts";
 import type { Store } from "../store/store.ts";
 import { createTracer } from "../trace/trace.ts";
 import { createSimClock } from "./clock.ts";
-import { type CoachRule, createScheduler } from "./scheduler.ts";
+import { createScheduler, type RuleSource } from "./scheduler.ts";
 import { type Duration, formatSimTime, type SimTime } from "./time.ts";
 
 export type SimSeed = Pick<Seed, "profile" | "consent" | "coach_events">;
@@ -22,14 +24,20 @@ export type SimOptions = {
   store: Store;
   sessionId: string;
   seed: SimSeed;
-  rules?: readonly CoachRule[];
+  coach?: CoachDeps;
+  // Fired in place of the coach's ladder, for tests of the scheduler alone.
+  rules?: RuleSource;
   adapter?: NotifierAdapterName;
 };
+
+// A learner with no quiz and no lesson yet: the ladder counts from day 0 and no button opens a lesson.
+const NO_STUDY: CoachDeps = { study: () => ({ attempt_days: [], lesson: null }) };
 
 export function createSim({
   store,
   sessionId,
   seed,
+  coach: deps = NO_STUDY,
   rules,
   adapter = config.notifierAdapter,
 }: SimOptions) {
@@ -42,29 +50,38 @@ export function createSim({
     tracer,
     initialConsent: seed.consent,
   });
+  const learner = { id: seed.profile.id, name: seed.profile.name };
+  const coach = createCoach({ store, sessionId, tracer, notifier, learner, ...deps });
   const scheduler = createScheduler({
     store,
     sessionId,
     tracer,
     notifier,
-    context: { learner: { id: seed.profile.id, name: seed.profile.name } },
+    learnerId: learner.id,
     initialEvents: seed.coach_events,
-    rules,
+    rules: rules ?? coach.rules,
   });
   // The clock moves first, then the scheduler catches up on the window it crossed: a crash in
   // between leaves due rules that the next move fires.
-  const moved = (to: SimTime): SimResult => ({
-    now: formatSimTime(to),
-    events: scheduler.tick(to),
-  });
+  const moved = async (from: SimTime, to: SimTime): Promise<SimResult> => {
+    coach.observe(from);
+    return { now: formatSimTime(to), events: await scheduler.tick(to) };
+  };
 
   return {
     now: clock.now,
     coachEvents: scheduler.events,
     consent: notifier.consent,
     outbox: notifier.outbox,
-    advance: (by: Duration) => moved(clock.advance(by)),
-    set: (day: number) => moved(clock.set(day)),
+    ladder: () => coach.ladder(clock.now()),
+    advance: async (by: Duration) => {
+      const from = clock.now();
+      return moved(from, clock.advance(by));
+    },
+    set: async (day: number) => {
+      const from = clock.now();
+      return moved(from, clock.set(day));
+    },
     // The consent screen's save (#24), at the current sim time.
     setConsent(choice: ConsentChoice): Consent {
       const consent = notifier.setConsent(choice, clock.now());

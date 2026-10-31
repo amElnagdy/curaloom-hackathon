@@ -5,10 +5,9 @@
 
 import Type, { type Static, type TSchema } from "typebox";
 import { Consent, contractErrors } from "../../../contracts/index.ts";
-import { sessionSimSeed } from "../coach/session.ts";
-import { InvalidNameError, type Store } from "../store/store.ts";
+import { InvalidNameError } from "../store/store.ts";
 import { ClockError } from "./clock.ts";
-import { createSim, type SimResult, type SimSeed } from "./sim.ts";
+import type { createSim, SimResult } from "./sim.ts";
 
 const Advance = Type.Object(
   {
@@ -52,10 +51,10 @@ export function parse<S extends TSchema>(schema: S, value: unknown): Static<S> {
 
 type Sim = ReturnType<typeof createSim>;
 
-const ACTIONS: Record<string, (sim: Sim, body: unknown) => SimResult> = {
+const ACTIONS: Record<string, (sim: Sim, body: unknown) => Promise<SimResult>> = {
   advance: (sim, body) => sim.advance(parse(Advance, body)),
   set: (sim, body) => sim.set(parse(SetDay, body).day),
-  reset: (sim, body) => {
+  reset: async (sim, body) => {
     parse(Empty, body);
     return sim.reset();
   },
@@ -84,47 +83,59 @@ async function answer(work: () => Promise<unknown>): Promise<Response> {
   }
 }
 
-// `seed` is the demo's seed; each handler turns it into the session's (sessionSimSeed), so a bad
-// session id is a 400 like any other.
-export type SimDeps = { store: Store; seed: SimSeed; enabled: boolean };
+// `sim` builds the session's sim for one request, so a bad session id is a 400 like any other.
+export type SimDeps = { sim(sessionId: string): Sim; enabled: boolean };
 
-const sessionSimFor = (sessionId: string, { store, seed }: Omit<SimDeps, "enabled">) =>
-  createSim({ store, sessionId, seed: sessionSimSeed(store, sessionId, seed) });
+const chains = new Map<string, Promise<unknown>>();
+
+// Runs one session's sim, reply and consent requests one after another. A move awaits each coach
+// message as it is written, and a second move in between would read the fired-rule ledger before
+// the first one writes it. In-process only; the outbox's dedupe by message id is the second guard.
+function serial<T>(sessionId: string, work: () => Promise<T>): Promise<T> {
+  const result = (chains.get(sessionId) ?? Promise.resolve()).then(work);
+  const settled = result.catch(() => undefined);
+  chains.set(sessionId, settled);
+  void settled.then(() => {
+    if (chains.get(sessionId) === settled) chains.delete(sessionId);
+  });
+  return result;
+}
 
 export async function simResponse(
   request: Request,
   sessionId: string,
   action: string,
-  { store, seed, enabled }: SimDeps,
+  { sim, enabled }: SimDeps,
 ): Promise<Response> {
   const run = Object.hasOwn(ACTIONS, action) ? ACTIONS[action] : undefined;
   if (!enabled || !run) return new Response(null, { status: 404 });
-  return answer(async () =>
-    run(sessionSimFor(sessionId, { store, seed }), await jsonBody(request)),
-  );
+  return answer(async () => {
+    const body = await jsonBody(request);
+    return serial(sessionId, () => run(sim(sessionId), body));
+  });
 }
 
 export function inboxResponse(
   request: Request,
   sessionId: string,
-  deps: Omit<SimDeps, "enabled">,
+  { sim }: Omit<SimDeps, "enabled">,
 ): Promise<Response> {
   return answer(async () => {
     const { text } = parse(Reply, await jsonBody(request));
-    return sessionSimFor(sessionId, deps).reply(text);
+    return serial(sessionId, async () => sim(sessionId).reply(text));
   });
 }
 
 export function consentResponse(
   request: Request,
   sessionId: string,
-  deps: Omit<SimDeps, "enabled">,
+  { sim }: Omit<SimDeps, "enabled">,
 ): Promise<Response> {
   return answer(async () => {
     const choice = parse(ConsentBody, await jsonBody(request));
     if (choice.quiet_hours && choice.quiet_hours.start === choice.quiet_hours.end) {
       throw new BadRequest("Quiet hours must end at a different time than they start");
     }
-    return { consent: sessionSimFor(sessionId, deps).setConsent(choice) };
+    return { consent: await serial(sessionId, async () => sim(sessionId).setConsent(choice)) };
   });
 }

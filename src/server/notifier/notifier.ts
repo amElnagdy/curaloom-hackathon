@@ -3,7 +3,7 @@
 // A deferred message waits in the session's outbox until a clock tick passes its time. An inbound
 // stop word opts the learner out at once, in any state, with one confirmation.
 
-import type { Consent } from "../../../contracts/index.ts";
+import type { CheckinChoice, Consent } from "../../../contracts/index.ts";
 import type { NotifierAdapterName } from "../../config.ts";
 import { arabicSimTime } from "../clock/clock.ts";
 import {
@@ -17,7 +17,10 @@ import type { Store } from "../store/store.ts";
 import type { Tracer } from "../trace/trace.ts";
 import { gate, type MessageKind, quietUntil } from "./gate.ts";
 
-export type Cta = { label_ar: string; action: "open_lesson"; lesson_id: string };
+export type Cta =
+  | { label_ar: string; action: "open_lesson"; lesson_id: string }
+  | { label_ar: string; action: "open_plan" }
+  | { action: "choose"; options: { choice: CheckinChoice; label_ar: string }[] };
 
 export type NotifierMessage = {
   // One message per coach event: the event's id.

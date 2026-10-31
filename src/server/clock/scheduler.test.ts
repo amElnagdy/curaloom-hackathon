@@ -3,205 +3,155 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
-import { phoneThread, readInbox } from "../notifier/adapters";
+import { readInbox } from "../notifier/adapters";
 import { createFileStore } from "../store/store";
 import type { TraceEvent } from "../trace/trace";
-import { type CoachRule, fillTemplate } from "./scheduler";
+import type { CoachRule, RuleSource } from "./scheduler";
 import { createSim } from "./sim";
-import { startOfDay } from "./time";
+import type { SimTime } from "./time";
 
-function setup(rules?: readonly CoachRule[]) {
+const at = (day: number, hour: number): SimTime => ({ day, minute: hour * 60 });
+const later = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// A rule whose message is its key; at 09:00 the seed's quiet hours (22:00 to 12:00) hold it.
+function rule(key: string, when: SimTime, write = async () => `رسالة ${key}`): CoachRule {
+  return {
+    key,
+    at: when,
+    type: "nudge",
+    template: `t_${key}`,
+    cta: null,
+    why: { ar: `سبب ${key}`, en: `why ${key}` },
+    write,
+  };
+}
+
+// Lists every rule, due or not, as a source may: the scheduler fires only the due ones.
+const all =
+  (rules: CoachRule[]): RuleSource =>
+  () =>
+    rules;
+
+function setup(rules: RuleSource) {
   const store = createFileStore(mkdtempSync(join(tmpdir(), "scheduler-")));
   const seed = loadOmarSeed("x");
   // A new sim per call, like one per HTTP request.
   const sim = () => createSim({ store, sessionId: "s_1", seed, rules });
-  return { store, seed, sim };
+  const trace = () => store.readTrace<TraceEvent>("s_1");
+  return { store, seed, sim, trace };
 }
 
-const keyed = (events: { id: string; sim_day: number }[]) =>
-  events.map((e) => `${e.id}@${e.sim_day}`);
+const ids = (events: { id: string }[]) => events.map((e) => e.id);
 
 describe("coach scheduler", () => {
-  it("fires the day 2, 5 and 10 rules in order, once, when the clock jumps to day 10", () => {
-    const { sim } = setup();
+  it("fires each due rule once, in time order, whatever order the source lists them", async () => {
+    const { sim } = setup(
+      all([rule("late", at(4, 13)), rule("early", at(1, 13)), rule("middle", at(3, 13))]),
+    );
 
-    const jump = sim().set(10);
-    const repeat = sim().set(10);
+    const jump = await sim().set(4);
+    const repeat = await sim().set(4);
+    const after = await sim().advance({ minutes: 4 * 60 });
 
-    expect(jump.now).toBe("day 10 09:00");
-    expect(keyed(jump.events)).toEqual(["c1@2", "c2@5", "c3@10"]);
+    expect(jump.now).toBe("day 4 09:00");
+    expect(ids(jump.events)).toEqual(["early", "middle"]);
     expect(repeat.events).toEqual([]);
+    expect(ids(after.events)).toEqual(["late"]);
   });
 
-  it("fires each rule once when the clock moves a day at a time", () => {
-    const { sim } = setup();
+  it("fires each rule once when the clock moves a day at a time", async () => {
+    const { sim } = setup(all([rule("a", at(2, 9)), rule("b", at(5, 9)), rule("c", at(5, 13))]));
 
-    const fired = Array.from({ length: 17 }, () => sim().advance({ days: 1 }).events).flat();
+    const fired = [];
+    for (let day = 1; day <= 6; day++) fired.push(...(await sim().advance({ days: 1 })).events);
 
-    expect(keyed(fired)).toEqual(["c1@2", "c2@5", "c3@10", "c4@17"]);
+    expect(ids(fired)).toEqual(["a", "b", "c"]);
   });
 
-  it("fires in time order whatever the order of the table", () => {
-    const rule = (key: string, day: number): CoachRule => ({
-      key,
-      at: startOfDay(day),
-      type: "nudge",
-      fire: () => ({
-        id: key,
-        sim_day: day,
-        type: "nudge",
-        channel: "simulated",
-        message_ar: "تذكير",
-        status: "queued",
-      }),
-    });
-    const { sim } = setup([rule("late", 4), rule("early", 1), rule("middle", 3)]);
+  it("keeps time order when an earlier rule takes longer to write", async () => {
+    const { store, sim } = setup(
+      all([
+        rule("slow", at(1, 13), async () => {
+          await later(30);
+          return "بطيئة";
+        }),
+        rule("fast", at(2, 13), async () => "سريعة"),
+      ]),
+    );
 
-    expect(
-      sim()
-        .set(4)
-        .events.map((e) => e.id),
-    ).toEqual(["early", "middle", "late"]);
-  });
+    const jump = await sim().set(3);
 
-  it("puts the learner's name in the Arabic template text", () => {
-    const { sim } = setup();
-
-    const [nudge] = sim().set(2).events;
-
-    expect(nudge?.message_ar).toMatch(/^مرحبًا عمر، /);
-    expect(() => fillTemplate("{name} و{lesson}", { name: "عمر" })).toThrow(/\{lesson\}/);
-  });
-
-  it("traces a jump with the sim time each step happened, in order", () => {
-    const { store, sim } = setup();
-
-    sim().set(10);
-
-    const events = store.readTrace<TraceEvent>("s_1");
-    expect(events.map((e) => [e.agent, e.sim_ts])).toEqual([
-      ["clock", "day 10 09:00"],
-      ["scheduler", "day 2 09:00"],
-      ["notifier", "day 2 09:00"],
-      ["notifier", "day 2 12:00"],
-      ["scheduler", "day 5 09:00"],
-      ["notifier", "day 5 09:00"],
-      ["notifier", "day 5 12:00"],
-      ["scheduler", "day 10 09:00"],
-      ["notifier", "day 10 09:00"],
+    expect(ids(jump.events)).toEqual(["slow", "fast"]);
+    expect(readInbox(store, "s_1").map((e) => [e.id, e.text])).toEqual([
+      ["slow", "بطيئة"],
+      ["fast", "سريعة"],
     ]);
   });
 
-  it("restores the seeded state on reset, so the same jump fires again", () => {
-    const { seed, sim } = setup();
-    sim().set(10);
+  it("builds each event and message from its rule and the written text", async () => {
+    const { store, sim } = setup(all([rule("r1", at(2, 13), async () => "مرحبًا")]));
+
+    const [event] = (await sim().set(3)).events;
+
+    expect(event).toEqual({
+      id: "r1",
+      sim_day: 2,
+      type: "nudge",
+      channel: "simulated",
+      message_ar: "مرحبًا",
+      status: "sent",
+    });
+    expect(readInbox(store, "s_1")).toEqual([
+      {
+        id: "r1",
+        direction: "out",
+        text: "مرحبًا",
+        cta: null,
+        template: "t_r1",
+        sim_ts: "day 2 13:00",
+      },
+    ]);
+  });
+
+  it("traces each rule with its reason, at its own time, with held messages delivered between", async () => {
+    const { sim, trace } = setup(all([rule("a", at(2, 9)), rule("b", at(5, 9))]));
+
+    await sim().set(5);
+
+    expect(
+      trace().map((e) => [e.agent, e.sim_ts, e.agent === "scheduler" ? e.summary_en : null]),
+    ).toEqual([
+      ["clock", "day 5 09:00", null],
+      ["scheduler", "day 2 09:00", "why a"],
+      ["notifier", "day 2 09:00", null],
+      ["notifier", "day 2 12:00", null],
+      ["scheduler", "day 5 09:00", "why b"],
+      ["notifier", "day 5 09:00", null],
+    ]);
+    expect(trace().find((e) => e.agent === "scheduler")?.summary_ar).toBe("سبب a");
+  });
+
+  it("restores the seeded state on reset, so the same jump fires again", async () => {
+    const { seed, sim } = setup(all([rule("a", at(2, 13))]));
+    await sim().set(3);
 
     const reset = sim().reset();
 
     expect(reset).toEqual({ now: "day 0 09:00", events: [] });
     expect(sim().coachEvents()).toEqual(seed.coach_events);
-    expect(keyed(sim().set(10).events)).toEqual(["c1@2", "c2@5", "c3@10"]);
+    expect(ids((await sim().set(3)).events)).toEqual(["a"]);
   });
 
-  it("says in the trace that reset restored the seed, including a withdrawn consent", () => {
-    const { store, seed, sim } = setup();
-    sim().set(2);
+  it("says in the trace that reset restored the seed, including a withdrawn consent", async () => {
+    const { seed, sim, trace } = setup(all([]));
+    await sim().set(2);
     sim().reply("توقف");
 
     sim().reset();
 
     expect(sim().consent()).toEqual(seed.consent);
-    const last = store.readTrace<TraceEvent>("s_1").at(-1);
+    const last = trace().at(-1);
     expect(last?.summary_en).toMatch(/reset to the seed.*consent/i);
     expect(last?.summary_ar).toMatch(/الموافقة/);
-  });
-});
-
-describe("coach messages through the notifier", () => {
-  it("holds each 09:00 message for quiet hours, delivering it at 12:00 as the clock passes", () => {
-    const { store, sim } = setup();
-
-    const jump = sim().set(10);
-    const phoneAtNine = readInbox(store, "s_1").map((e) => [e.id, e.sim_ts]);
-    const later = sim().advance({ minutes: 3 * 60 });
-
-    expect(jump.events.map((e) => [e.id, e.status])).toEqual([
-      ["c1", "sent"],
-      ["c2", "sent"],
-      ["c3", "queued"],
-    ]);
-    expect(phoneAtNine).toEqual([
-      ["c1", "day 2 12:00"],
-      ["c2", "day 5 12:00"],
-    ]);
-    expect(later.events).toEqual([]);
-    expect(
-      sim()
-        .coachEvents()
-        .find((e) => e.id === "c3")?.status,
-    ).toBe("sent");
-    expect(readInbox(store, "s_1").at(-1)).toMatchObject({ id: "c3", sim_ts: "day 10 12:00" });
-  });
-
-  it("gives the day 2 nudge its button", () => {
-    const { store, sim } = setup();
-
-    sim().set(3);
-
-    expect(readInbox(store, "s_1")[0]?.cta).toEqual({
-      label_ar: "ابدأ مهمة ١٠ دقائق",
-      action: "open_lesson",
-      lesson_id: "L1",
-    });
-  });
-
-  it("cancels the held message and suppresses later ones once the learner replies توقف", () => {
-    const { store, sim } = setup();
-    sim().set(10);
-
-    const reply = sim().reply("توقف");
-    const after = sim().set(17);
-
-    expect(reply).toEqual({ opted_out: true, confirmed: true });
-    expect(
-      sim()
-        .coachEvents()
-        .find((e) => e.id === "c3")?.status,
-    ).toBe("suppressed_opt_out");
-    expect(after.events.map((e) => [e.id, e.status])).toEqual([["c4", "suppressed_opt_out"]]);
-    expect(
-      readInbox(store, "s_1")
-        .filter((e) => e.direction === "out")
-        .map((e) => e.template),
-    ).toEqual(["nudge_day2", "checkin_day5", "opt_out_confirmation"]);
-  });
-
-  it("shows the phone thread in sim time order, with held and stopped messages", () => {
-    const { store, sim } = setup();
-    const thread = () =>
-      phoneThread(readInbox(store, "s_1"), sim().outbox()).map((item) => [
-        item.kind,
-        item.at,
-        item.kind === "received" ? item.held_from : item.kind === "held" ? item.until : null,
-      ]);
-
-    sim().set(10);
-    sim().advance({ minutes: 60 });
-    sim().reply("سأبدأ غدًا");
-    const afterReply = thread();
-    sim().reply("توقف");
-
-    expect(afterReply).toEqual([
-      ["received", "day 2 12:00", "day 2 09:00"],
-      ["received", "day 5 12:00", "day 5 09:00"],
-      ["held", "day 10 09:00", "day 10 12:00"],
-      ["sent", "day 10 10:00", null],
-    ]);
-    expect(thread().slice(2)).toEqual([
-      ["suppressed", "day 10 09:00", null],
-      ["sent", "day 10 10:00", null],
-      ["sent", "day 10 10:00", null],
-      ["received", "day 10 10:00", null],
-    ]);
   });
 });

@@ -3,7 +3,7 @@ import { loadOmarSeed } from "../../../demo/seed";
 import { latestPlan } from "./course";
 import { courseLessons, currentLesson } from "./lessons";
 
-// The seed's plan: L1 in module 1 (sessions on days 1 and 3), L2 in module 2 (days 8 and 10).
+// The seed's plan: L1 in module 1 (sessions on days 0 and 3), L2 in module 2 (days 8 and 10).
 const plan = () => {
   const p = latestPlan(loadOmarSeed("x"));
   if (!p) throw new Error("the seed has no plan");
@@ -20,7 +20,7 @@ describe("courseLessons", () => {
     ]);
     expect(lessons.map((l) => l.planned.id)).toEqual(["L1", "L2"]);
     expect(lessons.map((l) => [l.session?.day, l.module?.index])).toEqual([
-      [1, 0],
+      [0, 0],
       [8, 1],
     ]);
   });

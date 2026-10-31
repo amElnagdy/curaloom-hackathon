@@ -136,9 +136,9 @@ export function simTimeText(t: SimTime): string {
 
 export const COACH_TITLE: Record<CoachEvent["type"], string> = {
   nudge: "تذكير من المدرب",
-  replan: "خطة معدّلة من المدرب",
+  replan: "عرض أسبوع أخف",
   checkin: "سؤال من المدرب",
-  weekly: "ملخص الأسبوع",
+  weekly: "رسالة الأسبوع",
   comeback: "رسالة للعودة",
 };
 

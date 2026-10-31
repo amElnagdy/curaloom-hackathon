@@ -24,6 +24,7 @@ import { config } from "../../config.ts";
 import { hhmm, parseSimTime } from "../../server/clock/time.ts";
 import { sessionSim } from "../../server/coach/session.ts";
 import { phoneThread, readInbox, type ThreadItem } from "../../server/notifier/adapters.ts";
+import type { Cta } from "../../server/notifier/notifier.ts";
 import { createFileStore } from "../../server/store/store.ts";
 import {
   ChannelTag,
@@ -45,6 +46,19 @@ export const metadata: Metadata = { title: "رسائل المدرب" };
 
 // "day 2 12:00" as «١٢:٠٠ ظهرًا».
 const timeOf = (simTs: string) => clockTime(hhmm(parseSimTime(simTs).minute));
+
+// A received message's button. The check-in's choices get theirs with the replies (#25).
+function CtaLink({ cta }: { cta: Cta }) {
+  if (cta.action === "choose") return null;
+  return (
+    <Link
+      href={cta.action === "open_lesson" ? `/lesson/${cta.lesson_id}` : "/plan"}
+      className={buttonClass("primary", "sm", { className: styles.cta })}
+    >
+      {cta.label_ar}
+    </Link>
+  );
+}
 
 // One line of the phone thread.
 function ThreadLine({ item }: { item: ThreadItem }) {
@@ -78,14 +92,7 @@ function ThreadLine({ item }: { item: ThreadItem }) {
           <p>
             <BidiText text={item.text} />
           </p>
-          {item.cta && (
-            <Link
-              href="/lesson"
-              className={buttonClass("primary", "sm", { className: styles.cta })}
-            >
-              {item.cta.label_ar}
-            </Link>
-          )}
+          {item.cta && <CtaLink cta={item.cta} />}
           <p className={styles.bubbleMeta}>
             <Check aria-hidden />
             <Meta

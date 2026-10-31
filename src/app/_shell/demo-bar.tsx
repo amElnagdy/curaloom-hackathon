@@ -1,7 +1,7 @@
 "use client";
 
 // The demo bar (#23, prototype C on prototype/23-demo-bar): a day timeline docked at the bottom
-// of the page column. Each coach rule is a marker that turns ready once the clock passes it; a
+// of the page column. Each coach rung is a marker that turns ready once the clock passes it; a
 // marker ahead jumps the clock to its day. Demo machinery, so it collapses to a chip.
 
 import { ChevronDown, FlaskConical, Plus, RotateCcw } from "lucide-react";
@@ -18,8 +18,8 @@ export type DemoMark = { day: number; type: CoachEvent["type"] };
 const SHORT: Record<CoachEvent["type"], string> = {
   nudge: "تذكير",
   checkin: "سؤال",
-  replan: "خطة معدّلة",
-  weekly: "ملخص",
+  replan: "أسبوع أخف",
+  weekly: "أسبوعية",
   comeback: "عودة",
 };
 

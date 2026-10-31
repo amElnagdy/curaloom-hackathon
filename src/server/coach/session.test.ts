@@ -2,11 +2,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { CoursePlan, QuizAttempt } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed";
 import { createSim } from "../clock/sim";
 import { readInbox } from "../notifier/adapters";
-import { createFileStore } from "../store/store";
-import { sessionSimSeed } from "./session";
+import { contentHash, createFileStore } from "../store/store";
+import { COACH_DOC } from "./coach";
+import { sessionSim, sessionSimSeed, studyOf } from "./session";
 
 const seed = loadOmarSeed("x");
 const store = () => createFileStore(mkdtempSync(join(tmpdir(), "coach-session-")));
@@ -37,32 +39,33 @@ describe("sessionSimSeed", () => {
     });
   });
 
-  it("lets no coach message reach the interviewed learner before consent is saved", () => {
+  it("lets no coach message reach the interviewed learner before consent is saved", async () => {
     const s = store();
     s.writeDoc("s1", "profile", learner);
     const sim = createSim({ store: s, sessionId: "s1", seed: sessionSimSeed(s, "s1", seed) });
 
-    const { events } = sim.set(3);
+    const { events } = await sim.set(3);
 
     expect(events.length).toBeGreaterThan(0);
     expect(events.every((e) => e.status === "suppressed_opt_out")).toBe(true);
   });
 
-  it("hands the interviewed learner nothing the seed's Omar agreed to, was sent or replied before the intake", () => {
+  it("hands the interviewed learner nothing the seed's Omar agreed to, was sent or replied before the intake", async () => {
     const s = store();
-    const omar = createSim({ store: s, sessionId: "s1", seed: sessionSimSeed(s, "s1", seed) });
+    const omar = sessionSim(s, "s1", seed).sim;
     omar.setConsent({ messages: true, quiet_hours: null, intensity: "normal" });
-    omar.set(3);
+    await omar.set(3);
     omar.reply("شكرًا");
     s.writeDoc("s1", "profile", learner);
 
-    const sim = createSim({ store: s, sessionId: "s1", seed: sessionSimSeed(s, "s1", seed) });
+    const sim = sessionSim(s, "s1", seed).sim;
 
     expect(sim.consent()).toMatchObject({ learner_id: "l_new", granted: false, opted_out: false });
     expect(sim.coachEvents()).toEqual([]);
     expect(sim.outbox()).toEqual([]);
     expect(readInbox(s, "s1")).toEqual([]);
-    expect(sim.set(5).events.every((e) => e.status === "suppressed_opt_out")).toBe(true);
+    expect(s.readDoc("s1", COACH_DOC)).toBeUndefined();
+    expect((await sim.set(5)).events.every((e) => e.status === "suppressed_opt_out")).toBe(true);
   });
 
   it("keeps the interviewed learner's own consent from one request to the next", () => {
@@ -76,14 +79,67 @@ describe("sessionSimSeed", () => {
     expect(open().consent()).toMatchObject({ learner_id: "l_new", granted: true });
   });
 
-  it("marks a held coach event as not sent once the consent screen turns messages off", () => {
+  it("marks a held coach event as not sent once the consent screen turns messages off", async () => {
     const s = store();
     const sim = createSim({ store: s, sessionId: "s1", seed: sessionSimSeed(s, "s1", seed) });
-    sim.set(2);
-    expect(sim.coachEvents().find((e) => e.id === "c1")?.status).toBe("queued");
+    await sim.set(2);
+    expect(sim.coachEvents().find((e) => e.id === "nudge_a0_d2")?.status).toBe("queued");
 
     sim.setConsent({ messages: false, quiet_hours: null, intensity: "gentle" });
 
-    expect(sim.coachEvents().find((e) => e.id === "c1")?.status).toBe("suppressed_opt_out");
+    expect(sim.coachEvents().find((e) => e.id === "nudge_a0_d2")?.status).toBe(
+      "suppressed_opt_out",
+    );
+  });
+});
+
+describe("studyOf", () => {
+  const plan = seed.plans[0] as CoursePlan;
+  const passedL1: QuizAttempt = {
+    ...(seed.attempts[0] as QuizAttempt),
+    id: "a_new",
+    sim_day: 3,
+    score: 1,
+    passed: true,
+  };
+
+  it("is the seed's quiz on day 0 and lesson L1 at 75% before the intake", () => {
+    expect(studyOf(store(), "s1", seed)).toEqual({
+      attempt_days: [0],
+      lesson: {
+        id: "L1",
+        title_ar: "الجدول المحوري: تلخيص آلاف الصفوف في دقيقة",
+        best_percent: 75,
+      },
+    });
+  });
+
+  it("is nothing studied for an interviewed learner without a plan", () => {
+    const s = store();
+    s.writeDoc("s1", "profile", learner);
+
+    expect(studyOf(s, "s1", seed)).toEqual({ attempt_days: [], lesson: null });
+  });
+
+  it("is the quizzes on the learner's own plan, and the first lesson he has not passed", () => {
+    const s = store();
+    s.writeDoc("s1", "profile", learner);
+    s.writeDoc("s1", "plan", {
+      for_profile: contentHash(learner),
+      versions: [plan],
+      resources: seed.resources,
+      limits: { budget_minutes: 300, resource_ids: ["r1", "r2"] },
+    });
+    s.writeDoc("s1", "quizzes", {
+      for_plan: plan.id,
+      quizzes: seed.quizzes,
+      attempts: [passedL1],
+      mastery: [{ lesson_id: "L1", best_score: 1, passed: true, attempts: 1 }],
+    });
+
+    expect(studyOf(s, "s1", seed)).toEqual({
+      attempt_days: [3],
+      lesson: { id: "L2", title_ar: "الإحصاء الوصفي: المتوسط والوسيط والتشتت", best_percent: null },
+    });
   });
 });

@@ -3,15 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
+import { sessionSim } from "../coach/session";
 import { createFileStore } from "../store/store";
 import { consentResponse, inboxResponse, simResponse } from "./http";
 
 function setup(enabled = true) {
-  const deps = {
-    store: createFileStore(mkdtempSync(join(tmpdir(), "sim-http-"))),
-    seed: loadOmarSeed("x"),
-    enabled,
-  };
+  const store = createFileStore(mkdtempSync(join(tmpdir(), "sim-http-")));
+  const seed = loadOmarSeed("x");
+  const deps = { sim: (sessionId: string) => sessionSim(store, sessionId, seed).sim, enabled };
   const post = (action: string, body?: unknown, sessionId = "s_1") =>
     simResponse(
       new Request("http://localhost/x", {
@@ -46,10 +45,22 @@ describe("sim and inbox routes", () => {
     const reset = await (await post("reset")).json();
 
     expect(set.now).toBe("day 5 09:00");
-    expect(set.events.map((e: { id: string }) => e.id)).toEqual(["c1", "c2"]);
+    expect(set.events.map((e: { id: string }) => e.id)).toEqual(["nudge_a0_d2", "replan_a0_d5"]);
     expect(advance.now).toBe("day 10 09:30");
-    expect(advance.events.map((e: { id: string }) => e.id)).toEqual(["c3"]);
+    expect(advance.events.map((e: { id: string }) => e.id)).toEqual(["checkin_a0_d10"]);
     expect(reset).toEqual({ now: "day 0 09:00", events: [] });
+  });
+
+  it("fire each message once when two moves of the same session arrive together", async () => {
+    const { post } = setup();
+
+    const answers = await Promise.all([post("set", { day: 10 }), post("set", { day: 10 })]);
+    const fired = (await Promise.all(answers.map((res) => res.json()))).flatMap(
+      (body: { events: { id: string }[] }) => body.events.map((e) => e.id),
+    );
+
+    expect(answers.map((res) => res.status)).toEqual([200, 200]);
+    expect(fired).toEqual(["nudge_a0_d2", "replan_a0_d5", "checkin_a0_d10"]);
   });
 
   it("refuse a time before now with 409, and a bad body or session id with 400", async () => {

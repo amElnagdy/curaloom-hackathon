@@ -391,6 +391,9 @@ export const CoachEvent = Obj({
   status: StringEnum(["queued", "sent", "suppressed_quiet_hours", "suppressed_opt_out"]),
 });
 
+// What a learner can answer to the coach's day-10 check-in (#25).
+export const CHECKIN_CHOICES = ["pause", "shrink", "switch"] as const;
+
 export const CONTRACTS = {
   LearnerProfile,
   IntakeReply,
@@ -458,6 +461,7 @@ export type Quiz = Static<typeof Quiz>;
 export type QuizAttempt = Static<typeof QuizAttempt>;
 export type Mastery = Static<typeof Mastery>;
 export type CoachEvent = Static<typeof CoachEvent>;
+export type CheckinChoice = (typeof CHECKIN_CHOICES)[number];
 
 function nameOf(schema: TSchema): string {
   return Object.entries(CONTRACTS).find(([, s]) => s === schema)?.[0] ?? "value";

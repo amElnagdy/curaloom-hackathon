@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { loadOmarSeed } from "../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../demo/session.ts";
 import { config } from "../config.ts";
-import { PLACEHOLDER_RULES } from "../server/clock/scheduler.ts";
+import { ladderMarks } from "../server/coach/ladder.ts";
 import { Shell } from "./_shell/shell.tsx";
 import { TraceProvider } from "./_shell/trace-provider.tsx";
 import "./globals.css";
@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             simClock={config.simClock}
             devTools={config.devTools}
             sessionId={DEMO_SESSION_ID}
-            demoMarks={PLACEHOLDER_RULES.map((rule) => ({ day: rule.at.day, type: rule.type }))}
+            demoMarks={ladderMarks()}
           >
             {children}
           </Shell>
