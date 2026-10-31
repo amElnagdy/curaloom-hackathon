@@ -35,6 +35,7 @@ describe("contracts", () => {
         "CheckinReply",
         "CoachEvent",
         "CoachDraft",
+        "ReplanNote",
         "Consent",
         "CoursePlan",
         "PlanDraft",

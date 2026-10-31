@@ -2,10 +2,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import type { CheckinReply, CoursePlan, QuizAttempt } from "../../../contracts/index.ts";
+import type { CheckinReply, CoursePlan, Quiz } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed";
 import { loadConfig } from "../../config";
-import type { SavedPlan } from "../agents/architect/architect";
+import { type Replanned, type SavedPlan, savedPlan } from "../agents/architect/architect";
+import type { ReplanRequest } from "../agents/architect/replan";
+import { AttemptInvalid } from "../agents/examiner/examiner";
+import { attemptOf, masteryAfter, recapQuiz } from "../agents/examiner/rules";
 import { createSim } from "../clock/sim";
 import { readInbox } from "../notifier/adapters";
 import { isStopWord } from "../notifier/notifier";
@@ -18,6 +21,7 @@ import {
   CHOICE_LABEL,
   CheckinConflict,
   type CoachDeps,
+  ComebackConflict,
   draftViolations,
   fillTemplate,
   MAX_DRAFT,
@@ -347,16 +351,26 @@ describe("draftViolations", () => {
   });
 });
 
+// The coach of a learner with no plan of their own, studying as `study` says.
+const noPlan = (study: Study): CoachDeps => ({
+  steps: null,
+  study: () => study,
+  replan: async () => {
+    throw new Error("a learner with no plan of their own has nothing to re-plan");
+  },
+  recap: () => undefined,
+});
+
 describe("activity", () => {
   it("starts the ladder again after a quiz, and traces the reset once", async () => {
     const store = createFileStore(mkdtempSync(join(tmpdir(), "coach-")));
-    const study: Study = { attempt_days: [0], lesson: null };
+    const study: Study = { attempt_days: [0], lesson: null, own_plan: false };
     const sim = () =>
       createSim({
         store,
         sessionId: "s_1",
         seed,
-        coach: { steps: null, study: () => study },
+        coach: noPlan(study),
       });
     await sim().set(3);
     await sim().advance({ minutes: 60 });
@@ -376,13 +390,13 @@ describe("activity", () => {
 
   it("ends a pause when the learner takes a quiz", async () => {
     const store = createFileStore(mkdtempSync(join(tmpdir(), "coach-")));
-    const study: Study = { attempt_days: [0], lesson: null };
+    const study: Study = { attempt_days: [0], lesson: null, own_plan: false };
     const sim = () =>
       createSim({
         store,
         sessionId: "s_1",
         seed,
-        coach: { steps: null, study: () => study },
+        coach: noPlan(study),
       });
     await sim().set(10);
     await sim().advance({ minutes: 180 });
@@ -398,12 +412,12 @@ describe("activity", () => {
 
   it("gives no lesson button while there is no lesson to open", async () => {
     const store = createFileStore(mkdtempSync(join(tmpdir(), "coach-")));
-    const study: Study = { attempt_days: [], lesson: null };
+    const study: Study = { attempt_days: [], lesson: null, own_plan: false };
     const sim = createSim({
       store,
       sessionId: "s_1",
       seed,
-      coach: { steps: null, study: () => study },
+      coach: noPlan(study),
     });
 
     await sim.set(17);
@@ -431,6 +445,37 @@ async function checkedIn() {
   return t;
 }
 
+// L1's quiz, five multiple-choice items, which the learner passed on day 0, and the recap of five
+// items it gives once they come back.
+const QUIZ_L1: Quiz = {
+  id: "q_L1_a",
+  lesson_id: "L1",
+  items: ["i1", "i2", "i3", "i4", "i5"].map((id) => ({
+    id,
+    type: "mcq",
+    prompt_ar: `سؤال ${id}`,
+    options_ar: ["صحيح", "خطأ أ", "خطأ ب"],
+    answer: "صحيح",
+    rubric_ar: "لأنه الصحيح.",
+    glossary_ids: [],
+  })),
+  pass_threshold: 0.8,
+};
+const PASSED_L1 = attemptOf(
+  QUIZ_L1,
+  QUIZ_L1.items.map((i) => ({ item_id: i.id, response: "صحيح", score: 1, feedback_ar: "صحيح." })),
+  0,
+);
+const RECAP = recapQuiz([QUIZ_L1], [PASSED_L1], [masteryAfter(undefined, PASSED_L1)]) as Quiz;
+// Answers to the recap with the first `right` of them right.
+const recapAnswers = (right: number) => ({
+  quiz_id: RECAP.id,
+  answers: RECAP.items.map((item, i) => ({
+    item_id: item.id,
+    response: i < right ? item.answer : "خطأ أ",
+  })),
+});
+
 // A learner the interview saved, with consent and no quiet hours, on the seed's plan as their own,
 // who passed L1 on day 0.
 const sara = { ...seed.profile, id: "l_sara", name: "سارة" };
@@ -444,12 +489,11 @@ function giveOwnPlan(store: Store) {
     limits: { budget_minutes: 300, resource_ids: seed.resources.map((r) => r.id) },
     pending: null,
   } satisfies SavedPlan);
-  const passedL1: QuizAttempt = { ...(seed.attempts[0] as QuizAttempt), score: 1, passed: true };
   store.writeDoc("s_1", "quizzes", {
     for_plan: PLAN.id,
-    quizzes: seed.quizzes,
-    attempts: [passedL1],
-    mastery: [{ lesson_id: "L1", best_score: 1, passed: true, attempts: 1 }],
+    quizzes: [QUIZ_L1],
+    attempts: [PASSED_L1],
+    mastery: [masteryAfter(undefined, PASSED_L1)],
   });
 }
 async function checkedInWithOwnPlan() {
@@ -518,12 +562,19 @@ describe("answers to the day-10 check-in", () => {
     expect(phone().at(-1)).toMatchObject({ id: `ack_${CHECKIN}`, sim_ts: "day 11 12:00" });
   });
 
-  // The re-plan comes with the learner's comeback (#27), so an answer saves no plan version.
+  // The re-plan comes when the learner finishes their comeback (#27), so an answer saves no plan
+  // version: it sees them back and sends them to their plan for the recap.
   it.each([
-    ["shrink", "حسنًا، سجّلتُ أنك تريد جلسات أقصر."],
-    ["switch", "حسنًا، سجّلتُ أنك تريد مصدرًا آخر."],
+    [
+      "shrink",
+      "اتفقنا: جلسات أقصر. افتح خطتك لمراجعة من خمسة أسئلة في نحو خمس دقائق، ثم نعرض عليك خطتك الجديدة لتوافق عليها.",
+    ],
+    [
+      "switch",
+      "اتفقنا: مصدر آخر. افتح خطتك لمراجعة قصيرة، ثم نقترح عليك مصدرًا بديلًا مما وجده الكشّاف.",
+    ],
   ] as const)(
-    "records a %s for the re-planner and leaves the plan as it is",
+    "records a %s, sees the learner back and sends them to their plan, which stays as it is",
     async (choice, ack) => {
       const { store, sim, phone, trace } = await checkedInWithOwnPlan();
 
@@ -534,25 +585,30 @@ describe("answers to the day-10 check-in", () => {
 
       expect(answer).toEqual({ choice, paused_until: null });
       expect(savedVersions(store)).toEqual([PLAN]);
+      expect(savedPlan(store, "s_1")?.pending).toBeNull();
       expect(sim().checkinReplies()).toEqual([
         { ...reply(choice), sim_ts: "day 10 09:00", anchor: 0 },
       ]);
+      expect(sim().comeback()).toMatchObject({ state: "open", away_days: 10, reason: choice });
       expect(answered).toMatchObject([
         { direction: "in", text: CHOICE_LABEL[choice] },
-        { id: `ack_${CHECKIN}`, text: ack, cta: null },
+        { id: `ack_${CHECKIN}`, text: ack, cta: { label_ar: "افتح خطتي", action: "open_plan" } },
       ]);
       expect(
         trace()
           .filter((e) => e.agent === "coach")
           .map((e) => e.summary_en),
-      ).toEqual([`${CHECKIN} answered by l_sara: ${choice} recorded`]);
+      ).toEqual([
+        `${CHECKIN} answered by l_sara: ${choice} recorded`,
+        "comeback_detected: l_sara back after 10 days (via reply)",
+      ]);
       expect(state).toBe("checkin_d10");
       expect(day17.events.map((e) => e.id)).toEqual(["weekly_a0_d17"]);
     },
   );
 
-  it("records a shrink from the seed's Omar, who has no plan of his own, and makes none", async () => {
-    const { store, sim, phone } = await checkedIn();
+  it("records a shrink from the seed's Omar, who has no plan of his own, and sees no comeback", async () => {
+    const { store, sim, phone, trace } = await checkedIn();
 
     const answer = await sim().answer(reply("shrink"));
 
@@ -563,6 +619,8 @@ describe("answers to the day-10 check-in", () => {
       text: "حسنًا، سجّلتُ أنك تريد جلسات أقصر.",
       cta: null,
     });
+    expect(sim().comeback()).toEqual({ state: "none", last: null });
+    expect(trace().filter((e) => e.summary_en.startsWith("comeback_detected"))).toEqual([]);
   });
 
   it("traces each answer by the learner's id, with no message text", async () => {
@@ -631,6 +689,251 @@ describe("answers to the day-10 check-in", () => {
     expect({ phone: t.phone(), replies: t.sim().checkinReplies(), trace: t.trace() }).toEqual(
       before,
     );
+  });
+});
+
+const V2: Replanned = { ok: true, version: 2, lighter: { minutes: 55, cap: 84 } };
+
+// A learner on a plan of their own, with messages on and no quiet hours, who passed L1 on day 0
+// and studied no more. The re-planner is faked: it keeps each request and proposes v2.
+function returning({ recap = true } = {}) {
+  const store = createFileStore(mkdtempSync(join(tmpdir(), "coach-")));
+  const requests: ReplanRequest[] = [];
+  const study: Study = {
+    attempt_days: [0],
+    lesson: { id: "L2", title_ar: "الدرس الثاني", best_percent: null },
+    own_plan: true,
+  };
+  const sim = () =>
+    createSim({
+      store,
+      sessionId: "s_1",
+      seed,
+      coach: {
+        steps: null,
+        study: () => study,
+        replan: async (request) => {
+          requests.push(request);
+          return V2;
+        },
+        recap: () => (recap ? { quiz: RECAP, quizzes: [QUIZ_L1] } : undefined),
+      },
+    });
+  sim().setConsent({ messages: true, quiet_hours: null, intensity: "gentle" });
+  const trace = () => store.readTrace<TraceEvent>("s_1");
+  const coachSaid = () =>
+    trace()
+      .filter((e) => e.agent === "coach")
+      .map((e) => e.summary_en);
+  return { sim, study, requests, phone: () => readInbox(store, "s_1"), trace, coachSaid };
+}
+
+describe("a learner's comeback (#27)", () => {
+  it.each([
+    [0, "none"],
+    [1, "none"],
+    [2, "due"],
+    [5, "due"],
+    [10, "due"],
+  ])("is %s days away: %s", async (day, state) => {
+    const { sim } = returning();
+
+    await sim().set(day);
+
+    expect(sim().comeback().state).toBe(state);
+  });
+
+  it("opens when the plan page sees them back, with the recap to take and no keys", async () => {
+    const { sim, coachSaid } = returning();
+    await sim().set(10);
+
+    const opened = sim().detectComeback();
+
+    expect(opened).toMatchObject({ state: "open", away_days: 10, reason: "inactivity_d5" });
+    expect(opened.state !== "none" && opened.recap?.items.map((i) => i.id)).toEqual(
+      RECAP.items.map((i) => i.id),
+    );
+    expect(JSON.stringify(opened)).not.toContain('"answer"');
+    expect(coachSaid()).toEqual(["comeback_detected: l_omar back after 10 days (via open)"]);
+  });
+
+  it("sees them back on a reply in their own words, but not on a pause or «توقف»", async () => {
+    const paused = returning();
+    const stopped = returning();
+    const wrote = returning();
+    for (const t of [paused, stopped, wrote]) await t.sim().set(10);
+
+    await paused.sim().answer(reply("pause"));
+    stopped.sim().reply("توقف");
+    wrote.sim().reply("رجعت، آسف على الغياب");
+
+    expect(paused.sim().comeback().state).toBe("due");
+    expect(stopped.sim().comeback().state).toBe("due");
+    expect(wrote.sim().comeback()).toMatchObject({ state: "open", away_days: 10 });
+    expect(wrote.coachSaid()).toEqual(["comeback_detected: l_omar back after 10 days (via reply)"]);
+  });
+
+  it("sees a return once per ladder, however often they come back to it", async () => {
+    const { sim, coachSaid } = returning();
+    await sim().set(10);
+
+    await sim().answer(reply("shrink"));
+    sim().reply("وصلت");
+    sim().detectComeback();
+    await sim().advance({ days: 1 });
+    sim().detectComeback();
+
+    expect(coachSaid().filter((s) => s.startsWith("comeback_detected"))).toEqual([
+      "comeback_detected: l_omar back after 10 days (via reply)",
+    ]);
+    expect(sim().comeback()).toMatchObject({ state: "open", away_days: 10 });
+  });
+
+  it("grades the recap in code and asks for the re-plan their return calls for", async () => {
+    const { sim, requests } = returning();
+    await sim().set(10);
+    await sim().answer(reply("shrink"));
+
+    const finished = await sim().finishComeback(recapAnswers(3));
+
+    expect(requests).toEqual([
+      {
+        reason: "shrink",
+        today: 10,
+        away_days: 10,
+        recap: { below_gate: true, review_lesson: "L1" },
+      },
+    ]);
+    expect(finished.replanned).toEqual(V2);
+    expect(finished.comeback).toMatchObject({
+      state: "none",
+      last: {
+        anchor: 0,
+        via: "reply",
+        away_days: 10,
+        plan_version: 2,
+        done_at: "day 10 09:00",
+        recap: { below_gate: true, review_lesson: "L1", attempt: { score: 0.6, passed: false } },
+      },
+    });
+  });
+
+  it("asks for no review after a recap at the gate", async () => {
+    const { sim, requests } = returning();
+    await sim().set(10);
+
+    await sim().finishComeback(recapAnswers(4));
+
+    expect(requests.map((r) => r.recap)).toEqual([{ below_gate: false, review_lesson: null }]);
+  });
+
+  it("starts the ladder again from the day they finish, quietly, with the next nudge two days on", async () => {
+    const { sim, coachSaid } = returning();
+    await sim().set(10);
+    await sim().finishComeback(recapAnswers(3));
+    const said = coachSaid().length;
+
+    const ladder = sim().ladder();
+    const after = sim().comeback().state;
+    const day11 = await sim().set(11);
+    const day12 = await sim().set(12);
+
+    expect(ladder).toMatchObject({ state: "active", anchor: 10, next: { id: "nudge_a10_d12" } });
+    expect(day11.events).toEqual([]);
+    expect(day12.events.map((e) => e.id)).toEqual(["nudge_a10_d12"]);
+    expect(after).toBe("none");
+    expect(coachSaid().slice(said)).toEqual([]);
+  });
+
+  it.each([
+    ["the learner asked for nothing, after the day-5 offer", "inactivity_d5", () => {}],
+    [
+      "the day-5 offer never reached them",
+      "comeback",
+      (t: ReturnType<typeof returning>) =>
+        t.sim().setConsent({ messages: false, quiet_hours: null, intensity: "gentle" }),
+    ],
+  ] as const)("re-plans for the return when %s", async (_, reason, prepare) => {
+    const t = returning();
+    prepare(t);
+    await t.sim().set(10);
+
+    await t.sim().finishComeback(recapAnswers(5));
+
+    expect(t.requests.map((r) => r.reason)).toEqual([reason]);
+  });
+
+  it("re-plans without a recap while no lesson is passed, and refuses that once one is", async () => {
+    const none = returning({ recap: false });
+    const some = returning();
+    await none.sim().set(10);
+    await some.sim().set(10);
+
+    await none.sim().finishComeback(null);
+
+    expect(none.requests.map((r) => r.recap)).toEqual([null]);
+    await expect(some.sim().finishComeback(null)).rejects.toBeInstanceOf(ComebackConflict);
+    await expect(none.sim().finishComeback(recapAnswers(5))).rejects.toBeInstanceOf(
+      ComebackConflict,
+    );
+  });
+
+  it("refuses a second finish, a recap that is not the one to take, and blank answers", async () => {
+    const { sim, requests } = returning();
+    await sim().set(10);
+    const blank = recapAnswers(5);
+    blank.answers[0] = { item_id: RECAP.items[0]?.id ?? "", response: " " };
+
+    await expect(
+      sim().finishComeback({ ...recapAnswers(5), quiz_id: "recap_old" }),
+    ).rejects.toBeInstanceOf(ComebackConflict);
+    await expect(sim().finishComeback(blank)).rejects.toBeInstanceOf(AttemptInvalid);
+    await sim().finishComeback(recapAnswers(5));
+    await expect(sim().finishComeback(recapAnswers(5))).rejects.toBeInstanceOf(ComebackConflict);
+
+    expect(requests).toHaveLength(1);
+  });
+
+  it("refuses an answer to the check-in of a ladder that ended", async () => {
+    const finished = returning();
+    const quizzed = returning();
+    for (const t of [finished, quizzed]) await t.sim().set(10);
+    await finished.sim().finishComeback(recapAnswers(5));
+    quizzed.study.attempt_days.push(10);
+
+    await expect(finished.sim().answer(reply("pause"))).rejects.toBeInstanceOf(CheckinConflict);
+    await expect(quizzed.sim().answer(reply("shrink"))).rejects.toBeInstanceOf(CheckinConflict);
+    expect(quizzed.sim().checkinReplies()).toEqual([]);
+  });
+
+  it("traces the return in order, naming the learner by id only", async () => {
+    const { sim, trace, coachSaid } = returning();
+    await sim().set(10);
+    await sim().answer(reply("shrink"));
+
+    await sim().finishComeback(recapAnswers(3));
+
+    expect(coachSaid()).toEqual([
+      `${CHECKIN} answered by l_omar: shrink recorded`,
+      "comeback_detected: l_omar back after 10 days (via reply)",
+      "recap_quiz: graded by code 3/5 (60%), below the 80% gate -> review L1",
+      "active: ladder reset on day 10",
+    ]);
+    const summaries = trace().flatMap((e) => [e.summary_ar, e.summary_en]);
+    expect(summaries.filter((s) => s.includes("عمر"))).toEqual([]);
+  });
+
+  it("proposes the learner's v2 through their saved plan when they finish on their own plan", async () => {
+    const { store, sim } = await checkedInWithOwnPlan();
+    await sim().answer(reply("shrink"));
+
+    const { replanned } = await sim().finishComeback(recapAnswers(3));
+
+    expect(replanned).toMatchObject({ ok: true, version: 2 });
+    expect(savedVersions(store)).toEqual([PLAN]);
+    const pending = savedPlan(store, "s_1")?.pending;
+    expect(pending).toMatchObject({ version: 2, reason: "shrink", committed: { start: "day10" } });
+    expect(pending?.diff[0]).toMatchObject({ op: "review", lesson: "L1", day: 10, minutes: 15 });
   });
 });
 

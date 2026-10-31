@@ -15,6 +15,7 @@ import { proposeReplan, type SavedPlan, savedPlan } from "./architect.ts";
 import {
   lighterCap,
   lighterWeek,
+  noteViolations,
   type ReplanFacts,
   type ReplanRequest,
   replan,
@@ -135,6 +136,12 @@ const DEMO_REQUEST: ReplanRequest = {
   today: 10,
   away_days: 10,
   recap: { below_gate: true, review_lesson: "L1" },
+};
+// What the explanation's brief takes from outside the plans: the scout's resources and the notes
+// from Omar's interview.
+const CONTEXT = {
+  resources: RESOURCES,
+  history_notes: "ترك دورات إلكترونية من قبل؛ طلب ألا تصله رسائل صباحًا",
 };
 
 describe("lighterCap", () => {
@@ -361,7 +368,14 @@ describe("replanViolations", () => {
 
 describe("templateNote", () => {
   it("tells the demo's learner what changed, with the brief's numbers in Arabic digits", () => {
-    const brief = replanBrief(RECORDED, replanned(DEMO), RECORDED, DEMO_REQUEST, DEMO.passed);
+    const brief = replanBrief(
+      RECORDED,
+      replanned(DEMO),
+      RECORDED,
+      DEMO_REQUEST,
+      DEMO.passed,
+      CONTEXT,
+    );
 
     const note = templateNote(brief);
 
@@ -389,10 +403,100 @@ describe("templateNote", () => {
     const request: ReplanRequest = { ...DEMO_REQUEST, reason: "comeback", recap: null };
     const plan = replanned(facts());
 
-    const note = templateNote(replanBrief(RECORDED, plan, RECORDED, request, DEMO.passed));
+    const note = templateNote(replanBrief(RECORDED, plan, RECORDED, request, DEMO.passed, CONTEXT));
 
     expect(note).toMatch(/\p{Script=Arabic}/u);
     expect(note).not.toMatch(/مراجعة|أقصر/);
+  });
+});
+
+describe("replanBrief", () => {
+  it("names the module that grew and keeps the interview's notes, with no candidates when nothing switched", () => {
+    const brief = replanBrief(
+      RECORDED,
+      replanned(DEMO),
+      RECORDED,
+      DEMO_REQUEST,
+      DEMO.passed,
+      CONTEXT,
+    );
+
+    expect(brief.grown).toEqual([
+      { module_ar: "الأساسيات: فهم إكسل ومفهوم الجدول المحوري", from: 1, to: 3 },
+    ]);
+    expect(brief.history_notes).toBe(CONTEXT.history_notes);
+    expect(brief.candidates).toEqual([]);
+  });
+
+  it("offers a switch's candidates for the current lesson, without their addresses or licences", () => {
+    const request: ReplanRequest = { ...DEMO_REQUEST, reason: "switch", recap: null };
+    const plan = replanned(facts({ reason: "switch", switch_to: "r_43e79caf" }));
+
+    const brief = replanBrief(RECORDED, plan, RECORDED, request, DEMO.passed, CONTEXT);
+
+    expect(brief.candidates.map((c) => c.id)).toEqual([
+      "r_43e79caf",
+      "r_8f7bbb8e",
+      "r_19cfaa64",
+      "r_c167a216",
+      "r_c61a1e51",
+      "r_df4da75d",
+    ]);
+    expect(brief.candidates[0]).toEqual({
+      id: "r_43e79caf",
+      title: "r_43e79caf",
+      lang: "fr",
+      type: "article",
+      why_ar: "مصدر مفتوح",
+    });
+  });
+});
+
+describe("noteViolations", () => {
+  const brief = replanBrief(
+    RECORDED,
+    replanned(DEMO),
+    RECORDED,
+    DEMO_REQUEST,
+    DEMO.passed,
+    CONTEXT,
+  );
+  const note = (explanation_ar: string, resource_id: string | null = null) => ({
+    explanation_ar,
+    resource_id,
+  });
+
+  it("passes a note that says the brief's numbers in Arabic digits", () => {
+    const text =
+      "عدتَ بعد ١٠ أيام، فجعلنا أسبوعك الأول أخف: ٥٥ دقيقة والحد ٨٤، وتبدأ بمراجعة قصيرة.";
+
+    expect(noteViolations(note(text), brief)).toEqual([]);
+  });
+
+  it.each([
+    ["a number the brief does not give", "أسبوعك الأول ٧٧ دقيقة.", /77.*brief/],
+    ["the same number in Latin digits", "أسبوعك الأول 77 دقيقة.", /77.*brief/],
+    ["a web address", "راجع الدرس على example.com قبل جلستك.", /address/],
+    ["an emoji", "أهلًا بعودتك 🎉", /emoji/],
+    ["a brace", "أهلًا {name}، رتّبنا خطتك.", /brace/],
+    ["no Arabic", "Your first week back is lighter.", /no Arabic/],
+    ["more than 400 characters", "خطتك أخف الآن. ".repeat(30), /450 characters.*400/],
+  ])("refuses %s", (_, text, why) => {
+    expect(noteViolations(note(text), brief)).toEqual([expect.stringMatching(why)]);
+  });
+
+  it("refuses a resource when the brief offers no switch, and one the switch did not offer", () => {
+    const request: ReplanRequest = { ...DEMO_REQUEST, reason: "switch", recap: null };
+    const plan = replanned(facts({ reason: "switch", switch_to: "r_43e79caf" }));
+    const switched = replanBrief(RECORDED, plan, RECORDED, request, DEMO.passed, CONTEXT);
+
+    expect(noteViolations(note("رتّبنا خطتك.", "r_43e79caf"), brief)).toEqual([
+      expect.stringMatching(/null/),
+    ]);
+    expect(noteViolations(note("رتّبنا خطتك.", "r_9109c80f"), switched)).toEqual([
+      expect.stringMatching(/r_9109c80f.*candidates/),
+    ]);
+    expect(noteViolations(note("رتّبنا خطتك.", "r_8f7bbb8e"), switched)).toEqual([]);
   });
 });
 
@@ -410,7 +514,7 @@ describe("proposeReplan, on the recorded plan", () => {
     const tracer = createTracer(store, "s1");
 
     const proposed = await proposeReplan(
-      { store, sessionId: "s1", tracer, profile: learner },
+      { store, sessionId: "s1", tracer, profile: learner, steps: null },
       DEMO_REQUEST,
       DEMO.passed,
     );

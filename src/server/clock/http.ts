@@ -1,12 +1,15 @@
 // HTTP views of a session's simulated time and phone: POST /api/sessions/:id/sim/{advance,set,reset},
 // each answering {now, events} with the coach events the move fired, POST
 // /api/sessions/:id/inbox {text} or {event_id, choice, pause_days?}, the learner's reply or their
-// tap on a check-in's button (#25), answering {opted_out, confirmed, answer}, and POST
-// /api/sessions/:id/consent, the consent screen's save (#24), answering {consent}.
+// tap on a check-in's button (#25), answering {opted_out, confirmed, answer}, POST
+// /api/sessions/:id/consent, the consent screen's save (#24), answering {consent}, and POST
+// /api/sessions/:id/comeback/{open,recap,replan}, the steps of the learner's return (#27),
+// answering {comeback}, and with recap or replan the proposal as {replanned} too.
 
 import Type, { type Static, type TSchema } from "typebox";
 import { CheckinReply, Consent, contractErrors } from "../../../contracts/index.ts";
-import { CheckinConflict } from "../coach/coach.ts";
+import { AttemptInvalid } from "../agents/examiner/examiner.ts";
+import { CheckinConflict, ComebackConflict } from "../coach/coach.ts";
 import { InvalidNameError } from "../store/store.ts";
 import { ClockError } from "./clock.ts";
 import type { createSim, SimResult } from "./sim.ts";
@@ -35,6 +38,23 @@ const Reply = Type.Union([
   ),
 ]);
 const PAUSE_DAYS = 7;
+// The recap's answers, in the body the quiz page sends for a lesson's attempt.
+const RecapBody = Type.Object(
+  {
+    quiz_id: Type.String({ minLength: 1, maxLength: 200 }),
+    answers: Type.Array(
+      Type.Object(
+        {
+          item_id: Type.String({ minLength: 1, maxLength: 50 }),
+          response: Type.String({ maxLength: 2000 }),
+        },
+        { additionalProperties: false },
+      ),
+      { maxItems: 20 },
+    ),
+  },
+  { additionalProperties: false },
+);
 
 const HHMM = Type.String({ pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" });
 const ConsentBody = Type.Object(
@@ -123,17 +143,17 @@ async function cappedText(request: Request): Promise<string> {
   return text + decoder.decode();
 }
 
-// 409 for a clock move into the past or a tap on a message the learner cannot answer, 400 for a bad
-// body or session id, 413 for a body too large.
+// 409 for a clock move into the past, a tap on a message the learner cannot answer or a comeback
+// step with none to take, 400 for a bad body, recap answers or session id, 413 for a body too large.
 async function answer(work: () => Promise<unknown>): Promise<Response> {
   try {
     return Response.json(await work());
   } catch (e) {
-    if (e instanceof ClockError || e instanceof CheckinConflict) {
+    if (e instanceof ClockError || e instanceof CheckinConflict || e instanceof ComebackConflict) {
       return Response.json({ error: e.message }, { status: 409 });
     }
     if (e instanceof BadRequest) return Response.json({ error: e.message }, { status: e.status });
-    if (e instanceof InvalidNameError) {
+    if (e instanceof InvalidNameError || e instanceof AttemptInvalid) {
       return Response.json({ error: e.message }, { status: 400 });
     }
     throw e;
@@ -199,5 +219,36 @@ export function consentResponse(
       throw new BadRequest("Quiet hours must end at a different time than they start");
     }
     return { consent: await serial(sessionId, async () => sim(sessionId).setConsent(choice)) };
+  });
+}
+
+// `open` records the learner's return when the plan page sees them back, once per ladder; `recap`
+// takes their recap answers and `replan` stands in for it while no lesson is passed. Both finish
+// the comeback with the re-plan's proposal, so they run in series with the session's clock moves.
+const COMEBACK: Record<string, (sim: Sim, body: unknown) => Promise<unknown>> = {
+  open: async (sim, body) => {
+    parse(Empty, body);
+    const comeback = sim.detectComeback();
+    if (comeback.state === "none") throw new ComebackConflict("No comeback is due");
+    return { comeback };
+  },
+  recap: (sim, body) => sim.finishComeback(parse(RecapBody, body)),
+  replan: async (sim, body) => {
+    parse(Empty, body);
+    return sim.finishComeback(null);
+  },
+};
+
+export function comebackResponse(
+  request: Request,
+  sessionId: string,
+  action: string,
+  { sim }: Omit<SimDeps, "enabled">,
+): Promise<Response> {
+  const run = Object.hasOwn(COMEBACK, action) ? COMEBACK[action] : undefined;
+  if (!run) return Promise.resolve(new Response(null, { status: 404 }));
+  return answer(async () => {
+    const body = await jsonBody(request);
+    return serial(sessionId, () => run(sim(sessionId), body));
   });
 }

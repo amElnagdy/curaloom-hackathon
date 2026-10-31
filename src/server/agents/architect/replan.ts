@@ -8,9 +8,11 @@ import { isDeepStrictEqual } from "node:util";
 import type {
   CoursePlan,
   PlanChange,
+  ReplanNote,
   ReplanReason,
   Resource,
 } from "../../../../contracts/index.ts";
+import { addressIn } from "../lesson/rules.ts";
 import {
   type Limits,
   planViolations,
@@ -344,8 +346,9 @@ export function switchCandidates(
     );
 }
 
-// What an explanation of a re-plan may say: the facts of the change, with lesson titles and no
-// name, id, topic or clock time. The recap is a band, never a score.
+// What an explanation of a re-plan may say: the facts of the change, with lesson and module titles,
+// the interview's notes and, for a switch the re-plan made, the resources the current lesson can
+// move to. No name, learner id, topic or clock time. The recap is a band, never a score.
 export type ReplanBrief = {
   reason: ReplanReason;
   away_days: number;
@@ -364,6 +367,10 @@ export type ReplanBrief = {
   shortened: number;
   switched: number;
   road_weeks: { before: number; after: number };
+  // In weeks.
+  grown: { module_ar: string; from: number; to: number }[];
+  candidates: Pick<Resource, "id" | "title" | "lang" | "type" | "why_ar">[];
+  history_notes: string;
 };
 
 type ReviewChange = Extract<PlanChange, { op: "review" }>;
@@ -374,6 +381,7 @@ export function replanBrief(
   original: CoursePlan,
   request: ReplanRequest,
   passed: ReadonlySet<string>,
+  { resources, history_notes }: { resources: Resource[]; history_notes: string },
 ): ReplanBrief {
   const { today, recap } = request;
   const { lessons } = next.committed;
@@ -381,6 +389,7 @@ export function replanBrief(
   const count = (op: PlanChange["op"]) => next.diff.filter((c) => c.op === op).length;
   const review = next.diff.find((c): c is ReviewChange => c.op === "review");
   const roadWeeks = (plan: CoursePlan) => plan.road.reduce((sum, step) => sum + step.weeks, 0);
+  const current = lessons.find((l) => !passed.has(l.id))?.id ?? "";
   return {
     reason: request.reason,
     away_days: request.away_days,
@@ -388,7 +397,7 @@ export function replanBrief(
     review: review
       ? { lesson_title_ar: title(review.lesson), day: review.day, minutes: review.minutes }
       : null,
-    current_lesson_title_ar: title(lessons.find((l) => !passed.has(l.id))?.id ?? ""),
+    current_lesson_title_ar: title(current),
     lighter: {
       from_day: today,
       minutes: lighterWeek(next, today),
@@ -401,7 +410,62 @@ export function replanBrief(
     shortened: count("shorten"),
     switched: count("switch"),
     road_weeks: { before: roadWeeks(prev), after: roadWeeks(next) },
+    grown: next.diff.flatMap((c) =>
+      c.op === "extend"
+        ? [{ module_ar: next.road[c.module]?.module ?? "", from: c.from, to: c.to }]
+        : [],
+    ),
+    candidates: count("switch")
+      ? switchCandidates(prev, resources, current).map(({ id, title, lang, type, why_ar }) => ({
+          id,
+          title,
+          lang,
+          type,
+          why_ar,
+        }))
+      : [],
+    history_notes,
   };
+}
+
+export const MAX_NOTE = 400;
+
+// The numbers in a text, written in Latin or Arabic-Indic digits. Both Arabic-Indic sets start at a
+// code point divisible by 16, so a digit's code point mod 16 is its value.
+const numbersIn = (text: string) =>
+  [...text.matchAll(/[0-9\u0660-\u0669\u06f0-\u06f9]+/g)].map(([run]) =>
+    Number(run.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (d) => String(d.charCodeAt(0) % 16))),
+  );
+
+// Why a note cannot explain the re-plan to the learner. A number counts as the brief's when its
+// facts, titles or notes give it; a resource id or the reason's name does not.
+export function noteViolations(note: ReplanNote, brief: ReplanBrief): string[] {
+  const text = note.explanation_ar;
+  const problems: string[] = [];
+  if (!/\p{Script=Arabic}/u.test(text)) problems.push("the explanation has no Arabic text");
+  if (text.length > MAX_NOTE) {
+    problems.push(`the explanation has ${text.length} characters; at most ${MAX_NOTE}`);
+  }
+  if (addressIn(text)) problems.push("the explanation has a web address or email");
+  if (/[{}]/.test(text)) problems.push("the explanation has braces");
+  if (/\p{Extended_Pictographic}/u.test(text)) problems.push("the explanation has an emoji");
+  const { reason: _, candidates, ...facts } = brief;
+  const given = new Set(
+    numbersIn(JSON.stringify([facts, candidates.map(({ id: __, ...c }) => c)])),
+  );
+  const invented = [...new Set(numbersIn(text))].filter((n) => !given.has(n));
+  if (invented.length) {
+    problems.push(`the explanation says ${invented.join(", ")}, which the brief does not give`);
+  }
+  const ids = candidates.map((c) => c.id);
+  if (note.resource_id !== null && !ids.includes(note.resource_id)) {
+    problems.push(
+      ids.length
+        ? `resource_id ${note.resource_id} is not one of the candidates`
+        : "resource_id must be null: the brief offers no switch",
+    );
+  }
+  return problems;
 }
 
 const arabicNumber = (n: number) => n.toLocaleString("ar-EG");

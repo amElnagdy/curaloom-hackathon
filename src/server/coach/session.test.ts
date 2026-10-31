@@ -103,7 +103,7 @@ describe("studyOf", () => {
     passed: true,
   };
 
-  it("is the seed's quiz on day 0 and lesson L1 at 75% before the intake", () => {
+  it("is the seed's quiz on day 0 and lesson L1 at 75% before the intake, on no plan of his own", () => {
     expect(studyOf(store(), "s1", seed)).toEqual({
       attempt_days: [0],
       lesson: {
@@ -111,6 +111,7 @@ describe("studyOf", () => {
         title_ar: "الجدول المحوري: تلخيص آلاف الصفوف في دقيقة",
         best_percent: 75,
       },
+      own_plan: false,
     });
   });
 
@@ -118,10 +119,10 @@ describe("studyOf", () => {
     const s = store();
     s.writeDoc("s1", "profile", learner);
 
-    expect(studyOf(s, "s1", seed)).toEqual({ attempt_days: [], lesson: null });
+    expect(studyOf(s, "s1", seed)).toEqual({ attempt_days: [], lesson: null, own_plan: false });
   });
 
-  it("is the quizzes on the learner's own plan, and the first lesson he has not passed", () => {
+  it("is the quizzes on the learner's own plan, and the first lesson they have not passed", () => {
     const s = store();
     s.writeDoc("s1", "profile", learner);
     s.writeDoc("s1", "plan", {
@@ -140,6 +141,7 @@ describe("studyOf", () => {
     expect(studyOf(s, "s1", seed)).toEqual({
       attempt_days: [3],
       lesson: { id: "L2", title_ar: "الإحصاء الوصفي: المتوسط والوسيط والتشتت", best_percent: null },
+      own_plan: true,
     });
   });
 });

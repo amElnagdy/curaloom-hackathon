@@ -2,10 +2,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { Quiz } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed";
+import type { ReplanRequest } from "../agents/architect/replan";
 import { sessionSim } from "../coach/session";
 import { createFileStore } from "../store/store";
-import { consentResponse, inboxResponse, simResponse } from "./http";
+import { comebackResponse, consentResponse, inboxResponse, simResponse } from "./http";
+import { createSim } from "./sim";
 
 const JSON_TYPE = { "content-type": "application/json" };
 
@@ -269,3 +272,154 @@ function streamed(text: string) {
   });
   return { body, cancelled: () => cancelled };
 }
+
+// L1's quiz, which the learner passed on day 0, and the recap over it.
+const QUIZ_L1: Quiz = {
+  id: "q_L1",
+  lesson_id: "L1",
+  items: [1, 2, 3, 4, 5].map((n) => ({
+    id: `i${n}`,
+    type: "mcq",
+    prompt_ar: `سؤال ${n}`,
+    options_ar: ["صحيح", "خطأ"],
+    answer: "صحيح",
+    rubric_ar: "لأنه الصحيح.",
+    glossary_ids: [],
+  })),
+  pass_threshold: 0.8,
+};
+const RECAP: Quiz = {
+  ...QUIZ_L1,
+  id: "recap_1",
+  lesson_id: "recap",
+  items: QUIZ_L1.items.map((item) => ({ ...item, id: `q_L1:${item.id}` })),
+};
+const answers = (right: number) => ({
+  quiz_id: RECAP.id,
+  answers: RECAP.items.map((item, i) => ({
+    item_id: item.id,
+    response: i < right ? "صحيح" : "خطأ",
+  })),
+});
+
+// A learner on a plan of their own who passed L1 on day 0 and studied no more. The re-planner is
+// faked, and takes a moment, as Spark does.
+function comebackSetup() {
+  const store = createFileStore(mkdtempSync(join(tmpdir(), "comeback-http-")));
+  const requests: ReplanRequest[] = [];
+  const sim = (sessionId = "s_1") =>
+    createSim({
+      store,
+      sessionId,
+      seed: loadOmarSeed("x"),
+      coach: {
+        steps: null,
+        study: () => ({ attempt_days: [0], lesson: null, own_plan: true }),
+        replan: async (request) => {
+          requests.push(request);
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          return { ok: true, version: 2, lighter: { minutes: 55, cap: 84 } };
+        },
+        recap: () => ({ quiz: RECAP, quizzes: [QUIZ_L1] }),
+      },
+    });
+  const post = (action: string, body: unknown = {}, sessionId = "s_1") =>
+    comebackResponse(
+      new Request("http://localhost/x", {
+        method: "POST",
+        headers: JSON_TYPE,
+        body: JSON.stringify(body),
+      }),
+      sessionId,
+      action,
+      { sim },
+    );
+  return { sim, post, requests };
+}
+
+describe("comeback route", () => {
+  it("opens the comeback the plan page sees, once, with the recap and no keys", async () => {
+    const { sim, post } = comebackSetup();
+    await sim().set(10);
+
+    const opened = await post("open");
+    const again = await post("open");
+
+    expect([opened.status, again.status]).toEqual([200, 200]);
+    const body = await opened.json();
+    expect(body).toMatchObject({
+      comeback: { state: "open", away_days: 10, reason: "inactivity_d5", last: null },
+    });
+    expect(body.comeback.recap.items.map((i: { id: string }) => i.id)).toEqual(
+      RECAP.items.map((i) => i.id),
+    );
+    expect(JSON.stringify(body)).not.toContain('"answer"');
+    expect(await again.json()).toEqual(body);
+  });
+
+  it("finishes it with the recap's answers, graded in code, and answers the proposal", async () => {
+    const { sim, post, requests } = comebackSetup();
+    await sim().set(10);
+
+    const res = await post("recap", answers(3));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      comeback: {
+        state: "none",
+        last: { plan_version: 2, recap: { below_gate: true, review_lesson: "L1" } },
+      },
+      replanned: { ok: true, version: 2, lighter: { minutes: 55, cap: 84 } },
+    });
+    expect(requests).toEqual([
+      {
+        reason: "inactivity_d5",
+        today: 10,
+        away_days: 10,
+        recap: { below_gate: true, review_lesson: "L1" },
+      },
+    ]);
+  });
+
+  it("answers 409 while no comeback is due, for a recap not the one to take, and for a re-plan that skips the recap", async () => {
+    const { sim, post } = comebackSetup();
+    await sim().set(1);
+
+    const early = [await post("open"), await post("recap", answers(5))];
+    await sim().set(10);
+    const stale = await post("recap", { ...answers(5), quiz_id: "recap_0" });
+    const skipped = await post("replan");
+
+    expect(early.map((res) => res.status)).toEqual([409, 409]);
+    expect([stale.status, skipped.status]).toEqual([409, 409]);
+    expect((await stale.json()).error).toMatch(/recap_0/);
+  });
+
+  it("answers 404 for an unknown step, and 400 for a bad body, answers the recap cannot take or a bad session id", async () => {
+    const { sim, post, requests } = comebackSetup();
+    await sim().set(10);
+    const blank = answers(5);
+    blank.answers[0] = { item_id: "q_L1:i1", response: "" };
+
+    const statuses = await Promise.all([
+      post("rewind"),
+      post("open", { now: true }),
+      post("recap", { quiz_id: RECAP.id }),
+      post("recap", blank),
+      post("open", {}, "../x"),
+    ]);
+
+    expect(statuses.map((res) => res.status)).toEqual([404, 400, 400, 400, 400]);
+    expect(requests).toEqual([]);
+  });
+
+  it("runs one session's comeback requests one after another, so a recap finishes once", async () => {
+    const { sim, post, requests } = comebackSetup();
+    await sim().set(10);
+
+    const both = await Promise.all([post("recap", answers(5)), post("recap", answers(5))]);
+
+    expect(both.map((res) => res.status)).toEqual([200, 409]);
+    expect(requests).toHaveLength(1);
+  });
+});

@@ -83,6 +83,7 @@ describe("parseModels", () => {
         "curriculum",
         "judge",
         "coach",
+        "replan",
         "transcribe",
         "segment",
         "image_edit",

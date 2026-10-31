@@ -1,14 +1,20 @@
 // A session's simulated time (#23): the sim clock, the coach scheduler it drives, the coach whose
 // ladder the scheduler fires (#25) and the notifier the scheduler sends through (#22). Each move
 // returns the new time and the coach events it fired; a reply goes to the notifier's inbound
-// handler, and a tap on a check-in's button to the coach. The HTTP routes are thin wrappers over it.
+// handler, and a tap on a check-in's button to the coach, as do the steps of the learner's comeback
+// (#27). The HTTP routes are thin wrappers over it.
 
 import type { CheckinReply, CoachEvent, Consent } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config, type NotifierAdapterName } from "../../config.ts";
-import { type CoachDeps, createCoach } from "../coach/coach.ts";
+import { type CoachDeps, createCoach, type RecapAnswers } from "../coach/coach.ts";
 import { createAdapter } from "../notifier/adapters.ts";
-import { type ConsentChoice, createNotifier, type ReplyResult } from "../notifier/notifier.ts";
+import {
+  type ConsentChoice,
+  createNotifier,
+  isStopWord,
+  type ReplyResult,
+} from "../notifier/notifier.ts";
 import type { Store } from "../store/store.ts";
 import { createTracer } from "../trace/trace.ts";
 import { createSimClock } from "./clock.ts";
@@ -30,11 +36,16 @@ export type SimOptions = {
   adapter?: NotifierAdapterName;
 };
 
-// A learner with no quiz and no lesson yet: the ladder counts from day 0, no button opens a lesson
-// and each message is its template.
+// A learner with no quiz, no lesson and no plan yet: the ladder counts from day 0, no button opens a
+// lesson, each message is its template and no comeback is ever due.
 const NO_STUDY: CoachDeps = {
   steps: null,
-  study: () => ({ attempt_days: [], lesson: null }),
+  study: () => ({ attempt_days: [], lesson: null, own_plan: false }),
+  replan: async () => ({
+    ok: false,
+    why: { en: "the learner has no plan of their own yet", ar: "ليست لك خطة بعد" },
+  }),
+  recap: () => undefined,
 };
 
 export function createSim({
@@ -93,15 +104,27 @@ export function createSim({
       scheduler.syncStatuses();
       return consent;
     },
-    // The learner's reply from the phone, at the current sim time.
+    // The learner's reply from the phone, at the current sim time. Any reply but a stop word shows
+    // they are back.
     reply(text: string): ReplyResult {
-      const result = notifier.receive(text, clock.now());
+      const now = clock.now();
+      const result = notifier.receive(text, now);
       scheduler.syncStatuses();
+      if (!isStopWord(text)) coach.detect(now, "reply");
       return result;
     },
     // The learner's tap on a check-in's button, at the current sim time. Throws CheckinConflict for
     // a message they cannot answer.
     answer: (reply: CheckinReply) => coach.answer(reply, clock.now()),
+    // The learner's return (#27) at the current sim time: as the plan page reads it, as the plan
+    // page records it, and finished with their recap answers, or null when no lesson is passed.
+    comeback: () => coach.comeback(clock.now()),
+    detectComeback() {
+      const now = clock.now();
+      coach.detect(now, "open");
+      return coach.comeback(now);
+    },
+    finishComeback: (input: RecapAnswers | null) => coach.finishComeback(clock.now(), input),
     // Back to the seeded demo state: every session document goes and readers fall back to the
     // seed (ADR-003). The trace stays, and says what came back.
     reset(): SimResult {

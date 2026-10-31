@@ -27,6 +27,8 @@ import { contentHash, type Store } from "../../store/store.ts";
 import { planFor } from "../architect/architect.ts";
 import { savedLessons } from "../lesson/lesson.ts";
 import {
+  type Answer,
+  answerProblems,
   attemptOf,
   gradeChoice,
   keyViolations,
@@ -35,7 +37,6 @@ import {
   type QuizView,
   quizDue,
   quizViolations,
-  recapQuiz,
   repeatViolations,
 } from "./rules.ts";
 
@@ -187,7 +188,6 @@ const quizWriter: Agent<QuizBrief, typeof Quiz> = {
   },
 };
 
-export type Answer = { item_id: string; response: string };
 export type GradeBrief = { quiz: Quiz; responses: Answer[]; sim_day: number };
 
 // A score from the judge, to the nearest half and within 0 to 1.
@@ -381,16 +381,7 @@ export function createExaminer({ orchestrator, store, sessionId, course }: Exami
       if (!quiz || quiz.id !== quizId) {
         throw new QuizConflict(`Quiz ${quizId} is not the one to take for lesson ${lessonId}`);
       }
-      const problems = quiz.items.flatMap((item) => {
-        const response = responses.find((r) => r.item_id === item.id)?.response.trim();
-        if (!response) return [`item ${item.id} has no answer`];
-        if (item.type === "mcq" && !item.options_ar.includes(response)) {
-          return [`item ${item.id}'s answer is not one of its options`];
-        }
-        return [];
-      });
-      const unknown = responses.filter((r) => !quiz.items.some((i) => i.id === r.item_id));
-      problems.push(...unknown.map((r) => `the quiz has no item ${r.item_id}`));
+      const problems = answerProblems(quiz, responses);
       if (problems.length) throw new AttemptInvalid(problems.join("; "));
 
       const brief: GradeBrief = {
@@ -429,14 +420,6 @@ export function createExaminer({ orchestrator, store, sessionId, course }: Exami
           };
       store.writeDoc(sessionId, QUIZZES_DOC, next);
       return { attempt, ...quizView(next, lessonId) };
-    },
-
-    // A short quiz over the lessons the learner passed (#27), or undefined before the first pass.
-    recap(): Quiz | undefined {
-      const c = course();
-      if (!c) return undefined;
-      const saved = read(c);
-      return recapQuiz(saved.quizzes, saved.attempts, saved.mastery);
     },
   };
 }

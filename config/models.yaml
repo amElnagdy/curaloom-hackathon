@@ -8,6 +8,8 @@ roles:
   judge: { provider: meta, model: muse-spark-1.3 }
   # The coach's short messages (#25); #29 can move them to Glimmer here.
   coach: { provider: meta, model: muse-spark-1.3, reasoning: low }
+  # The re-planner's short explanation of a proposed version (#26); code makes every change.
+  replan: { provider: meta, model: muse-spark-1.3, reasoning: low }
   transcribe: { provider: meta, model: muse-voice-transcribe-1.0 }
   segment: { provider: meta, model: sam-3.1 }
   image_edit: { provider: meta, model: muse-image-1.0 }

@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { Quiz } from "../../../../contracts/index.ts";
 import {
+  answerProblems,
   attemptOf,
   gradeChoice,
+  gradeRecap,
   keyViolations,
   lessonOpen,
   masteryAfter,
   quizDue,
   quizViolations,
   recapQuiz,
+  recapWeakest,
   repeatViolations,
 } from "./rules.ts";
 
@@ -281,6 +284,23 @@ describe("recapQuiz", () => {
     expect(recap?.lesson_id).toBe("recap");
   });
 
+  it("takes multiple-choice items only, so code grades it, even a short answer the learner missed", () => {
+    const attempts = [passedOn(QUIZZES[0] as Quiz, ["i5"])];
+
+    const recap = recapQuiz(
+      QUIZZES,
+      attempts,
+      attempts.map((a) => masteryAfter(undefined, a)),
+    );
+
+    expect(recap?.items.map((i) => [i.id, i.type])).toEqual([
+      ["q_L1:i1", "mcq"],
+      ["q_L1:i2", "mcq"],
+      ["q_L1:i3", "mcq"],
+      ["q_L1:i4", "mcq"],
+    ]);
+  });
+
   it("has nothing before the learner passes a lesson", () => {
     const attempts = [passedOn(QUIZZES[0] as Quiz, ["i1", "i2", "i3"])];
 
@@ -291,5 +311,71 @@ describe("recapQuiz", () => {
         attempts.map((a) => masteryAfter(undefined, a)),
       ),
     ).toBeUndefined();
+  });
+});
+
+// A recap of five items over L1 and L2, as recapQuiz names them.
+const RECAP: Quiz = {
+  id: "recap_x",
+  lesson_id: "recap",
+  items: ["q_L1:i1", "q_L2:i1", "q_L1:i2", "q_L2:i2", "q_L1:i3"].map((id) => mcq(id)),
+  pass_threshold: 0.8,
+};
+const responses = (wrong: string[]) =>
+  RECAP.items.map((item) => ({
+    item_id: item.id,
+    response: wrong.includes(item.id) ? "التصفية" : item.answer,
+  }));
+
+describe("gradeRecap", () => {
+  it("grades 3 of 5 right as 60%, below the gate, each answer with the right one", () => {
+    const attempt = gradeRecap(RECAP, responses(["q_L2:i1", "q_L1:i3"]), 10);
+
+    expect(attempt).toMatchObject({ quiz_id: "recap_x", lesson_id: "recap", sim_day: 10 });
+    expect(attempt.score).toBeCloseTo(0.6);
+    expect(attempt.passed).toBe(false);
+    expect(attempt.answers.map((a) => a.score)).toEqual([1, 0, 1, 1, 0]);
+    expect(attempt.answers[1]?.feedback_ar).toMatch(/^الإجابة الصحيحة «الجدول المحوري»/);
+  });
+
+  it("passes 4 of 5 at the gate", () => {
+    expect(gradeRecap(RECAP, responses(["q_L1:i3"]), 10).passed).toBe(true);
+  });
+});
+
+describe("answerProblems", () => {
+  it("finds nothing wrong with an answer to every item from its options", () => {
+    expect(answerProblems(RECAP, responses([]))).toEqual([]);
+  });
+
+  it("flags a blank answer, an answer that is not an option and an item the quiz lacks", () => {
+    const answers = [
+      ...responses([]).slice(2),
+      { item_id: "q_L1:i1", response: "  " },
+      { item_id: "q_L2:i1", response: "الفرز" },
+      { item_id: "q_L9:i9", response: "التصفية" },
+    ];
+
+    expect(answerProblems(RECAP, answers)).toEqual([
+      "item q_L1:i1 has no answer",
+      "item q_L2:i1's answer is not one of its options",
+      "the quiz has no item q_L9:i9",
+    ]);
+  });
+});
+
+describe("recapWeakest", () => {
+  const QUIZZES = ["L1", "L2"].map((lesson) => ({ ...QUIZ, id: `q_${lesson}`, lesson_id: lesson }));
+
+  it("is the lesson the learner missed most", () => {
+    const attempt = gradeRecap(RECAP, responses(["q_L1:i1", "q_L1:i3", "q_L2:i2"]), 10);
+
+    expect(recapWeakest(attempt, QUIZZES)).toBe("L1");
+  });
+
+  it("goes to the later lesson on a tie", () => {
+    const attempt = gradeRecap(RECAP, responses(["q_L1:i2", "q_L2:i2"]), 10);
+
+    expect(recapWeakest(attempt, QUIZZES)).toBe("L2");
   });
 });

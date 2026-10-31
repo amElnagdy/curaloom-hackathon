@@ -2,8 +2,8 @@
 // button and the reason the trace gives, and the learner's answers to its check-in. Spark words each
 // message from a brief that names no one; code puts the learner's name in, and sends the template
 // when the wording fails or the learner has the messages off. The rungs come from the learner's
-// study facts and their answers on every call, so the coach stores only those answers and the anchor
-// it last saw, which lets it trace a reset once.
+// study facts and their answers on every call, so the coach stores only those answers, their
+// comebacks (#27) and the anchor it last saw, which lets it trace a reset once.
 
 import {
   CHECKIN_CHOICES,
@@ -11,9 +11,22 @@ import {
   type CheckinReply,
   CoachDraft,
   type Consent,
+  type Quiz,
+  type QuizAttempt,
   validate,
 } from "../../../contracts/index.ts";
-import { PASS_THRESHOLD } from "../agents/examiner/examiner.ts";
+import type { Replanned } from "../agents/architect/architect.ts";
+import type { ReplanRequest } from "../agents/architect/replan.ts";
+import { AttemptInvalid, PASS_THRESHOLD } from "../agents/examiner/examiner.ts";
+import {
+  type Answer,
+  answerProblems,
+  gradeRecap,
+  type KeylessQuiz,
+  RECAP_ITEMS,
+  recapWeakest,
+  withoutKeys,
+} from "../agents/examiner/rules.ts";
 import { addressIn } from "../agents/lesson/rules.ts";
 import { arabicSimTime } from "../clock/clock.ts";
 import type { CoachRule, RuleSource } from "../clock/scheduler.ts";
@@ -30,40 +43,92 @@ import { contentHash, type Store } from "../store/store.ts";
 import type { Tracer } from "../trace/trace.ts";
 import {
   anchorOf,
+  COMEBACK_DAYS,
+  checkinOf,
+  comebackDue,
   type Ladder,
   ladderAt,
   type Pause,
   pauseFor,
   type Rung,
   type RungKind,
+  replanReason,
   rungsThrough,
 } from "./ladder.ts";
 
 export const COACH_DOC = "coach";
 // An answer as the coach keeps it: when it came and the anchor it belongs to.
 export type CheckinAnswer = CheckinReply & { sim_ts: string; anchor: number };
-type CoachDoc = { anchor: number | null; replies: CheckinAnswer[] };
+
+// The recap a comeback took, graded by code, and the lesson it says to review first.
+export type Recap = {
+  quiz: Quiz;
+  attempt: QuizAttempt;
+  below_gate: boolean;
+  review_lesson: string | null;
+};
+// A learner's return after COMEBACK_DAYS or more from the anchor they came back from: how the coach
+// saw them back, and once they finish it, their recap and the plan version it proposed. A finished
+// comeback is activity, so the ladder counts from the day it ends.
+export type Comeback = {
+  anchor: number;
+  detected_at: string;
+  via: "reply" | "open";
+  away_days: number;
+  recap: Recap | null;
+  plan_version: number | null;
+  done_at: string | null;
+};
+type CoachDoc = { anchor: number | null; replies: CheckinAnswer[]; comebacks: Comeback[] };
 
 export const CHOICE_LABEL: Record<CheckinChoice, string> = {
   pause: "استراحة أسبوع",
   shrink: "جلسات أقصر",
   switch: "مصدر آخر",
 };
+const ASKED_AR = { shrink: "جلسات أقصر", switch: "مصدرًا آخر" } as const;
+const arabicDay = (n: number) => n.toLocaleString("ar-EG");
 
 // What the coach knows of the learner's study: the days of their quizzes, the only activity with a
-// record yet, and the lesson they are on.
+// record yet, the lesson they are on, and whether they have a plan of their own to re-plan.
 export type Study = {
   attempt_days: number[];
   lesson: { id: string; title_ar: string; best_percent: number | null } | null;
+  own_plan: boolean;
 };
 export type CoachDeps = {
   // Runs the coach writer; null sends every message as its template.
   steps: Pick<ReturnType<typeof createOrchestrator>, "runStep"> | null;
   study(): Study;
+  // Proposes the plan's next version for the learner's return (#26).
+  replan(request: ReplanRequest): Promise<Replanned>;
+  // The recap over the lessons the learner passed, with the plan's quizzes it draws on; undefined
+  // before they pass one.
+  recap(): { quiz: Quiz; quizzes: Quiz[] } | undefined;
 };
 
 // An answer to a message that is not a check-in the learner has and can still answer.
 export class CheckinConflict extends Error {}
+// A comeback step with no comeback open, or with a recap that is not the one to take.
+export class ComebackConflict extends Error {}
+
+// Where the learner's return stands: `due` once they have been away COMEBACK_DAYS, `open` once the
+// coach saw them back, until they finish it. `recap` is the quiz to take, without its keys, or null
+// while no lesson is passed, when the re-plan goes ahead without one. `reason` is why the re-plan
+// will change the plan. `last` is their latest finished comeback, which explains the proposal it
+// made.
+export type ComebackView =
+  | { state: "none"; last: Comeback | null }
+  | {
+      state: "due" | "open";
+      away_days: number;
+      reason: ReplanRequest["reason"];
+      recap: KeylessQuiz | null;
+      last: Comeback | null;
+    };
+// The learner's answers to the recap, as the quiz page sends a lesson's.
+export type RecapAnswers = { quiz_id: string; answers: Answer[] };
+export type FinishedComeback = { comeback: ComebackView; replanned: Replanned };
 // `paused_until` as "day 17 09:00".
 export type AnswerResult = { choice: CheckinChoice; paused_until: string | null };
 
@@ -232,15 +297,28 @@ export const coachWriter: Agent<CoachBrief, typeof CoachDraft> = {
   },
 };
 
-// Two days away or more is a comeback, which #27 answers with a recap.
-const COMEBACK_DAYS = 2;
-
 export type CoachOptions = CoachDeps & {
   store: Store;
   sessionId: string;
   tracer: Tracer;
   notifier: Notifier;
   learner: { id: string; name: string };
+};
+
+// What a shrink or a switch leads to, as its acknowledgement says it: the recap on the plan page
+// (five items is the five-minute one), then the proposal. A learner with no lesson passed gets the
+// proposal alone.
+const NEXT_AR: Record<Exclude<CheckinChoice, "pause">, (recap: number) => string> = {
+  shrink: (recap) =>
+    recap === RECAP_ITEMS
+      ? "افتح خطتك لمراجعة من خمسة أسئلة في نحو خمس دقائق، ثم نعرض عليك خطتك الجديدة لتوافق عليها."
+      : recap
+        ? "افتح خطتك لمراجعة قصيرة، ثم نعرض عليك خطتك الجديدة لتوافق عليها."
+        : "افتح خطتك لنعرض عليك خطتك الجديدة لتوافق عليها.",
+  switch: (recap) =>
+    recap
+      ? "افتح خطتك لمراجعة قصيرة، ثم نقترح عليك مصدرًا بديلًا مما وجده الكشّاف."
+      : "افتح خطتك لنقترح عليك مصدرًا بديلًا مما وجده الكشّاف.",
 };
 
 // What an answer does: the pause it made, the acknowledgement and the trace's reason.
@@ -258,13 +336,30 @@ export function createCoach({
   learner,
   steps,
   study,
+  replan,
+  recap,
 }: CoachOptions) {
+  // A document saved before comebacks existed has none.
   const doc = (): CoachDoc => ({
     anchor: null,
     replies: [],
+    comebacks: [],
     ...store.readDoc<CoachDoc>(sessionId, COACH_DOC),
   });
   const replies = () => doc().replies;
+  // The day the ladder counts from: the learner's last quiz or the last comeback they finished.
+  const anchorNow = () =>
+    anchorOf([
+      ...study().attempt_days,
+      ...doc().comebacks.flatMap((c) => (c.done_at ? [parseSimTime(c.done_at).day] : [])),
+    ]);
+  const sentIds = () =>
+    new Set(
+      notifier
+        .outbox()
+        .filter((e) => e.status === "sent")
+        .map((e) => e.message.id),
+    );
   // The pause the learner chose since their last quiz: a quiz ends it.
   const pauseAt = (anchor: number): Pause | null => {
     const chosen = replies().findLast((r) => r.choice === "pause" && r.anchor === anchor);
@@ -340,14 +435,22 @@ export function createCoach({
   };
 
   const rules: RuleSource = (upTo) => {
-    const { attempt_days, lesson } = study();
-    const anchor = anchorOf(attempt_days);
+    const anchor = anchorNow();
+    const { lesson } = study();
     return rungsThrough({ anchor, pause: pauseAt(anchor) }, upTo).map((rung) =>
       ruleOf(rung, anchor, lesson),
     );
   };
 
-  // Shrink and switch wait for the learner's comeback, whose re-plan (#26, #27) reads them.
+  // Shrink and switch wait for the learner's comeback, whose re-plan (#26, #27) reads them. A
+  // learner with a plan of their own is sent to it for the recap; the seed's Omar has none.
+  const askedOf = (choice: Exclude<CheckinChoice, "pause">): Outcome["ack"] => {
+    if (!study().own_plan) {
+      return { text_ar: `حسنًا، سجّلتُ أنك تريد ${ASKED_AR[choice]}.`, cta: null };
+    }
+    const next = NEXT_AR[choice](recap()?.quiz.items.length ?? 0);
+    return { text_ar: `اتفقنا: ${CHOICE_LABEL[choice]}. ${next}`, cta: OPEN_PLAN };
+  };
   const outcomeOf = (
     { choice, pause_days }: CheckinReply,
     anchor: number,
@@ -371,24 +474,142 @@ export function createCoach({
       case "shrink":
         return {
           paused_until: null,
-          ack: { text_ar: "حسنًا، سجّلتُ أنك تريد جلسات أقصر.", cta: null },
+          ack: askedOf(choice),
           why: { ar: `اختار ${learner.id} جلسات أقصر، فسُجّل طلبه`, en: "shrink recorded" },
         };
       case "switch":
         return {
           paused_until: null,
-          ack: { text_ar: "حسنًا، سجّلتُ أنك تريد مصدرًا آخر.", cta: null },
+          ack: askedOf(choice),
           why: { ar: `اختار ${learner.id} مصدرًا آخر، فسُجّل طلبه`, en: "switch recorded" },
         };
     }
+  };
+
+  // Records the learner's return once per anchor, if it is due.
+  const detect = (at: SimTime, via: Comeback["via"]): Comeback | null => {
+    const anchor = anchorNow();
+    if (!comebackDue(anchor, at, study().own_plan)) return null;
+    const saved = doc();
+    const seen = saved.comebacks.find((c) => c.anchor === anchor);
+    if (seen) return seen;
+    const comeback: Comeback = {
+      anchor,
+      detected_at: formatSimTime(at),
+      via,
+      away_days: at.day - anchor,
+      recap: null,
+      plan_version: null,
+      done_at: null,
+    };
+    store.writeDoc(sessionId, COACH_DOC, {
+      ...saved,
+      comebacks: [...saved.comebacks, comeback],
+    } satisfies CoachDoc);
+    tracer.emit({
+      agent: "coach",
+      kind: "decision",
+      at,
+      summary_ar: `عاد ${learner.id} بعد غيابه منذ اليوم ${arabicDay(anchor)}، فتبدأ عودته بمراجعة قصيرة ثم خطة مقترحة`,
+      summary_en: `comeback_detected: ${learner.id} back after ${comeback.away_days} days (via ${via})`,
+    });
+    return comeback;
+  };
+
+  // The learner's return as the plan page reads it. It writes nothing.
+  const comebackAt = (now: SimTime): ComebackView => {
+    const anchor = anchorNow();
+    const saved = doc();
+    const last = saved.comebacks.findLast((c) => c.done_at !== null) ?? null;
+    const open = saved.comebacks.find((c) => c.anchor === anchor && c.done_at === null);
+    if (!open && !comebackDue(anchor, now, study().own_plan)) return { state: "none", last };
+    const quiz = recap()?.quiz;
+    return {
+      state: open ? "open" : "due",
+      away_days: open?.away_days ?? now.day - anchor,
+      reason: replanReason(anchor, saved.replies, sentIds()),
+      recap: quiz ? withoutKeys(quiz) : null,
+      last,
+    };
+  };
+
+  // The recap graded in code, and traced with the lesson it sends the learner back to.
+  const graded = (quiz: Quiz, quizzes: Quiz[], input: RecapAnswers, at: SimTime): Recap => {
+    if (input.quiz_id !== quiz.id) {
+      throw new ComebackConflict(`Recap ${input.quiz_id} is not the one to take`);
+    }
+    const problems = answerProblems(quiz, input.answers);
+    if (problems.length) throw new AttemptInvalid(problems.join("; "));
+    const attempt = gradeRecap(quiz, input.answers, at.day);
+    const below_gate = !attempt.passed;
+    const review_lesson = below_gate ? recapWeakest(attempt, quizzes) : null;
+    const right = attempt.answers.filter((a) => a.score === 1).length;
+    const total = quiz.items.length;
+    const percent = Math.round(attempt.score * 100);
+    const gate = Math.round(quiz.pass_threshold * 100);
+    tracer.emit({
+      agent: "coach",
+      kind: "decision",
+      at,
+      summary_ar: `صحّح الكود المراجعة دون نموذج: ${arabicDay(right)} من ${arabicDay(total)}، ${review_lesson ? `دون ${arabicDay(gate)}٪، فتبدأ الخطة بمراجعة درس سابق` : `عند ${arabicDay(gate)}٪ أو فوقها، فلا مراجعة قبل الدرس التالي`}`,
+      summary_en: `recap_quiz: graded by code ${right}/${total} (${percent}%), ${review_lesson ? `below the ${gate}% gate -> review ${review_lesson}` : `at or above the ${gate}% gate, no review`}`,
+    });
+    return { quiz, attempt, below_gate, review_lesson };
   };
 
   return {
     rules,
 
     ladder(now: SimTime): Ladder {
-      const anchor = anchorOf(study().attempt_days);
+      const anchor = anchorNow();
       return ladderAt({ anchor, pause: pauseAt(anchor), messages_on: messagesOn() }, now);
+    },
+
+    comeback: comebackAt,
+
+    // The plan page saw the learner back at `at`, or their reply did. Recorded once per anchor.
+    detect,
+
+    // The learner's recap answers, or null when no lesson is passed for a recap: graded in code,
+    // then the re-plan their return calls for, proposed for them to accept. The ladder then counts
+    // from today, so it is `active`. Throws ComebackConflict when no comeback is due or the recap is
+    // not the one to take, and AttemptInvalid for answers the recap cannot take.
+    async finishComeback(at: SimTime, input: RecapAnswers | null): Promise<FinishedComeback> {
+      const comeback = detect(at, "open");
+      if (!comeback) throw new ComebackConflict(`${learner.id} has no comeback to finish`);
+      const quiz = recap();
+      if (!input && quiz)
+        throw new ComebackConflict("A lesson is passed, so the recap comes first");
+      if (input && !quiz) throw new ComebackConflict("No lesson is passed, so there is no recap");
+      const taken = input && quiz ? graded(quiz.quiz, quiz.quizzes, input, at) : null;
+      const replanned = await replan({
+        reason: replanReason(comeback.anchor, replies(), sentIds()),
+        today: at.day,
+        away_days: comeback.away_days,
+        recap: taken && { below_gate: taken.below_gate, review_lesson: taken.review_lesson },
+      });
+      const finished: Comeback = {
+        ...comeback,
+        recap: taken,
+        plan_version: replanned.ok ? replanned.version : null,
+        done_at: formatSimTime(at),
+      };
+      // Read again: the re-plan awaited the model. The anchor moves to today here, so the next
+      // clock move traces no reset of its own.
+      const saved = doc();
+      store.writeDoc(sessionId, COACH_DOC, {
+        ...saved,
+        anchor: at.day,
+        comebacks: saved.comebacks.map((c) => (c.anchor === comeback.anchor ? finished : c)),
+      } satisfies CoachDoc);
+      tracer.emit({
+        agent: "coach",
+        kind: "decision",
+        at,
+        summary_ar: `أنهى ${learner.id} عودته، فبدأ المدرب العدّ من جديد من اليوم ${arabicDay(at.day)}`,
+        summary_en: `active: ladder reset on day ${at.day}`,
+      });
+      return { comeback: comebackAt(at), replanned };
     },
 
     replies,
@@ -410,9 +631,13 @@ export function createCoach({
         throw new CheckinConflict(`${event_id} is answered already`);
       }
       if (!messagesOn()) throw new CheckinConflict(`${learner.id} has the coach's messages off`);
+      // A quiz or a finished comeback since the check-in started a new ladder.
+      const anchor = anchorNow();
+      if (event_id !== checkinOf(anchor)) {
+        throw new CheckinConflict(`${event_id} belongs to a ladder before day ${anchor}`);
+      }
 
       notifier.receive(CHOICE_LABEL[choice], at);
-      const anchor = anchorOf(study().attempt_days);
       const outcome = outcomeOf(reply, anchor, at);
       const saved = doc();
       store.writeDoc(sessionId, COACH_DOC, {
@@ -426,6 +651,7 @@ export function createCoach({
         summary_ar: outcome.why.ar,
         summary_en: `${event_id} answered by ${learner.id}: ${outcome.why.en}`,
       });
+      if (choice !== "pause") detect(at, "reply");
       notifier.send({
         id: `ack_${event_id}`,
         to: learner.id,
@@ -441,22 +667,24 @@ export function createCoach({
       };
     },
 
-    // Called as the clock leaves `at`: a quiz since the last move started the ladder again.
+    // Called as the clock leaves `at`: a quiz since the last move started the ladder again. A quiz
+    // during an open comeback ends it with no recap and no re-plan.
     observe(at: SimTime) {
       const saved = doc();
       const seen = saved.anchor;
-      const anchor = anchorOf(study().attempt_days);
+      const anchor = anchorNow();
       if (seen === anchor) return;
       store.writeDoc(sessionId, COACH_DOC, { ...saved, anchor } satisfies CoachDoc);
       if (seen === null) return;
       const away = anchor - seen;
       const comeback = away >= COMEBACK_DAYS;
+      const dropped = saved.comebacks.some((c) => c.anchor === seen && c.done_at === null);
       tracer.emit({
         agent: "coach",
         kind: "decision",
         at,
-        summary_ar: `أجبت عن اختبار في اليوم ${anchor}${comeback ? " بعد غياب" : ""}، فبدأ المدرب العدّ من جديد`,
-        summary_en: `Ladder reset for ${learner.id}: a quiz on day ${anchor}, ${away} days after day ${seen}${comeback ? `; comeback after ${away} days (#27 runs the recap)` : ""}`,
+        summary_ar: `أجبت عن اختبار في اليوم ${anchor}${comeback ? " بعد غياب" : ""}، فبدأ المدرب العدّ من جديد${dropped ? " دون مراجعة العودة أو خطة جديدة" : ""}`,
+        summary_en: `Ladder reset for ${learner.id}: a quiz on day ${anchor}, ${away} days after day ${seen}${comeback ? `; comeback after ${away} days` : ""}${dropped ? "; the open comeback ends with no recap or re-plan" : ""}`,
       });
     },
   };

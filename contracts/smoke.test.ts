@@ -87,6 +87,12 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
     input:
       "لم يدرس المتعلم منذ يومين. اكتب له رسالة تذكير قصيرة تقترح مهمة من عشر دقائق، واكتب {name} مرة واحدة مكان اسمه.",
   },
+  ReplanNote: {
+    role: "replan",
+    instructions: ARABIC,
+    input:
+      "عاد المتعلم بعد عشرة أيام وطلب جلسات أقصر، فرتّبنا خطته من اليوم ١٠: مراجعة قصيرة للدرس الأول أولًا، وأسبوع أول أخف من ٥٥ دقيقة والحد ٨٤. اشرح له ذلك في جملتين، واجعل resource_id فارغًا (null) لأنه لم يطلب مصدرًا آخر.",
+  },
 };
 
 describe.each(AGENT_OUTPUTS)("%s", (name: ContractName) => {

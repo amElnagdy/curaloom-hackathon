@@ -2,7 +2,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { CoursePlan, contractErrors, type PlanDraft } from "../../../../contracts/index.ts";
+import {
+  CoursePlan,
+  contractErrors,
+  type PlanDraft,
+  type ReplanNote,
+} from "../../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
@@ -107,7 +112,7 @@ const INVENTED: PlanDraft = {
 type Call = { role: string; instructions?: string; input: string };
 
 // Answers each structured call with the next draft, the last one once they run out.
-function fakeProvider(drafts: PlanDraft[]) {
+function fakeProvider(drafts: unknown[]) {
   const calls: Call[] = [];
   const unused = () => {
     throw new Error("the architect does not use this call");
@@ -263,11 +268,17 @@ describe("architect", () => {
   });
 });
 
-function plannerSetup() {
+// `notes` are the re-planner's answers to its explanation calls; with none it explains by the
+// template, as a route with no model would.
+function plannerSetup(notes: ReplanNote[] = []) {
   const dir = mkdtempSync(join(tmpdir(), "planner-"));
   dirs.push(dir);
   const store = createFileStore(dir);
   const fake = fakeProvider([DRAFT]);
+  const writer = fakeProvider(notes);
+  const steps = notes.length
+    ? createOrchestrator({ store, makeProvider: () => writer.provider })
+    : null;
   let searches = 0;
   let learner = profile;
   const tracer = createTracer(store, "s1");
@@ -296,7 +307,12 @@ function plannerSetup() {
     trace: () => store.readTrace<TraceEvent>("s1"),
     // The coach passing on the learner's return (#27), with the lessons they passed.
     propose: (request: ReplanRequest, passed: string[]) =>
-      proposeReplan({ store, sessionId: "s1", tracer, profile: learner }, request, new Set(passed)),
+      proposeReplan(
+        { store, sessionId: "s1", tracer, profile: learner, steps },
+        request,
+        new Set(passed),
+      ),
+    explained: writer.calls,
     // A plan document written before proposals existed.
     writeOld: (plan: Omit<SavedPlan, "pending">) => store.writeDoc("s1", "plan", plan),
   };
@@ -577,6 +593,55 @@ describe("proposals", () => {
         "اعتمدتَ النسخة ٢ من خطتك",
       ]),
     );
+  });
+});
+
+describe("the proposal's explanation", () => {
+  // In the words of DRAFT's re-plan: a lighter week of 35 minutes against a cap of 48, from day 10.
+  const SPARK: ReplanNote = {
+    explanation_ar: "طلبتَ جلسات أقصر، فجعلنا أسبوعك الأول من اليوم ١٠ أخف: ٣٥ دقيقة والحد ٤٨.",
+    resource_id: null,
+  };
+
+  it("is Spark's, asked once on the replan role for the same return, with no name, id or topic", async () => {
+    const { planner, saved, propose, explained } = plannerSetup([SPARK]);
+    await planner.build();
+
+    await propose(SHRINK, ["L1"]);
+    await propose(SHRINK, ["L1"]);
+
+    expect(saved()?.pending?.explanation_ar).toBe(SPARK.explanation_ar);
+    expect(explained.map((c) => c.role)).toEqual(["replan"]);
+    const input = explained[0]?.input ?? "";
+    expect(input).toContain("35 minutes, at most 48");
+    for (const secret of [profile.name, profile.id, profile.topic]) {
+      expect(input).not.toContain(secret);
+    }
+  });
+
+  it("asks once more when Spark invents a number, then falls back to the template, and traces why", async () => {
+    const invented = { explanation_ar: "أسبوعك الأول ٧٧ دقيقة.", resource_id: null };
+    const { planner, saved, propose, explained, trace } = plannerSetup([invented]);
+    await planner.build();
+
+    const proposed = await propose(SHRINK, ["L1"]);
+
+    expect(proposed).toEqual({ ok: true, version: 2, lighter: { minutes: 35, cap: 48 } });
+    expect(explained).toHaveLength(2);
+    expect(explained[1]?.input).toMatch(/previous attempt failed: .*77.*brief/);
+    expect(saved()?.pending?.explanation_ar).toMatch(/٣٥ دقيقة.*٤٨ دقيقة/);
+    expect(
+      trace()
+        .filter((e) => e.agent === "replanner" && e.kind !== "error")
+        .map((e) => e.summary_en),
+    ).toEqual([
+      expect.stringMatching(/^replan: v2 \(shrink\)/),
+      expect.stringMatching(/^Starting step replan:v2:/),
+      expect.stringMatching(
+        /^replan v2: the model's explanation failed .*; the template explains it$/,
+      ),
+      "Proposed plan version 2 (shrink)",
+    ]);
   });
 });
 

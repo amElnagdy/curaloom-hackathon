@@ -1,14 +1,15 @@
 // The coach's view of a session (#24, #25): before the intake, the seed's Omar with his seeded
 // consent, coach events and study; after it, the learner the interview saved, with no consent until
 // the consent screen saves one, no coach events yet, so no coach message can reach them first, and
-// the quizzes of the plan built for them.
+// the quizzes of the plan built for them, which their comeback (#27) recaps and re-plans.
 
 import type { CoursePlan, Mastery, QuizAttempt } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config } from "../../config.ts";
-import { planFor } from "../agents/architect/architect.ts";
+import { planFor, proposeReplan } from "../agents/architect/architect.ts";
+import type { ReplanRequest } from "../agents/architect/replan.ts";
 import { savedQuizzes } from "../agents/examiner/examiner.ts";
-import { lessonOpen } from "../agents/examiner/rules.ts";
+import { lessonOpen, recapQuiz } from "../agents/examiner/rules.ts";
 import { savedProfile } from "../agents/intake/intake.ts";
 import { EVENTS_DOC, LEDGER_DOC } from "../clock/scheduler.ts";
 import { createSim, type SimSeed } from "../clock/sim.ts";
@@ -18,6 +19,7 @@ import { createOrchestrator } from "../orchestrator/orchestrator.ts";
 import { loadModels } from "../providers/models.ts";
 import { createProvider } from "../providers/provider.ts";
 import { contentHash, type Store } from "../store/store.ts";
+import { createTracer } from "../trace/trace.ts";
 import { COACH_DOC, type CoachDeps, type Study } from "./coach.ts";
 
 export type CoachSeed = SimSeed & Pick<Seed, "attempts" | "mastery" | "plans">;
@@ -58,7 +60,11 @@ export function sessionSimSeed(store: Store, sessionId: string, seed: SimSeed): 
 }
 
 // The days of a plan's quizzes, and the first lesson open but not passed, with the best score on it.
-function studied(plan: CoursePlan | undefined, attempts: QuizAttempt[], mastery: Mastery[]): Study {
+function studied(
+  plan: CoursePlan | undefined,
+  attempts: QuizAttempt[],
+  mastery: Mastery[],
+): Omit<Study, "own_plan"> {
   const lessons = plan?.committed.lessons ?? [];
   const ids = lessons.map((l) => l.id);
   const passed = (id: string) => mastery.some((m) => m.lesson_id === id && m.passed);
@@ -76,21 +82,63 @@ function studied(plan: CoursePlan | undefined, attempts: QuizAttempt[], mastery:
   };
 }
 
-// Plan edits keep the plan's id, so its quizzes stay with every version.
-export function studyOf(store: Store, sessionId: string, seed: CoachSeed): Study {
+// The learner's own plan, its active version and its quizzes, once the intake has built one. Plan
+// edits and re-plans keep the plan's id, so its quizzes stay with every version.
+function ownPlan(store: Store, sessionId: string) {
   const learner = savedProfile(store, sessionId);
-  if (!learner) {
-    const latest = seed.plans.toSorted((a, b) => a.version - b.version).at(-1);
-    return studied(latest, seed.attempts, seed.mastery);
-  }
-  const plan = planFor(store, sessionId, learner)?.versions.at(-1);
-  if (!plan) return { attempt_days: [], lesson: null };
-  const { attempts, mastery } = savedQuizzes(store, sessionId, plan.id);
-  return studied(plan, attempts, mastery);
+  const plan = learner && planFor(store, sessionId, learner)?.versions.at(-1);
+  return plan ? { learner, plan, quizzes: savedQuizzes(store, sessionId, plan.id) } : undefined;
 }
 
-// The coach writer's model calls, on the configured provider. A clock move waits for each message,
-// so a call gets 30 s, not the provider's default.
+export function studyOf(store: Store, sessionId: string, seed: CoachSeed): Study {
+  if (!savedProfile(store, sessionId)) {
+    const latest = seed.plans.toSorted((a, b) => a.version - b.version).at(-1);
+    return { ...studied(latest, seed.attempts, seed.mastery), own_plan: false };
+  }
+  const own = ownPlan(store, sessionId);
+  if (!own) return { attempt_days: [], lesson: null, own_plan: false };
+  const { attempts, mastery } = own.quizzes;
+  return { ...studied(own.plan, attempts, mastery), own_plan: true };
+}
+
+// The recap over the lessons the learner passed on their own plan, with the quizzes it draws on.
+function recapOf(store: Store, sessionId: string): ReturnType<CoachDeps["recap"]> {
+  const own = ownPlan(store, sessionId);
+  if (!own) return undefined;
+  const { quizzes, attempts, mastery } = own.quizzes;
+  const quiz = recapQuiz(quizzes, attempts, mastery);
+  return quiz && { quiz, quizzes };
+}
+
+// The re-planner's proposal for the learner's return, from the lessons they passed. With no plan
+// of their own it proposes nothing and asks no model.
+function replanFor(
+  store: Store,
+  sessionId: string,
+  seed: CoachSeed,
+  steps: CoachDeps["steps"],
+  request: ReplanRequest,
+) {
+  const own = ownPlan(store, sessionId);
+  const passed = new Set(
+    (own?.quizzes.mastery ?? []).filter((m) => m.passed).map((m) => m.lesson_id),
+  );
+  return proposeReplan(
+    {
+      store,
+      sessionId,
+      tracer: createTracer(store, sessionId),
+      profile: own?.learner ?? seed.profile,
+      steps,
+    },
+    request,
+    passed,
+  );
+}
+
+// The coach writer's and the re-planner's model calls, on the configured provider. A clock move
+// waits for each message and a finished comeback for its explanation, so a call gets 30 s, not the
+// provider's default.
 export const coachSteps = (store: Store) =>
   createOrchestrator({
     store,
@@ -105,8 +153,9 @@ export const coachSteps = (store: Store) =>
   });
 
 // The session's simulated coach and the learner it follows, as the pages read them. Only a clock
-// move writes coach messages, so only the sim route passes `steps` (coachSteps); without it each
-// message is its template.
+// move writes coach messages and only a finished comeback proposes a re-plan, so only the sim and
+// comeback routes pass `steps` (coachSteps); without it each message and each explanation is its
+// template.
 export function sessionSim(
   store: Store,
   sessionId: string,
@@ -123,6 +172,8 @@ export function sessionSim(
       coach: {
         steps,
         study: () => studyOf(store, sessionId, seed),
+        replan: (request) => replanFor(store, sessionId, seed, steps, request),
+        recap: () => recapOf(store, sessionId),
       },
     }),
   };

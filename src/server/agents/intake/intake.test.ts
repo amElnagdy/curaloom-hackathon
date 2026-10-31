@@ -13,6 +13,7 @@ import {
 } from "../../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
+import { comebackResponse, consentResponse, inboxResponse, simResponse } from "../../clock/http.ts";
 import { sessionSim } from "../../coach/session.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
@@ -20,7 +21,9 @@ import { createProvider, type ModelResult, type Provider } from "../../providers
 import { createFileCache, createFileStore, type Store } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
-import { createPlanner, type SavedPlan } from "../architect/architect.ts";
+import { createPlanner, planFor, type SavedPlan } from "../architect/architect.ts";
+import { planResponse } from "../architect/http.ts";
+import { noteViolations, type ReplanRequest, replanBrief } from "../architect/replan.ts";
 import { planViolations } from "../architect/rules.ts";
 import { courseOf, createExaminer, QuizConflict, savedQuizzes } from "../examiner/examiner.ts";
 import { lessonOpen, quizViolations } from "../examiner/rules.ts";
@@ -555,6 +558,176 @@ describe("intake, replaying Omar's recorded interview", () => {
         .map((r) => [r.choice, r.anchor]),
     ).toEqual([["shrink", 0]]);
     expect(store.readDoc<SavedPlan>("s1", "plan")?.versions).toEqual(saved.versions);
+  }, 600_000);
+});
+
+// The demo's path through the HTTP API (#26, #27), as the coach and plan pages post it: Omar, who
+// passed lesson 1 on day 0 and has lesson 2 written, gets the day-10 check-in and taps «جلسات أقصر»;
+// the plan page sees him back and he answers the recap, `right` of five right.
+async function cameBack(right: number) {
+  const course = await passedFirst();
+  const { store, orchestrator, builder, second } = course;
+  await builder.build(second);
+  const seed = loadOmarSeed(RECORDED_TOPIC);
+  const deps = { sim: (id: string) => sessionSim(store, id, seed, orchestrator).sim };
+  const post = (body: unknown) =>
+    new Request("http://localhost/x", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  const ok = async (res: Response | Promise<Response>) => {
+    const answered = await res;
+    expect(answered.status).toBe(200);
+    return answered.json();
+  };
+
+  await ok(
+    consentResponse(
+      post({ messages: true, quiet_hours: { start: "22:00", end: "08:00" }, intensity: "gentle" }),
+      "s1",
+      deps,
+    ),
+  );
+  for (const day of [2, 5, 10]) {
+    await ok(simResponse(post({ day }), "s1", "set", { ...deps, enabled: true }));
+  }
+  const tapped = await ok(
+    inboxResponse(post({ event_id: "checkin_a0_d10", choice: "shrink" }), "s1", deps),
+  );
+  const v1 = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile);
+  const { comeback } = await ok(comebackResponse(post({}), "s1", "open", deps));
+  const keys = new Map(
+    savedQuizzes(store, "s1", v1?.versions[0]?.id ?? "").quizzes.flatMap((q) =>
+      q.items.map((item) => [`${q.id}:${item.id}`, item]),
+    ),
+  );
+  const answers = comeback.recap.items.map((item: { id: string }, i: number) => {
+    const key = keys.get(item.id);
+    return {
+      item_id: item.id,
+      response: i < right ? key?.answer : key?.options_ar.find((o) => o !== key.answer),
+    };
+  });
+  const finished = await ok(
+    comebackResponse(post({ quiz_id: comeback.recap.id, answers }), "s1", "recap", deps),
+  );
+  const planner = createPlanner({
+    orchestrator,
+    store,
+    tracer: createTracer(store, "s1"),
+    sessionId: "s1",
+    profile: () => savedProfile(store, "s1") as LearnerProfile,
+    findResources: async () => {
+      throw new Error("the plan is built already");
+    },
+  });
+  return { ...course, v1, tapped, comeback, finished, planner, post, ok, sim: deps.sim };
+}
+
+// Whether Spark wrote the proposed v2's explanation, once, within the rules of its brief. The brief
+// is rebuilt from v1, the profile and what the coach passed on.
+function explainedBySpark(store: Store, v2: CoursePlan, request: ReplanRequest) {
+  const profile = savedProfile(store, "s1") as LearnerProfile;
+  const saved = planFor(store, "s1", profile) as SavedPlan;
+  const [v1] = saved.versions as [CoursePlan];
+  const brief = replanBrief(v1, v2, v1, request, new Set(["L1"]), {
+    resources: saved.resources,
+    history_notes: profile.history_notes,
+  });
+  const replanner = store.readTrace<TraceEvent>("s1").filter((e) => e.agent === "replanner");
+  return {
+    models: replanner.filter((e) => e.kind === "model_call").map((e) => e.model),
+    fallbacks: replanner.filter((e) => /template/.test(e.summary_en)).map((e) => e.summary_en),
+    violations: noteViolations(
+      { explanation_ar: v2.explanation_ar ?? "", resource_id: null },
+      brief,
+    ),
+  };
+}
+
+describe("the demo's comeback, replaying the recorded course through the HTTP API", () => {
+  it("proposes v2 after «جلسات أقصر» and a recap of 3 out of 5, with a review of lesson 1 first, and keeps it on accept", async () => {
+    const { store, v1, tapped, comeback, finished, planner, post, ok, sim, builder, second } =
+      await cameBack(3);
+    const proposal = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile);
+    const said = store
+      .readTrace<TraceEvent>("s1")
+      .filter((e) => (e.agent === "coach" || e.agent === "replanner") && e.kind !== "model_call")
+      .map((e) => e.summary_en);
+    const ladder = sim("s1").ladder();
+
+    const { plan } = await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+    const lessons = await builder.build(second);
+
+    expect(tapped.answer).toEqual({ choice: "shrink", paused_until: null });
+    expect(comeback).toMatchObject({ state: "open", away_days: 10, reason: "shrink" });
+    expect(comeback.recap.items).toHaveLength(5);
+    expect(new Set(comeback.recap.items.map((i: { type: string }) => i.type))).toEqual(
+      new Set(["mcq"]),
+    );
+    expect(finished.replanned).toEqual({ ok: true, version: 2, lighter: { minutes: 55, cap: 84 } });
+    expect(finished.comeback.last.recap).toMatchObject({
+      below_gate: true,
+      review_lesson: "L1",
+      attempt: { score: 0.6 },
+    });
+    expect(proposal?.versions).toEqual(v1?.versions);
+    const v2 = proposal?.pending;
+    expect(v2).toMatchObject({ id: v1?.versions[0]?.id, version: 2, reason: "shrink" });
+    expect(v2?.diff).toHaveLength(24);
+    expect(v2?.diff[0]).toEqual({
+      op: "review",
+      session: "s14",
+      lesson: "L1",
+      day: 10,
+      minutes: 15,
+    });
+    expect(planViolations(v2 as CoursePlan, proposal?.limits as SavedPlan["limits"])).toEqual([]);
+    expect(said.filter((s) => /^(comeback_detected|recap_quiz|replan: |active:)/.test(s))).toEqual([
+      "comeback_detected: l_omar back after 10 days (via reply)",
+      "recap_quiz: graded by code 3/5 (60%), below the 80% gate -> review L1",
+      "replan: v2 (shrink): lighter week 55/84 (60% of 140), 7 missed, 11 moved, 11 shortened, review L1 day 10, module 0 1->3 weeks",
+      "active: ladder reset on day 10",
+    ]);
+    expect(said).toContain("Proposed plan version 2 (shrink)");
+    expect(
+      explainedBySpark(store, v2 as CoursePlan, {
+        reason: "shrink",
+        today: 10,
+        away_days: 10,
+        recap: { below_gate: true, review_lesson: "L1" },
+      }),
+    ).toEqual({ models: ["muse-spark-1.3"], fallbacks: [], violations: [] });
+    expect(ladder).toMatchObject({ state: "active", anchor: 10, next: { id: "nudge_a10_d12" } });
+
+    expect(plan.versions.map((v: CoursePlan) => v.version)).toEqual([1, 2]);
+    expect(plan.versions[1]).toEqual(v2);
+    expect(plan.pending).toBeNull();
+    expect(savedQuizzes(store, "s1", v2?.id ?? "").mastery).toContainEqual(
+      expect.objectContaining({ lesson_id: "L1", passed: true }),
+    );
+    expect(lessons.lessons[second]).toBeDefined();
+    expect(sim("s1").comeback().state).toBe("none");
+  }, 600_000);
+
+  it("proposes v2 with no review after a recap of 5 out of 5", async () => {
+    const { store, finished } = await cameBack(5);
+
+    const v2 = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile)?.pending;
+
+    expect(finished.comeback.last.recap).toMatchObject({ below_gate: false, review_lesson: null });
+    expect(finished.replanned).toEqual({ ok: true, version: 2, lighter: { minutes: 50, cap: 84 } });
+    expect(v2?.diff).toHaveLength(23);
+    expect(v2?.diff.filter((c) => c.op === "review")).toEqual([]);
+    expect(
+      explainedBySpark(store, v2 as CoursePlan, {
+        reason: "shrink",
+        today: 10,
+        away_days: 10,
+        recap: { below_gate: false, review_lesson: null },
+      }),
+    ).toEqual({ models: ["muse-spark-1.3"], fallbacks: [], violations: [] });
   }, 600_000);
 });
 

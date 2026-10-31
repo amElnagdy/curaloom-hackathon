@@ -3,11 +3,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { compareSimTime, type SimTime, startOfDay } from "../clock/time";
 import {
+  comebackDue,
   LADDER_STATES,
   type LadderFacts,
   ladderAt,
   ladderMarks,
   pauseFor,
+  replanReason,
   rungsThrough,
 } from "./ladder";
 
@@ -175,6 +177,43 @@ describe("with messages off", () => {
 
     expect(ladderAt(f, startOfDay(day)).state).toBe("opted_out");
     expect(ids(f, startOfDay(day))).toEqual(fired);
+  });
+});
+
+// A learner back after a break (#27) gets a recap, then a re-plan.
+describe("a comeback", () => {
+  it.each([
+    [0, false],
+    [1, false],
+    [2, true],
+    [5, true],
+    [10, true],
+  ])("after %i days away is due: %s", (away, due) => {
+    expect(comebackDue(3, startOfDay(3 + away), true)).toBe(due);
+  });
+
+  it("is never due for a learner with no plan of their own", () => {
+    expect(comebackDue(0, startOfDay(10), false)).toBe(false);
+  });
+
+  const SENT_D5 = new Set(["nudge_a0_d2", "replan_a0_d5"]);
+
+  it("re-plans for the learner's ask at this ladder's check-in first", () => {
+    const replies = [{ choice: "shrink" as const, anchor: 0 }];
+
+    expect(replanReason(0, replies, SENT_D5)).toBe("shrink");
+    expect(replanReason(0, [{ choice: "switch", anchor: 0 }], SENT_D5)).toBe("switch");
+  });
+
+  it("re-plans for the day-5 offer they got when they asked nothing", () => {
+    expect(replanReason(0, [{ choice: "pause", anchor: 0 }], SENT_D5)).toBe("inactivity_d5");
+  });
+
+  it("re-plans for the return alone without an ask or a day-5 offer at this ladder", () => {
+    const earlier = [{ choice: "shrink" as const, anchor: 0 }];
+
+    expect(replanReason(0, [], new Set(["nudge_a0_d2"]))).toBe("comeback");
+    expect(replanReason(12, earlier, SENT_D5)).toBe("comeback");
   });
 });
 

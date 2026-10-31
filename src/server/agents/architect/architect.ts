@@ -8,17 +8,29 @@ import {
   CoursePlan,
   type LearnerProfile,
   PlanDraft,
+  ReplanNote,
+  type ReplanReason,
   type Resource,
   validate,
 } from "../../../../contracts/index.ts";
 import {
   type Agent,
   type createOrchestrator,
+  StepFailed,
   withFeedback,
 } from "../../orchestrator/orchestrator.ts";
 import { contentHash, type Store } from "../../store/store.ts";
 import type { Tracer } from "../../trace/trace.ts";
-import { type ReplanRequest, replan, replanBrief, replanSummary, templateNote } from "./replan.ts";
+import {
+  MAX_NOTE,
+  noteViolations,
+  type ReplanBrief,
+  type ReplanRequest,
+  replan,
+  replanBrief,
+  replanSummary,
+  templateNote,
+} from "./replan.ts";
 import {
   applyEdit,
   type Limits,
@@ -343,13 +355,87 @@ export type ProposeDeps = {
   sessionId: string;
   tracer: Tracer;
   profile: LearnerProfile;
+  // The explanation's model calls; with none, the template explains the proposal.
+  steps: Pick<ReturnType<typeof createOrchestrator>, "runStep"> | null;
+};
+
+const EXPLAIN = [
+  "You explain to an Arabic-speaking adult learner, back after some days away, why their study plan changed. Code has already changed the plan and lists each change under your text; you write the short explanation above that list.",
+  "Write two or three sentences in Modern Standard Arabic, addressed to the learner: warm and respectful, with no guilt, blame or pressure. Never reproach them for the days away.",
+  "Say why the plan changed and what the lighter first week, and the review if there is one, mean for them. Do not list the changes one by one.",
+  "Use only the facts and numbers the brief gives; make no other offer, promise or number. Write numbers in Arabic-Indic digits. The recap is a band only: give it no score or percentage.",
+  "The notes from the interview are for your tone; do not quote them.",
+  `Write no name, no braces, no links, no web or email addresses and no emoji, in at most ${MAX_NOTE} characters.`,
+  "When the brief lists candidates for a switch, set resource_id to the id of the one that suits the learner best, copied exactly; otherwise set it to null.",
+].join("\n");
+
+const WHY: Record<ReplanReason, string> = {
+  shrink: "they asked for shorter sessions",
+  switch: "they asked for another resource for the current lesson",
+  inactivity_d5: "they came back after the coach offered a lighter week",
+  comeback: "they came back after days away",
+};
+const RECAP: Record<ReplanBrief["recap"], string> = {
+  low: "below the pass mark, so a short review of a lesson they half forgot comes first",
+  good: "at or above the pass mark, so no review is needed",
+  none: "none, since they have passed no lesson yet",
+};
+
+const noteLines = (brief: ReplanBrief) => {
+  const { review, lighter: l, road_weeks: road } = brief;
+  return [
+    `Why the plan changed: ${WHY[brief.reason]}`,
+    `Days away: ${brief.away_days}`,
+    `Recap quiz on their return: ${RECAP[brief.recap]}`,
+    `Review first: ${review ? `«${review.lesson_title_ar}» on day ${review.day}, ${review.minutes} minutes` : "none"}`,
+    `Current lesson: «${brief.current_lesson_title_ar}»`,
+    `First week back, from day ${l.from_day}: ${l.minutes} minutes, at most ${l.cap} (${l.percent}% of ${l.original_week}, the lightest week of their first plan)`,
+    `Sessions missed while away: ${brief.missed}; moved: ${brief.moved}; shortened: ${brief.shortened}; given another resource: ${brief.switched}`,
+    `Weeks to their goal: ${road.before} before, ${road.after} now`,
+    `Modules that grew: ${brief.grown.map((g) => `«${g.module_ar}» from ${g.from} to ${g.to} weeks`).join("; ") || "none"}`,
+    `Notes from the interview: ${brief.history_notes || "none"}`,
+    "",
+    ...(brief.candidates.length
+      ? [
+          "Candidates for the switch (id | language | type | title | why it suits the learner):",
+          ...brief.candidates.map(
+            (r) => `${r.id} | ${r.lang} | ${r.type} | ${r.title} | ${r.why_ar}`,
+          ),
+        ]
+      : ["Candidates for the switch: none"]),
+  ].join("\n");
+};
+
+// Spark's explanation of a re-plan, from the brief alone.
+const replanWriter: Agent<ReplanBrief, typeof ReplanNote> = {
+  name: "replanner",
+  output: ReplanNote,
+  async run(ctx, brief) {
+    const { json } = await ctx.provider.structured({
+      role: "replan",
+      trace: {
+        agent: "replanner",
+        summary_ar: "يكتب مُعيد التخطيط شرح خطتك المقترحة",
+        summary_en: `Explaining the ${brief.reason} re-plan`,
+      },
+      instructions: EXPLAIN,
+      input: withFeedback(ctx, noteLines(brief)),
+      schema: { name: "ReplanNote", schema: ReplanNote },
+    });
+    const draft = validate(ReplanNote, json);
+    const note = { ...draft, explanation_ar: draft.explanation_ar.trim() };
+    const broken = noteViolations(note, brief);
+    if (broken.length) throw new Error(`The explanation breaks its rules: ${broken.join("; ")}`);
+    return note;
+  },
 };
 
 // The learner's return (#27) as the plan's proposed next version, waiting in `pending` for them to
 // accept or reject it. A later return recomputes it from the active version and replaces it, or
-// drops it when that return needs no change. The explanation is code's template.
+// drops it when that return needs no change. Spark explains it, once per version and brief; the
+// template does when there are no steps or Spark's note fails twice.
 export async function proposeReplan(
-  { store, sessionId, tracer, profile }: ProposeDeps,
+  { store, sessionId, tracer, profile, steps }: ProposeDeps,
   request: ReplanRequest,
   passed: ReadonlySet<string>,
 ): Promise<Replanned> {
@@ -384,15 +470,37 @@ export async function proposeReplan(
     );
     return { ok: false, why };
   }
-  const brief = replanBrief(active, result.plan, original, request, passed);
+  const brief = replanBrief(active, result.plan, original, request, passed, {
+    resources: saved.resources,
+    history_notes: profile.history_notes,
+  });
   const summary = replanSummary(result.plan, brief);
   emit("decision", summary.ar, `replan: ${summary.en}`);
-  const proposal: CoursePlan = { ...result.plan, explanation_ar: templateNote(brief) };
-  emit(
-    "decision",
-    "كُتب شرح الخطة المقترحة بنصه الجاهز دون استدعاء نموذج",
-    `replan v${version}: explanation from the template, no model call`,
-  );
+  const explain = async () => {
+    if (!steps) {
+      emit(
+        "decision",
+        "كُتب شرح الخطة المقترحة بنصه الجاهز دون استدعاء نموذج",
+        `replan v${version}: explanation from the template, no model call`,
+      );
+      return templateNote(brief);
+    }
+    try {
+      const note = await steps.runStep(sessionId, replanWriter, brief, {
+        key: `replan:v${version}:${contentHash(brief)}`,
+      });
+      return note.explanation_ar;
+    } catch (e) {
+      if (!(e instanceof StepFailed)) throw e;
+      emit(
+        "decision",
+        "تعذّرت صياغة الشرح بالنموذج، فكُتب بنصه الجاهز",
+        `replan v${version}: the model's explanation failed (${e.message}); the template explains it`,
+      );
+      return templateNote(brief);
+    }
+  };
+  const proposal: CoursePlan = { ...result.plan, explanation_ar: await explain() };
   store.writeDoc(sessionId, PLAN_DOC, { ...saved, pending: proposal } satisfies SavedPlan);
   emit(
     "output",

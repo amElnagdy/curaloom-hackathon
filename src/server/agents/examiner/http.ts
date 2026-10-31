@@ -1,7 +1,6 @@
 // HTTP view of the quizzes (#20). POST /api/sessions/:id/quizzes/:lessonId writes the lesson's quiz
 // to take if there is none, and answers the lesson's quiz view with that quiz's keys left out. POST
 // .../quizzes/:lessonId/attempts {quiz_id, answers} grades an attempt and answers it with the view.
-// GET .../quizzes/recap answers a short quiz over the lessons passed, without its keys.
 
 import Type from "typebox";
 import { BadRequest, jsonBody, parse, stillBuilding } from "../../clock/http.ts";
@@ -80,14 +79,3 @@ export const attemptResponse = (
     const { attempt, ...view } = await examiner.attempt(lessonId, body.quiz_id, body.answers);
     return { attempt, ...shown(view) };
   });
-
-export function recapResponse(examiner: Examiner): Response {
-  try {
-    const quiz = examiner.recap();
-    if (!quiz) return Response.json({ error: "No lesson is passed yet" }, { status: 409 });
-    return Response.json({ quiz: withoutKeys(quiz) });
-  } catch (e) {
-    if (e instanceof InvalidNameError) return Response.json({ error: e.message }, { status: 400 });
-    throw e;
-  }
-}

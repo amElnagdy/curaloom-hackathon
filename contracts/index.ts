@@ -454,6 +454,20 @@ export const CoachDraft = Obj({
   }),
 });
 
+// The re-planner's explanation of a proposed version (#26). Code changed the plan and lists each
+// change; the model writes why, and for a switch picks the resource.
+export const ReplanNote = Obj({
+  explanation_ar: Type.String({
+    description:
+      "two or three Modern Standard Arabic sentences to the learner on why the plan changed",
+  }),
+  resource_id: Nullable(
+    Type.String({
+      description: "for a switch, the id of the candidate you pick, copied exactly; otherwise null",
+    }),
+  ),
+});
+
 // What a learner can answer to the coach's day-10 check-in (#25).
 export const CHECKIN_CHOICES = ["pause", "shrink", "switch"] as const;
 // A learner's answer to a check-in, from the phone's buttons (#25). pause_days counts only with pause.
@@ -488,6 +502,7 @@ export const CONTRACTS = {
   Mastery,
   CoachEvent,
   CoachDraft,
+  ReplanNote,
   CheckinReply,
 };
 export type ContractName = keyof typeof CONTRACTS;
@@ -497,7 +512,7 @@ export type ContractName = keyof typeof CONTRACTS;
 // Nor is CoursePlan: the architect builds it from a PlanDraft. Nor are Lesson and GlossaryEntry:
 // the lesson builder builds them from a LessonDraft. Nor are Quiz and QuizAttempt: the examiner
 // builds them from a QuizDraft, a KeyCheck and ShortGrades. Nor is CoachEvent: the coach builds it
-// around a CoachDraft.
+// around a CoachDraft. Nor is a re-planned CoursePlan: code builds it, and a ReplanNote explains it.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
   "IntakeReply",
@@ -510,6 +525,7 @@ export const AGENT_OUTPUTS = [
   "KeyCheck",
   "ShortGrades",
   "CoachDraft",
+  "ReplanNote",
 ] as const satisfies readonly ContractName[];
 
 export type LearnerProfile = Static<typeof LearnerProfile>;
@@ -538,6 +554,7 @@ export type QuizAttempt = Static<typeof QuizAttempt>;
 export type Mastery = Static<typeof Mastery>;
 export type CoachEvent = Static<typeof CoachEvent>;
 export type CoachDraft = Static<typeof CoachDraft>;
+export type ReplanNote = Static<typeof ReplanNote>;
 export type CheckinChoice = (typeof CHECKIN_CHOICES)[number];
 export type CheckinReply = Static<typeof CheckinReply>;
 

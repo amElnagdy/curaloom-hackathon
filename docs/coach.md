@@ -20,7 +20,7 @@ How the rungs fire:
 - A rung's id is `<type>_a<anchor>_d<day>`, for example `checkin_a0_d10`. The id is both the scheduler's ledger key and the coach event's id, so each rung fires once.
 - A lesson button is left out while the learner has no current lesson.
 - `rungsThrough(facts, upTo)` lists the rungs due by a time, oldest first. `ladderAt(facts, now)` says where the ladder stands.
-- Nothing about the ladder is stored. A quiz moves the anchor, so the next rungs have new ids and the ladder starts again. The `coach` document keeps only the learner's answers and the last anchor the coach saw. When the clock next moves, `observe()` traces the reset once, and names a comeback after two or more days away for #27.
+- Nothing about the ladder is stored. A quiz moves the anchor, so the next rungs have new ids and the ladder starts again. The `coach` document keeps only the learner's answers and the last anchor the coach saw. When the clock next moves, `observe()` traces the reset once. A finished comeback moves the anchor too (see Comeback).
 - The scheduler fires due rungs in time order, one at a time, and waits for each message's wording. A jump of the clock to day 24 fires all five rungs, each traced at its own time.
 - The notifier holds a rung for quiet hours as it holds any message.
 - The demo bar's markers come from `ladderMarks()`: the rungs of a learner whose last quiz was on day 0, as for the seed's Omar and a learner just through the intake.
@@ -62,6 +62,7 @@ stateDiagram-v2
   opted_out --> active: messages on, then the state the days since the last quiz give
 ```
 
+- A finished comeback moves the anchor as a quiz does, so each edge marked "a quiz" is also taken by a finished comeback.
 - While messages are off, rungs still fire. The notifier records each one as `suppressed_opt_out`, and the phone shows «لم تُرسل». A rung fired while messages were off is not sent later.
 - Turning messages back on returns the ladder to the state the facts give, which can be a rung's state or `paused`, not only `active`.
 - A quiz while messages are off keeps the state `opted_out`, and moves the anchor.
@@ -73,9 +74,21 @@ The check-in shows three buttons on the phone once it is delivered. A tap posts 
 A taken answer shows on the phone as the learner's reply. The coach acts on it, saves it in the `coach` document and sends an acknowledgement through the notifier, so quiet hours hold the acknowledgement too.
 
 - `pause` stops the coach's messages from the answer until 09:00 of the day `pause_days` later (7 by default, 1 to 30). A rung inside the pause never fires. The pause belongs to the anchor it was chosen at, so a quiz ends it.
-- `shrink` and `switch` are recorded, with the anchor they belong to, for the re-planner (#26). Neither changes the plan: the re-plan comes with the learner's comeback (#27). The acknowledgement says only that the choice is recorded, and carries no button.
+- `shrink` and `switch` are recorded, with the anchor they belong to, for the re-planner (#26). Neither changes the plan. For a learner with a plan of their own, the answer starts their comeback (#27), and the acknowledgement asks them to open their plan for a short recap, with an «افتح خطتي» button. The seed's Omar has no plan of his own, so his acknowledgement says only that the choice is recorded, and carries no button.
+
+An answer to the check-in of an earlier anchor answers 409.
 
 An answer is not activity, so the weekly messages go on after a shrink or a switch.
+
+## Comeback
+
+A learner with a plan of their own is back after a break when they are two or more days past their anchor and they reply (a shrink or switch answer, or free text other than a stop word) or open the app. `coach.detect()` saves a comeback record for the anchor, once, and traces `comeback_detected`. Opening the app posts `POST /api/sessions/{id}/comeback/open` with `{}` while the comeback view says `due`, the only write tied to opening the app.
+
+- `comeback/recap` takes `{quiz_id, answers: [{item_id, response}]}` for the recap the view shows. Code grades it. Below 80% the lesson with the most misses gets a review first.
+- `comeback/replan` takes `{}` and finishes a comeback with no recap, for a learner who has passed no lesson yet.
+- Finishing calls the re-planner with the reason (the check-in answer, else the day-5 offer if it was sent, else the return), the day and the recap. It saves the proposal as the plan's `pending` version and sets the anchor to today, so the ladder is `active` again and the next rung is the nudge two days later.
+- Spark explains the proposal through the orchestrator step `replan:v<n>:<hash of the brief>` on the `replan` model role. The brief holds the change's facts, the recap's band and the interview's notes, with no name, learner id or score. `noteViolations()` refuses a note with no Arabic, over 400 characters, with an address, a brace or an emoji, with a number the brief does not give, or with a resource the brief does not offer. After one retry, the template explains it, and the trace says why.
+- The routes answer 404 for an unknown action, 400 for a bad body or answers the recap cannot take, and 409 when no comeback is due, for a recap that is no longer the one shown, for a recap when no lesson is passed, or for `replan` while a recap is possible. They run one at a time per session.
 
 ## Wording
 
@@ -92,4 +105,6 @@ Spark words each message. `coachWriter` runs as an orchestrator step with the ke
 
 ## Not built yet
 
-- #26 and #27 turn a recorded shrink or switch into a proposed plan version when the learner comes back: a recap first, then the re-plan, which the learner accepts or rejects. The coach traces the comeback today. Messages held for quiet hours are not withdrawn when the learner comes back.
+- The screens for the comeback: the card on the plan page, the recap and the proposal panel. The API above is built.
+- A switch does not move the lesson to another resource yet.
+- Messages held for quiet hours are not withdrawn when the learner comes back.

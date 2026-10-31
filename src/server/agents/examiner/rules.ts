@@ -7,6 +7,7 @@ import { addressIn } from "../lesson/rules.ts";
 
 type Item = Quiz["items"][number];
 type Graded = QuizAttempt["answers"][number];
+export type Answer = { item_id: string; response: string };
 
 export const QUIZ_ITEMS = { min: 5, max: 8 };
 
@@ -102,6 +103,21 @@ export function gradeChoice(item: Item, response: string): { score: number; feed
     : { score: 0, feedback_ar: `الإجابة الصحيحة «${item.answer}». ${item.rubric_ar}` };
 }
 
+// What is wrong with answers to a quiz: an item with no answer, a multiple-choice answer that is not
+// one of its options, or an answer to an item the quiz lacks.
+export function answerProblems(quiz: Quiz, responses: Answer[]): string[] {
+  const problems = quiz.items.flatMap((item) => {
+    const response = responses.find((r) => r.item_id === item.id)?.response.trim();
+    if (!response) return [`item ${item.id} has no answer`];
+    if (item.type === "mcq" && !item.options_ar.includes(response)) {
+      return [`item ${item.id}'s answer is not one of its options`];
+    }
+    return [];
+  });
+  const unknown = responses.filter((r) => !quiz.items.some((i) => i.id === r.item_id));
+  return [...problems, ...unknown.map((r) => `the quiz has no item ${r.item_id}`)];
+}
+
 // The attempt the graded answers make: its score is the mean of the items', and it passes at the
 // quiz's gate.
 export function attemptOf(quiz: Quiz, answers: Graded[], simDay: number): QuizAttempt {
@@ -139,8 +155,9 @@ export function lessonOpen(lessonIds: string[], mastery: Mastery[], lessonId: st
 export const RECAP_ITEMS = 5;
 export const RECAP_LESSON = "recap";
 
-// A short quiz over the lessons the learner passed, for a return after a break: at most five items,
-// taken in turn from each lesson, the ones the learner missed first. An item's id names its quiz.
+// A short quiz over the lessons the learner passed, for a return after a break: at most five
+// multiple-choice items, so code grades it, taken in turn from each lesson, the ones the learner
+// missed first. An item's id names its quiz.
 export function recapQuiz(
   quizzes: Quiz[],
   attempts: QuizAttempt[],
@@ -156,7 +173,11 @@ export function recapQuiz(
     .map((m) =>
       quizzes
         .filter((q) => q.lesson_id === m.lesson_id)
-        .flatMap((q) => q.items.map((item) => ({ ...item, id: `${q.id}:${item.id}` })))
+        .flatMap((q) =>
+          q.items
+            .filter((item) => item.type === "mcq")
+            .map((item) => ({ ...item, id: `${q.id}:${item.id}` })),
+        )
         .toSorted((a, b) => Number(missed.has(b.id)) - Number(missed.has(a.id))),
     )
     .filter((pool) => pool.length);
@@ -174,4 +195,33 @@ export function recapQuiz(
     items,
     pass_threshold: first.pass_threshold,
   };
+}
+
+// The recap's attempt, graded by code alone. It is the learner's recall after a break, so it stays
+// out of the lessons' attempts and mastery.
+export const gradeRecap = (quiz: Quiz, responses: Answer[], simDay: number): QuizAttempt =>
+  attemptOf(
+    quiz,
+    quiz.items.map((item) => {
+      const response = responses.find((r) => r.item_id === item.id)?.response.trim() ?? "";
+      return { item_id: item.id, response, ...gradeChoice(item, response) };
+    }),
+    simDay,
+  );
+
+// The lesson whose recap items the learner missed most; a tie goes to the later lesson, the one
+// nearer what they study next. `quizzes` are the plan's, oldest first, so a lesson's first quiz
+// comes after the lessons before it.
+export function recapWeakest(attempt: QuizAttempt, quizzes: Quiz[]): string {
+  const lessonOf = new Map(quizzes.map((q) => [q.id, q.lesson_id]));
+  const order = [...new Set(quizzes.map((q) => q.lesson_id))];
+  const misses = new Map<string, number>();
+  for (const answer of attempt.answers) {
+    const lesson = lessonOf.get(answer.item_id.split(":")[0] ?? "");
+    if (lesson && answer.score < 1) misses.set(lesson, (misses.get(lesson) ?? 0) + 1);
+  }
+  const ranked = [...misses].toSorted(
+    ([a, x], [b, y]) => y - x || order.indexOf(b) - order.indexOf(a),
+  );
+  return ranked[0]?.[0] ?? order.at(-1) ?? "";
 }

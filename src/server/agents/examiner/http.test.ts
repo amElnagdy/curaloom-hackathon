@@ -2,9 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Quiz, QuizAttempt } from "../../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { StepFailed } from "../../orchestrator/orchestrator.ts";
-import { InvalidNameError } from "../../store/store.ts";
 import { AttemptInvalid, type Examiner, QuizConflict, QuizNotFound } from "./examiner.ts";
-import { attemptResponse, quizResponse, recapResponse } from "./http.ts";
+import { attemptResponse, quizResponse } from "./http.ts";
 import type { QuizView } from "./rules.ts";
 
 const seed = loadOmarSeed("Pivot tables");
@@ -26,7 +25,6 @@ function stubExaminer({ fail, wait }: { fail?: Error; wait?: Promise<void> } = {
     quiz: (lessonId) => act(["quiz", lessonId], VIEW),
     attempt: (lessonId, quizId, answers) =>
       act(["attempt", lessonId, quizId, answers], { attempt: ATTEMPT, ...VIEW }),
-    recap: () => (fail ? undefined : QUIZ),
   };
   return { examiner, calls };
 }
@@ -154,27 +152,5 @@ describe("attempt route", () => {
     expect((await attemptResponse(request(body), "s", "L1", invalid)).status).toBe(400);
     expect((await attemptResponse(request(body), "s", "L1", stale)).status).toBe(409);
     expect((await attemptResponse(request(body), "s", "L1", failed)).status).toBe(502);
-  });
-});
-
-describe("recap route", () => {
-  it("answers a recap quiz without its keys, and 409 before a lesson is passed", async () => {
-    const res = recapResponse(stubExaminer().examiner);
-    const none = recapResponse(stubExaminer({ fail: new Error("none") }).examiner);
-
-    expect(res.status).toBe(200);
-    for (const item of (await res.json()).quiz.items) expect(item).not.toHaveProperty("answer");
-    expect(none.status).toBe(409);
-  });
-
-  it("answers 400 for a session id the store refuses", async () => {
-    const examiner: Examiner = {
-      ...stubExaminer().examiner,
-      recap: () => {
-        throw new InvalidNameError("Invalid session id: bad.id");
-      },
-    };
-
-    expect(recapResponse(examiner).status).toBe(400);
   });
 });
