@@ -4,7 +4,9 @@ CuraLoom is a working name. The app reads its name from `APP_NAME` through `src/
 
 CuraLoom builds a personal course in Arabic from openly licensed learning material in English, Russian, Chinese and French. A coach follows the learner when they stop studying, and proposes a new plan when they come back. It runs on Meta's Muse models and was built for the Meta Global AI Developer Hackathon (Indie track).
 
-> Demo GIF: pending. It goes at `docs/media/demo.gif`, recorded from `pnpm demo:replay`.
+![The replay demo: the interview, the plan being built with the trace open, a lesson with a term card, the quiz, the coach's messages, the comeback proposal, and lesson 2's diagram in Arabic and in its source](docs/media/demo.gif)
+
+Stills from a scripted walk of `pnpm demo:replay` at 1440×900, not real time. The run replays recorded model answers, and the badge at the top of each page says so.
 
 ## The problem
 
