@@ -393,6 +393,12 @@ export const CoachEvent = Obj({
 
 // What a learner can answer to the coach's day-10 check-in (#25).
 export const CHECKIN_CHOICES = ["pause", "shrink", "switch"] as const;
+// A learner's answer to a check-in, from the phone's buttons (#25). pause_days counts only with pause.
+export const CheckinReply = Obj({
+  event_id: Type.String(),
+  choice: StringEnum(CHECKIN_CHOICES),
+  pause_days: Type.Integer(),
+});
 
 export const CONTRACTS = {
   LearnerProfile,
@@ -417,6 +423,7 @@ export const CONTRACTS = {
   QuizAttempt,
   Mastery,
   CoachEvent,
+  CheckinReply,
 };
 export type ContractName = keyof typeof CONTRACTS;
 
@@ -462,6 +469,7 @@ export type QuizAttempt = Static<typeof QuizAttempt>;
 export type Mastery = Static<typeof Mastery>;
 export type CoachEvent = Static<typeof CoachEvent>;
 export type CheckinChoice = (typeof CHECKIN_CHOICES)[number];
+export type CheckinReply = Static<typeof CheckinReply>;
 
 function nameOf(schema: TSchema): string {
   return Object.entries(CONTRACTS).find(([, s]) => s === schema)?.[0] ?? "value";

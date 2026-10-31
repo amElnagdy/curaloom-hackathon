@@ -1,6 +1,7 @@
 // The rules every version of a course plan keeps (#18). The architect checks the model's draft
-// against them, and a learner's edit is checked the same way before it becomes a new version. Each
-// broken rule is told in English, for the model's retry, and in Arabic, for the learner.
+// against them, and a learner's edit or the coach's shrink (#25) is checked the same way before it
+// becomes a new version. Each broken rule is told in English, for the model's retry, and in Arabic,
+// for the learner.
 
 import type { CoursePlan } from "../../../../contracts/index.ts";
 
@@ -152,14 +153,52 @@ export function applyEdit(plan: CoursePlan, edit: PlanEdit, limits: Limits): Edi
     });
   }
   const change = edit.op === "move" ? { day: edit.day } : { minutes: edit.minutes };
+  return nextVersion(
+    plan,
+    plan.committed.sessions.map((s) => (s.id === session.id ? { ...s, ...change } : s)),
+    "learner_edit",
+    limits,
+  );
+}
+
+// The coach's «جلسات أقصر» (#25): each session of a lesson the learner has not passed takes 60% of
+// its time, rounded down to 5 minutes and never under a session's minimum.
+export function shrinkPlan(
+  plan: CoursePlan,
+  limits: Limits,
+  passed: ReadonlySet<string>,
+): EditResult {
+  const shorter = (minutes: number) =>
+    Math.max(SESSION_MINUTES.min, Math.floor((minutes * 0.6) / 5) * 5);
+  const sessions = plan.committed.sessions.map((s) =>
+    passed.has(s.lesson_id) ? s : { ...s, minutes: shorter(s.minutes) },
+  );
+  if (sessions.every((s, i) => s.minutes === plan.committed.sessions[i]?.minutes)) {
+    return {
+      ok: false,
+      violations: [
+        {
+          en: "no session of a lesson not passed yet can get shorter",
+          ar: "جلسات دروسك الباقية في أقصر مدة لها",
+        },
+      ],
+    };
+  }
+  return nextVersion(plan, sessions, "shrink", limits);
+}
+
+// A changed plan keeps its id, so its quizzes stay with every version.
+function nextVersion(
+  plan: CoursePlan,
+  sessions: Session[],
+  reason: string,
+  limits: Limits,
+): EditResult {
   const next: CoursePlan = {
     ...plan,
-    committed: {
-      ...plan.committed,
-      sessions: plan.committed.sessions.map((s) => (s.id === session.id ? { ...s, ...change } : s)),
-    },
+    committed: { ...plan.committed, sessions },
     version: plan.version + 1,
-    reason: "learner_edit",
+    reason,
   };
   const violations = planViolations(next, limits);
   return violations.length ? { ok: false, violations } : { ok: true, plan: next };

@@ -140,6 +140,29 @@
 .cta {
   margin-top: var(--s-2);
 }
+/* The check-in's choices wrap under the text, the first at the inline start. Once answered, the
+   chosen one keeps the accent fill, over the shared button's disabled look. */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  min-width: 0;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  border: 0;
+}
+.choices button[aria-pressed="true"],
+.choices button[aria-pressed="true"]:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: default;
+}
+.choiceError {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--fail-ink);
+}
 /* Held for quiet hours, not yet delivered: an outline instead of a fill. */
 .queued {
   background: transparent;

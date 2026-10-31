@@ -1,7 +1,8 @@
 // Coach messages (#15 slot; the coach is #25): the coach events the scheduler fired on the sim
 // clock (#23), delivered by the notifier (#22) to a simulated phone, labelled as a simulated channel
 // (ADR-004), beside the queue and the limits the coach keeps (quiet hours, weekly time, «توقف»).
-// The learner replies from the phone, and «توقف» stops the messages.
+// The learner replies from the phone, answers the check-in with its buttons, and «توقف» stops the
+// messages.
 
 import {
   BatteryFull,
@@ -18,6 +19,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Fragment } from "react";
+import type { CheckinChoice } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
@@ -40,16 +42,29 @@ import { COACH_STATUS, COACH_TITLE, simDay, simTimeText } from "../_shell/course
 import { clockTime, countOf, HOURS } from "../_shell/format.ts";
 import { BidiText, buttonClass, cx, Meta, StatusPill } from "../_shell/ui.tsx";
 import styles from "./coach.module.css";
-import { RefreshOnCoachEvents, ReplyBox } from "./phone.tsx";
+import { CheckinButtons, RefreshOnCoachEvents, ReplyBox } from "./phone.tsx";
 
 export const metadata: Metadata = { title: "رسائل المدرب" };
 
 // "day 2 12:00" as «١٢:٠٠ ظهرًا».
 const timeOf = (simTs: string) => clockTime(hhmm(parseSimTime(simTs).minute));
 
-// A received message's button. The check-in's choices get theirs with the replies (#25).
-function CtaLink({ cta }: { cta: Cta }) {
-  if (cta.action === "choose") return null;
+// The check-in answers the learner gave, by message id, and whether they can still answer one.
+type Answers = { chosen: ReadonlyMap<string, CheckinChoice>; closed: boolean };
+
+// A received message's button, or the check-in's choices (#25).
+function CtaButton({ cta, eventId, answers }: { cta: Cta; eventId: string; answers: Answers }) {
+  if (cta.action === "choose") {
+    return (
+      <CheckinButtons
+        sessionId={DEMO_SESSION_ID}
+        eventId={eventId}
+        options={cta.options}
+        chosen={answers.chosen.get(eventId) ?? null}
+        disabled={answers.closed}
+      />
+    );
+  }
   return (
     <Link
       href={cta.action === "open_lesson" ? `/lesson/${cta.lesson_id}` : "/plan"}
@@ -61,7 +76,7 @@ function CtaLink({ cta }: { cta: Cta }) {
 }
 
 // One line of the phone thread.
-function ThreadLine({ item }: { item: ThreadItem }) {
+function ThreadLine({ item, answers }: { item: ThreadItem; answers: Answers }) {
   switch (item.kind) {
     case "suppressed":
       return <li className={styles.system}>لم تُرسل رسالة، لأن الرسائل متوقفة.</li>;
@@ -92,7 +107,7 @@ function ThreadLine({ item }: { item: ThreadItem }) {
           <p>
             <BidiText text={item.text} />
           </p>
-          {item.cta && <CtaLink cta={item.cta} />}
+          {item.cta && <CtaButton cta={item.cta} eventId={item.id} answers={answers} />}
           <p className={styles.bubbleMeta}>
             <Check aria-hidden />
             <Meta
@@ -118,6 +133,10 @@ export default async function CoachPage() {
   const now = sim.now();
   const events = [...sim.coachEvents()].sort((a, b) => a.sim_day - b.sim_day);
   const thread = phoneThread(readInbox(store, DEMO_SESSION_ID), sim.outbox());
+  const answers: Answers = {
+    chosen: new Map(sim.checkinReplies().map((r) => [r.event_id, r.choice])),
+    closed: sim.ladder().state === "opted_out",
+  };
   const quiet = consent.quiet_hours;
   const quietText = quiet
     ? `لا رسائل من ${clockTime(quiet.start)} حتى ${clockTime(quiet.end)}`
@@ -247,7 +266,7 @@ export default async function CoachPage() {
                     {thread
                       .filter((item) => dayOf(item) === d)
                       .map((item) => (
-                        <ThreadLine key={item.id} item={item} />
+                        <ThreadLine key={item.id} item={item} answers={answers} />
                       ))}
                   </Fragment>
                 ))}

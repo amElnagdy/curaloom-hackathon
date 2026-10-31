@@ -80,10 +80,50 @@ describe("sim and inbox routes", () => {
     const stop = await (await reply({ text: "توقف" })).json();
     const again = await (await reply({ text: "STOP" })).json();
 
-    expect(stop).toEqual({ opted_out: true, confirmed: true });
-    expect(again).toEqual({ opted_out: true, confirmed: false });
+    expect(stop).toEqual({ opted_out: true, confirmed: true, answer: null });
+    expect(again).toEqual({ opted_out: true, confirmed: false, answer: null });
     expect((await reply({ text: "   " })).status).toBe(400);
     expect((await reply({})).status).toBe(400);
+  });
+
+  it("take a tap on the check-in's button, a pause lasting a week when the body names no days", async () => {
+    const { post, reply } = setup();
+    await post("set", { day: 10 });
+    await post("advance", { minutes: 180 });
+
+    const res = await reply({ event_id: "checkin_a0_d10", choice: "pause" });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      opted_out: false,
+      confirmed: false,
+      answer: { choice: "pause", paused_until: "day 17 09:00", plan_version: null },
+    });
+  });
+
+  it("answer 400 for a bad tap, and 409 for a message the learner cannot answer", async () => {
+    const { post, reply } = setup();
+    await post("set", { day: 10 });
+    await post("advance", { minutes: 180 });
+    const tap = { event_id: "checkin_a0_d10", choice: "pause" };
+
+    const bad = await Promise.all(
+      [
+        { ...tap, pause_days: 0 },
+        { ...tap, pause_days: 31 },
+        { ...tap, choice: "quit" },
+        { ...tap, extra: 1 },
+        { ...tap, text: "استراحة" },
+      ].map(reply),
+    );
+    const unknown = await reply({ ...tap, event_id: "nope" });
+    const first = await reply(tap);
+    const second = await reply({ ...tap, choice: "switch" });
+
+    expect(bad.map((res) => res.status)).toEqual([400, 400, 400, 400, 400]);
+    expect(unknown.status).toBe(409);
+    expect((await unknown.json()).error).toMatch(/nope/);
+    expect([first.status, second.status]).toEqual([200, 409]);
   });
 
   it("answer 404 for an unknown move and while SIM_CLOCK is off", async () => {

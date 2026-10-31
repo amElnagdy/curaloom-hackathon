@@ -1,12 +1,12 @@
 // A session's simulated time (#23): the sim clock, the coach scheduler it drives, the coach whose
 // ladder the scheduler fires (#25) and the notifier the scheduler sends through (#22). Each move
 // returns the new time and the coach events it fired; a reply goes to the notifier's inbound
-// handler. The HTTP routes are thin wrappers over it.
+// handler, and a tap on a check-in's button to the coach. The HTTP routes are thin wrappers over it.
 
-import type { CoachEvent, Consent } from "../../../contracts/index.ts";
+import type { CheckinReply, CoachEvent, Consent } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config, type NotifierAdapterName } from "../../config.ts";
-import { type CoachDeps, createCoach } from "../coach/coach.ts";
+import { type CoachDeps, createCoach, NO_PLAN } from "../coach/coach.ts";
 import { createAdapter } from "../notifier/adapters.ts";
 import { type ConsentChoice, createNotifier, type ReplyResult } from "../notifier/notifier.ts";
 import type { Store } from "../store/store.ts";
@@ -30,8 +30,12 @@ export type SimOptions = {
   adapter?: NotifierAdapterName;
 };
 
-// A learner with no quiz and no lesson yet: the ladder counts from day 0 and no button opens a lesson.
-const NO_STUDY: CoachDeps = { study: () => ({ attempt_days: [], lesson: null }) };
+// A learner with no quiz, no lesson and no plan yet: the ladder counts from day 0, no button opens a
+// lesson and a shrink changes nothing.
+const NO_STUDY: CoachDeps = {
+  study: () => ({ attempt_days: [], lesson: null }),
+  replan: async () => NO_PLAN,
+};
 
 export function createSim({
   store,
@@ -74,6 +78,7 @@ export function createSim({
     consent: notifier.consent,
     outbox: notifier.outbox,
     ladder: () => coach.ladder(clock.now()),
+    checkinReplies: coach.replies,
     advance: async (by: Duration) => {
       const from = clock.now();
       return moved(from, clock.advance(by));
@@ -94,6 +99,9 @@ export function createSim({
       scheduler.syncStatuses();
       return result;
     },
+    // The learner's tap on a check-in's button, at the current sim time. Throws CheckinConflict for
+    // a message they cannot answer.
+    answer: (reply: CheckinReply) => coach.answer(reply, clock.now()),
     // Back to the seeded demo state: every session document goes and readers fall back to the
     // seed (ADR-003). The trace stays, and says what came back.
     reset(): SimResult {

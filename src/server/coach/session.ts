@@ -5,7 +5,8 @@
 
 import type { CoursePlan, Mastery, QuizAttempt } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
-import { planFor } from "../agents/architect/architect.ts";
+import { planFor, reviseLatest } from "../agents/architect/architect.ts";
+import { shrinkPlan } from "../agents/architect/rules.ts";
 import { savedQuizzes } from "../agents/examiner/examiner.ts";
 import { lessonOpen } from "../agents/examiner/rules.ts";
 import { savedProfile } from "../agents/intake/intake.ts";
@@ -14,7 +15,7 @@ import { createSim, type SimSeed } from "../clock/sim.ts";
 import { INBOX_DOC } from "../notifier/adapters.ts";
 import { CONSENT_DOC, OUTBOX_DOC } from "../notifier/notifier.ts";
 import { contentHash, type Store } from "../store/store.ts";
-import { COACH_DOC, type Study } from "./coach.ts";
+import { COACH_DOC, NO_PLAN, type Replanned, type Study } from "./coach.ts";
 
 export type CoachSeed = SimSeed & Pick<Seed, "attempts" | "mastery" | "plans">;
 
@@ -85,6 +86,42 @@ export function studyOf(store: Store, sessionId: string, seed: CoachSeed): Study
   return studied(plan, attempts, mastery);
 }
 
+const planMinutes = (plan: CoursePlan) =>
+  plan.committed.sessions.reduce((sum, s) => sum + s.minutes, 0);
+
+// The answer «جلسات أقصر» to the coach's check-in: the learner's latest plan with shorter sessions
+// for the lessons they have not passed, saved as its next version. The seed's Omar has no plan of
+// his own to change.
+async function shrinkLatest(store: Store, sessionId: string): Promise<Replanned> {
+  const learner = savedProfile(store, sessionId);
+  const revised =
+    learner &&
+    reviseLatest(store, sessionId, learner, (latest, limits) => {
+      const { mastery } = savedQuizzes(store, sessionId, latest.id);
+      return shrinkPlan(
+        latest,
+        limits,
+        new Set(mastery.filter((m) => m.passed).map((m) => m.lesson_id)),
+      );
+    });
+  if (!revised) return NO_PLAN;
+  const { latest, result } = revised;
+  if (!result.ok) {
+    return {
+      ok: false,
+      why: {
+        en: result.violations.map((v) => v.en).join("; "),
+        ar: `لم نغيّر خطتك: ${result.violations.map((v) => v.ar).join("، ")}.`,
+      },
+    };
+  }
+  return {
+    ok: true,
+    version: result.plan.version,
+    minutes: { before: planMinutes(latest), after: planMinutes(result.plan) },
+  };
+}
+
 // The session's simulated coach and the learner it follows, as the pages read them.
 export function sessionSim(store: Store, sessionId: string, seed: CoachSeed) {
   const simSeed = sessionSimSeed(store, sessionId, seed);
@@ -94,7 +131,10 @@ export function sessionSim(store: Store, sessionId: string, seed: CoachSeed) {
       store,
       sessionId,
       seed: simSeed,
-      coach: { study: () => studyOf(store, sessionId, seed) },
+      coach: {
+        study: () => studyOf(store, sessionId, seed),
+        replan: () => shrinkLatest(store, sessionId),
+      },
     }),
   };
 }

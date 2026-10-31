@@ -32,6 +32,7 @@ describe("contracts", () => {
   it("defines every core entity", () => {
     expect(Object.keys(CONTRACTS).sort()).toEqual(
       [
+        "CheckinReply",
         "CoachEvent",
         "Consent",
         "CoursePlan",

@@ -20,6 +20,7 @@ import { contentHash, type Store } from "../../store/store.ts";
 import type { Tracer } from "../../trace/trace.ts";
 import {
   applyEdit,
+  type EditResult,
   type Limits,
   type PlanEdit,
   planViolations,
@@ -208,6 +209,24 @@ export function planFor(
   return saved?.for_profile === contentHash(profile) ? saved : undefined;
 }
 
+// The learner's latest plan changed by `change`, saved as the next version when the change keeps
+// every rule, with the version it changed. Undefined while the learner has no plan.
+export function reviseLatest(
+  store: Store,
+  sessionId: string,
+  profile: LearnerProfile,
+  change: (latest: CoursePlan, limits: Limits) => EditResult,
+): { latest: CoursePlan; result: EditResult; saved: SavedPlan } | undefined {
+  const saved = planFor(store, sessionId, profile);
+  const latest = saved?.versions.at(-1);
+  if (!saved || !latest) return undefined;
+  const result = change(latest, saved.limits);
+  if (!result.ok) return { latest, result, saved };
+  const next = { ...saved, versions: [...saved.versions, result.plan] };
+  store.writeDoc(sessionId, PLAN_DOC, next);
+  return { latest, result, saved: next };
+}
+
 export type PlannerDeps = {
   orchestrator: Pick<ReturnType<typeof createOrchestrator>, "runStep">;
   store: Store;
@@ -255,11 +274,11 @@ export function createPlanner({
 
     // Throws PlanEditRejected, with the broken rules, for an edit the plan cannot take.
     edit(edit: PlanEdit): SavedPlan {
-      const saved = planFor(store, sessionId, profile());
-      const latest = saved?.versions.at(-1);
-      if (!saved || !latest)
-        throw new PlanConflict("There is no plan for this learner to edit yet");
-      const result = applyEdit(latest, edit, saved.limits);
+      const revised = reviseLatest(store, sessionId, profile(), (latest, limits) =>
+        applyEdit(latest, edit, limits),
+      );
+      if (!revised) throw new PlanConflict("There is no plan for this learner to edit yet");
+      const { latest, result, saved } = revised;
       const what = describeEdit(latest, edit);
       if (!result.ok) {
         report(
@@ -272,7 +291,7 @@ export function createPlanner({
         `عدّلتَ خطتك: ${what.ar}`,
         `Learner edit: ${what.en}; plan version ${result.plan.version}`,
       );
-      return save({ ...saved, versions: [...saved.versions, result.plan] });
+      return saved;
     },
 
     // Back to no plan: the pages fall back to the seed's, and the next build reads the saved step.

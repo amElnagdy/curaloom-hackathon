@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CoursePlan } from "../../../../contracts/index.ts";
-import { applyEdit, type Limits, planViolations } from "./rules.ts";
+import { applyEdit, type Limits, planViolations, shrinkPlan } from "./rules.ts";
 
 // Week 1 is the first module's, week 2 the second's; the third module comes after the two weeks.
 const PLAN: CoursePlan = {
@@ -166,5 +166,52 @@ describe("applyEdit", () => {
     expect(result.ok || result.violations.map((v) => v.en)).toEqual([
       expect.stringMatching(/no session s9/),
     ]);
+  });
+});
+
+describe("shrinkPlan", () => {
+  const NONE_PASSED = new Set<string>();
+
+  // s3 is the session of L2.
+  it.each([
+    [45, 25],
+    [30, 15],
+    [20, 10],
+    [15, 10],
+    [10, 10],
+  ])("cuts a %i-minute session of a lesson not passed to %i minutes", (before, after) => {
+    const result = shrinkPlan(withSession("s3", { minutes: before }), LIMITS, NONE_PASSED);
+
+    expect(result.ok && result.plan.committed.sessions[2]).toMatchObject({
+      id: "s3",
+      minutes: after,
+    });
+  });
+
+  it("keeps the sessions of lessons already passed", () => {
+    const result = shrinkPlan(PLAN, LIMITS, new Set(["L1"]));
+
+    expect(result.ok && result.plan.committed.sessions.map((s) => s.minutes)).toEqual([40, 40, 20]);
+  });
+
+  it("makes the next version of the same plan, which keeps every rule", () => {
+    const result = shrinkPlan(PLAN, LIMITS, NONE_PASSED);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.plan).toMatchObject({ id: "plan_1", version: 2, reason: "shrink" });
+    expect(result.plan.committed.sessions.map((s) => s.minutes)).toEqual([20, 20, 20]);
+    expect(planViolations(result.plan, LIMITS)).toEqual([]);
+  });
+
+  it("refuses when no session gets shorter", () => {
+    const result = shrinkPlan(withSession("s3", { minutes: 10 }), LIMITS, new Set(["L1"]));
+
+    expect(result).toEqual({
+      ok: false,
+      violations: [
+        { en: expect.stringMatching(/shorter/), ar: expect.stringMatching(/\p{Script=Arabic}/u) },
+      ],
+    });
   });
 });

@@ -1,10 +1,12 @@
 // HTTP views of a session's simulated time and phone: POST /api/sessions/:id/sim/{advance,set,reset},
 // each answering {now, events} with the coach events the move fired, POST
-// /api/sessions/:id/inbox {text}, the learner's reply, answering {opted_out, confirmed}, and POST
+// /api/sessions/:id/inbox {text} or {event_id, choice, pause_days?}, the learner's reply or their
+// tap on a check-in's button (#25), answering {opted_out, confirmed, answer}, and POST
 // /api/sessions/:id/consent, the consent screen's save (#24), answering {consent}.
 
 import Type, { type Static, type TSchema } from "typebox";
-import { Consent, contractErrors } from "../../../contracts/index.ts";
+import { CheckinReply, Consent, contractErrors } from "../../../contracts/index.ts";
+import { CheckinConflict } from "../coach/coach.ts";
 import { InvalidNameError } from "../store/store.ts";
 import { ClockError } from "./clock.ts";
 import type { createSim, SimResult } from "./sim.ts";
@@ -18,10 +20,21 @@ const Advance = Type.Object(
 );
 const SetDay = Type.Object({ day: Type.Integer({ minimum: 0 }) }, { additionalProperties: false });
 const Empty = Type.Object({}, { additionalProperties: false });
-const Reply = Type.Object(
-  { text: Type.String({ maxLength: 1000, pattern: "\\S" }) },
-  { additionalProperties: false },
-);
+const Reply = Type.Union([
+  Type.Object(
+    { text: Type.String({ maxLength: 1000, pattern: "\\S" }) },
+    { additionalProperties: false },
+  ),
+  Type.Object(
+    {
+      event_id: Type.String({ maxLength: 64 }),
+      choice: CheckinReply.properties.choice,
+      pause_days: Type.Optional(Type.Integer({ minimum: 1, maximum: 30 })),
+    },
+    { additionalProperties: false },
+  ),
+]);
+const PAUSE_DAYS = 7;
 
 const HHMM = Type.String({ pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" });
 const ConsentBody = Type.Object(
@@ -70,12 +83,15 @@ export async function jsonBody(request: Request): Promise<unknown> {
   }
 }
 
-// 409 for a clock move into the past, 400 for a bad body or session id.
+// 409 for a clock move into the past or a tap on a message the learner cannot answer, 400 for a bad
+// body or session id.
 async function answer(work: () => Promise<unknown>): Promise<Response> {
   try {
     return Response.json(await work());
   } catch (e) {
-    if (e instanceof ClockError) return Response.json({ error: e.message }, { status: 409 });
+    if (e instanceof ClockError || e instanceof CheckinConflict) {
+      return Response.json({ error: e.message }, { status: 409 });
+    }
     if (e instanceof BadRequest || e instanceof InvalidNameError) {
       return Response.json({ error: e.message }, { status: 400 });
     }
@@ -121,8 +137,13 @@ export function inboxResponse(
   { sim }: Omit<SimDeps, "enabled">,
 ): Promise<Response> {
   return answer(async () => {
-    const { text } = parse(Reply, await jsonBody(request));
-    return serial(sessionId, async () => sim(sessionId).reply(text));
+    const body = parse(Reply, await jsonBody(request));
+    return serial(sessionId, async () => {
+      if ("text" in body) return { ...sim(sessionId).reply(body.text), answer: null };
+      const { event_id, choice, pause_days = PAUSE_DAYS } = body;
+      const answered = await sim(sessionId).answer({ event_id, choice, pause_days });
+      return { opted_out: false, confirmed: false, answer: answered };
+    });
   });
 }
 
