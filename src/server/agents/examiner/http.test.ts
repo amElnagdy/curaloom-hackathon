@@ -35,6 +35,7 @@ let sessions = 0;
 const request = (body?: unknown) =>
   new Request("http://localhost/x", {
     method: "POST",
+    headers: { "content-type": "application/json" },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 

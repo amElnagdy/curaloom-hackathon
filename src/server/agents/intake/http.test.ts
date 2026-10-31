@@ -44,6 +44,7 @@ const post = (intake: Intake, action: string, body?: unknown, sessionId = `s${++
   intakeResponse(
     new Request("http://localhost/x", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: typeof body === "string" ? body : JSON.stringify(body),
     }),
     sessionId,

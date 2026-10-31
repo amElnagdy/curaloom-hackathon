@@ -7,6 +7,8 @@ import { sessionSim } from "../coach/session";
 import { createFileStore } from "../store/store";
 import { consentResponse, inboxResponse, simResponse } from "./http";
 
+const JSON_TYPE = { "content-type": "application/json" };
+
 function setup(enabled = true) {
   const store = createFileStore(mkdtempSync(join(tmpdir(), "sim-http-")));
   const seed = loadOmarSeed("x");
@@ -15,6 +17,7 @@ function setup(enabled = true) {
     simResponse(
       new Request("http://localhost/x", {
         method: "POST",
+        headers: { "content-type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body),
       }),
       sessionId,
@@ -23,13 +26,21 @@ function setup(enabled = true) {
     );
   const reply = (body: unknown) =>
     inboxResponse(
-      new Request("http://localhost/x", { method: "POST", body: JSON.stringify(body) }),
+      new Request("http://localhost/x", {
+        method: "POST",
+        headers: JSON_TYPE,
+        body: JSON.stringify(body),
+      }),
       "s_1",
       deps,
     );
   const consent = (body: unknown) =>
     consentResponse(
-      new Request("http://localhost/x", { method: "POST", body: JSON.stringify(body) }),
+      new Request("http://localhost/x", {
+        method: "POST",
+        headers: JSON_TYPE,
+        body: JSON.stringify(body),
+      }),
       "s_1",
       deps,
     );
@@ -167,12 +178,40 @@ describe("sim and inbox routes", () => {
     };
 
     const badId = await consentResponse(
-      new Request("http://localhost/x", { method: "POST", body: JSON.stringify(body) }),
+      new Request("http://localhost/x", {
+        method: "POST",
+        headers: JSON_TYPE,
+        body: JSON.stringify(body),
+      }),
       "../x",
       deps,
     );
 
     expect(badId.status).toBe(400);
     expect((await consent(body)).status).toBe(400);
+  });
+
+  it("refuse a request from another site, or a body not sent as JSON", async () => {
+    const { deps } = setup();
+    const move = (headers: Record<string, string>) =>
+      simResponse(
+        new Request("http://localhost/x", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ day: 2 }),
+        }),
+        "s_1",
+        "set",
+        deps,
+      );
+
+    expect((await move({ "content-type": "text/plain" })).status).toBe(400);
+    expect((await move({})).status).toBe(400);
+    expect(
+      (await move({ "content-type": "application/json", "sec-fetch-site": "cross-site" })).status,
+    ).toBe(400);
+    expect(
+      (await move({ "content-type": "application/json", "sec-fetch-site": "same-origin" })).status,
+    ).toBe(200);
   });
 });

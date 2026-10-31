@@ -73,7 +73,16 @@ const ACTIONS: Record<string, (sim: Sim, body: unknown) => Promise<SimResult>> =
   },
 };
 
+// Every state-changing route reads its body here. There are no accounts yet, so a request from
+// another site is refused, and the body must be typed as JSON: a cross-site form or a no-cors fetch
+// cannot send that type without a preflight, which these routes never answer.
 export async function jsonBody(request: Request): Promise<unknown> {
+  if (request.headers.get("sec-fetch-site") === "cross-site") {
+    throw new BadRequest("Requests from another site are refused");
+  }
+  const type = request.headers.get("content-type") ?? "";
+  if (!/^application\/json\b/i.test(type))
+    throw new BadRequest("Body must be sent as application/json");
   const text = await request.text();
   if (!text.trim()) return {};
   try {

@@ -39,6 +39,7 @@ const post = (planner: Planner, action: string, body?: unknown, sessionId = `s${
   planResponse(
     new Request("http://localhost/x", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: typeof body === "string" ? body : JSON.stringify(body),
     }),
     sessionId,
