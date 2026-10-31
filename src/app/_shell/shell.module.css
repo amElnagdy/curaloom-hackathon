@@ -325,10 +325,62 @@
   font-weight: 600;
 }
 
+/* ===================================================================== phone menu */
+.menu {
+  display: none;
+}
+
 @media (max-width: 760px) {
+  /* The top bar keeps room at each end for the menu button and the trace tab, both fixed there. */
   .top {
-    padding-inline: var(--s-4);
+    padding-inline: calc(var(--s-3) + 2.75rem + var(--s-2));
   }
+
+  /* The rail leaves the side: the page takes the whole width, and the rail opens as a sheet under
+     the top bar from the menu button (rail.tsx). */
+  .frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .menu {
+    position: fixed;
+    z-index: 31;
+    top: calc((var(--top-h) - 2.75rem) / 2);
+    inset-inline-start: var(--s-3);
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: var(--r-ctl);
+    background: transparent;
+    color: var(--ink-2);
+  }
+  .menu:hover,
+  .menu[aria-expanded="true"] {
+    background: var(--fill);
+    color: var(--ink);
+  }
+  .menu :global(.lucide) {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .rail {
+    position: fixed;
+    top: var(--top-h);
+    bottom: 0;
+    inset-inline-start: 0;
+    height: auto;
+    width: min(var(--rail-open-w), 85vw);
+    overflow-y: auto;
+    box-shadow: var(--shadow-float);
+  }
+  .rail:not([data-sheet="open"]) {
+    display: none;
+  }
+  .railToggle {
+    display: none;
+  }
+
   /* Phone width: only the current page, without the root crumb and its chevron. */
   .crumb li:first-child,
   .crumb li > :global(.lucide) {

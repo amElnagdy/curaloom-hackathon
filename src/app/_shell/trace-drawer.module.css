@@ -40,18 +40,6 @@
   font-weight: 600;
   line-height: 1;
 }
-/* Phone width: the tab shrinks to its icon and count (its name stays in aria-label), and when open
-   it sits beside the drawer, inside the screen. */
-@media (max-width: 760px) {
-  .tab {
-    gap: var(--s-1);
-    padding: var(--s-3) 0;
-  }
-  .tabHandle,
-  .tabLabel {
-    display: none;
-  }
-}
 .tabCount {
   display: inline-grid;
   place-items: center;
@@ -64,6 +52,39 @@
   font-size: var(--text-2xs);
   font-weight: 700;
   animation: var(--motion-bump);
+}
+/* Phone width: the tab is an icon button at the inline end of the top bar, its name in aria-label
+   and its count a badge on the corner. It stays put while the drawer opens under it. */
+@media (max-width: 760px) {
+  .tab,
+  .tab[aria-expanded="true"] {
+    top: calc((var(--top-h) - 2.75rem) / 2);
+    left: var(--s-3);
+    transform: none;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border-radius: var(--r-ctl);
+    background: transparent;
+    box-shadow: none;
+  }
+  .tab:hover,
+  .tab[aria-expanded="true"] {
+    background: var(--fill);
+  }
+  .tabHandle,
+  .tabLabel {
+    display: none;
+  }
+  .tabCount {
+    position: absolute;
+    top: 0.125rem;
+    right: 0.125rem;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.25rem;
+  }
 }
 
 .drawer {

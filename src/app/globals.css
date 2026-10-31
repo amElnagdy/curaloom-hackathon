@@ -119,7 +119,9 @@
   color-scheme: light;
 }
 
-html[data-demo-bar="open"] {
+/* "auto": no choice saved, so the bar is open on a wide screen and collapsed on a phone. */
+html[data-demo-bar="open"],
+html[data-demo-bar="auto"] {
   --demo-bar-h: 9rem;
 }
 html[data-demo-bar="collapsed"] {
@@ -135,12 +137,17 @@ html[data-demo-bar="collapsed"] {
 @media (max-width: 760px) {
   :root {
     --page-gutter: var(--s-4);
-    /* The drawer leaves room for the trace tab beside it. */
-    --trace-w: calc(100vw - var(--tab-w));
+    /* The trace tab sits in the top bar, so pages keep no room for it, and the drawer takes the
+       whole width under the top bar. */
+    --tab-w: 0px;
+    --trace-w: 100vw;
   }
   /* The bar's controls wrap to their own row on a phone. */
   html[data-demo-bar="open"] {
     --demo-bar-h: 13.25rem;
+  }
+  html[data-demo-bar="auto"] {
+    --demo-bar-h: 3.5rem;
   }
 }
 

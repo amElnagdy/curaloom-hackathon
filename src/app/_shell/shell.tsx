@@ -1,6 +1,7 @@
 // The app shell (#15), layout C: icon rail on the right, top bar, the page in <main>, and the trace
 // tab and drawer on the left edge. Rendered once by the root layout; pages render inside <main>,
 // which has no padding of its own (pages use --page-gutter and --page-gutter-end from globals.css).
+// At phone width the rail and the trace tab move into the top bar's two ends (#35).
 
 import type { ReactNode } from "react";
 import { LiveSimClockPill } from "./activity-feed.tsx";

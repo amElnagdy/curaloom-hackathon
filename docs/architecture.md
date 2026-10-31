@@ -106,6 +106,7 @@ Folders are created by the issue that first puts code in them.
 - The dummy agent's output schema is a local TypeBox schema in `src/server/demo/dummy-run.ts`, not a contract in `contracts/index.ts`: a dummy result is not a domain entity (ADR-006).
 - Every run appends to the demo session's trace in `data/sessions/demo`, and the feed and drawer replay it on each page load. Settings' reset keeps the trace. Clear it before recording the demo video: `rm -rf data/sessions/demo`.
 - Styling, icons and fonts: ADR-007.
+- At phone width (760 px and below, #35) the rail leaves the side. A menu button at the start of the top bar opens it as a sheet under the top bar, and a link, Escape or a tap outside closes it. The trace tab becomes an icon button at the other end of the top bar, and its drawer takes the whole width under it. `--tab-w` drops to 0, so pages keep a 16 px gutter on each side.
 
 ## Clock (#23)
 
@@ -117,7 +118,7 @@ Folders are created by the issue that first puts code in them.
 - `createSim()` (`sim.ts`) wires the clock, the scheduler, the coach and the notifier for one session. A move is async and waits for each coach message's wording. `reset()` deletes the session's documents (the trace stays), which restores the seeded state.
 - `POST /api/sessions/{id}/sim/{advance,set,reset}` takes `{days?, minutes?}`, `{day}` or nothing. It answers `{now, events}` with the coach events the move fired, 409 for a move into the past, and 404 while `SIM_CLOCK=false`.
 - `useSimClock()` (`src/app/_shell/use-sim-clock.ts`) is the client side of those routes. The demo bar and Settings both use it. The top bar's clock pill reads the latest `clock` trace event, so every open tab follows a move.
-- The demo bar (`src/app/_shell/demo-bar.tsx`) docks at the bottom of every page while `SIM_CLOCK` is on. It shows a day timeline with one marker per rung of the coach's ladder, from `ladderMarks()`. A marker ahead of the clock jumps to its day, and one the clock has passed turns green. It collapses to a chip and keeps that choice in `localStorage`. While it is open or collapsed it sets `html[data-demo-bar]`, and `--demo-bar-h` (`globals.css`) lets full-height columns such as the activity feed and the coach phone end above it. The prototype variants live on `prototype/23-demo-bar`.
+- The demo bar (`src/app/_shell/demo-bar.tsx`) docks at the bottom of every page while `SIM_CLOCK` is on. It shows a day timeline with one marker per rung of the coach's ladder, from `ladderMarks()`. A marker ahead of the clock jumps to its day, and one the clock has passed turns green. It collapses to a chip and keeps that choice in `localStorage`. With no choice saved it renders both, and CSS shows the bar on a wide screen and the chip at phone width, so a phone never flashes the open bar after hydration. Collapsed at phone width, the chip sits after the page instead of over it. With under 52rem of bar content, each marker shows its day number only, so the captions do not overlap. It sets `html[data-demo-bar]` to `open`, `collapsed` or `auto` (no choice saved), and `--demo-bar-h` (`globals.css`) lets full-height columns such as the activity feed and the coach phone end above it. The prototype variants live on `prototype/23-demo-bar`.
 
 ## Notifier (#22)
 

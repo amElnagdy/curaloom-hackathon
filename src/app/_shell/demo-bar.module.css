@@ -19,6 +19,7 @@
 }
 
 .bar {
+  container-type: inline-size;
   width: min(56rem, 100%);
   padding: var(--s-3) var(--s-5) var(--s-4);
   border-radius: var(--r-lg);
@@ -131,6 +132,19 @@
 .done .caption {
   color: var(--ink);
 }
+/* The first two marks are three days apart. With under 52rem of bar content their full captions
+   would meet, so each mark shows its day number only, and its pin keeps the full label. */
+.short {
+  display: none;
+}
+@container (max-width: 52rem) {
+  .long {
+    display: none;
+  }
+  .short {
+    display: inline;
+  }
+}
 
 .note {
   margin: var(--s-2) 0 0;
@@ -165,4 +179,22 @@
   width: 1px;
   height: 0.875rem;
   background: var(--line-strong);
+}
+
+/* No choice saved: the bar on a wide screen, the chip on a phone. Collapsed on a phone, the chip
+   sits after the page instead of over it. */
+.dock[data-shown="auto"] .chip {
+  display: none;
+}
+@media (max-width: 760px) {
+  .dock[data-shown="auto"] .chip {
+    display: inline-flex;
+  }
+  .dock[data-shown="auto"] .bar {
+    display: none;
+  }
+  .dock:not([data-shown="open"]) {
+    position: static;
+    padding-bottom: var(--s-4);
+  }
 }

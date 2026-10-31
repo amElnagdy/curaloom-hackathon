@@ -3,6 +3,8 @@
 // The demo bar (#23, prototype C on prototype/23-demo-bar): a day timeline docked at the bottom
 // of the page column. Each coach rung is a marker that turns ready once the clock passes it; a
 // marker ahead jumps the clock to its day. Demo machinery, so it collapses to a chip.
+// Until the viewer chooses, it renders both and CSS picks one: open on a wide screen, the chip on a
+// phone (#35). Choosing in JS after mount would flash the open bar on a phone first.
 
 import { ChevronDown, FlaskConical, Plus, RotateCcw } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
@@ -10,6 +12,7 @@ import type { CoachEvent } from "../../../contracts/index.ts";
 import { compareSimTime, type SimTime, startOfDay } from "../../server/clock/time.ts";
 import { COACH_TITLE, simDay, simTimeText } from "./course.ts";
 import styles from "./demo-bar.module.css";
+import { arabicNumber } from "./format.ts";
 import { buttonClass, cx } from "./ui.tsx";
 import { useSimClock } from "./use-sim-clock.ts";
 
@@ -26,11 +29,13 @@ const SHORT: Record<CoachEvent["type"], string> = {
 const STORAGE_KEY = "demo-bar";
 const MIN_SPAN = 17;
 
-function readCollapsed(): boolean {
+// The viewer's saved choice, or null for none.
+function readCollapsed(): boolean | null {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "collapsed";
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved === null ? null : saved === "collapsed";
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -54,16 +59,17 @@ export function DemoBar({
   marks: DemoMark[];
 }) {
   const { now, busy, move } = useSimClock(sessionId);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const shown = collapsed === null ? "auto" : collapsed ? "collapsed" : "open";
 
   useEffect(() => setCollapsed(readCollapsed()), []);
   useEffect(() => {
-    document.documentElement.dataset.demoBar = collapsed ? "collapsed" : "open";
+    document.documentElement.dataset.demoBar = shown;
     return () => {
       delete document.documentElement.dataset.demoBar;
     };
-  }, [collapsed]);
+  }, [shown]);
 
   const toggle = (next: boolean) => {
     setCollapsed(next);
@@ -75,24 +81,27 @@ export function DemoBar({
     setNote(outcome.kind === "failed" ? "تعذّر تحريك الساعة." : null);
   }
 
+  const chip = (
+    <button
+      type="button"
+      className={styles.chip}
+      onClick={() => toggle(false)}
+      aria-label="أظهر أداة العرض"
+    >
+      <FlaskConical aria-hidden />
+      أداة العرض
+      {now && (
+        <>
+          <span className={styles.sep} aria-hidden />
+          {simDay(now.day)}
+        </>
+      )}
+    </button>
+  );
   if (collapsed) {
     return (
-      <div className={styles.dock}>
-        <button
-          type="button"
-          className={styles.chip}
-          onClick={() => toggle(false)}
-          aria-label="أظهر أداة العرض"
-        >
-          <FlaskConical aria-hidden />
-          أداة العرض
-          {now && (
-            <>
-              <span className={styles.sep} aria-hidden />
-              {simDay(now.day)}
-            </>
-          )}
-        </button>
+      <div className={styles.dock} data-shown={shown}>
+        {chip}
       </div>
     );
   }
@@ -102,7 +111,8 @@ export function DemoBar({
   const at = now ? percent(now, span) : 0;
 
   return (
-    <div className={styles.dock}>
+    <div className={styles.dock} data-shown={shown}>
+      {collapsed === null && chip}
       <section className={styles.bar} aria-label="أداة العرض">
         <header className={styles.head}>
           <h2 className={styles.title}>
@@ -164,7 +174,10 @@ export function DemoBar({
                   <span className={styles.dot} aria-hidden />
                 </button>
                 <span className={styles.caption} aria-hidden>
-                  {simDay(m.day)}، {SHORT[m.type]}
+                  <span className={styles.long}>
+                    {simDay(m.day)}، {SHORT[m.type]}
+                  </span>
+                  <span className={styles.short}>{arabicNumber(m.day)}</span>
                 </span>
               </li>
             );
