@@ -346,6 +346,15 @@ export function switchCandidates(
     );
 }
 
+// The lessons a version moves to other resources.
+export function switchedLessons(plan: CoursePlan): CoursePlan["committed"]["lessons"] {
+  const sessions = new Set(plan.diff.flatMap((c) => (c.op === "switch" ? [c.session] : [])));
+  const lessons = new Set(
+    plan.committed.sessions.filter((s) => sessions.has(s.id)).map((s) => s.lesson_id),
+  );
+  return plan.committed.lessons.filter((l) => lessons.has(l.id));
+}
+
 // What an explanation of a re-plan may say: the facts of the change, with lesson and module titles,
 // the interview's notes and, for a switch the re-plan made, the resources the current lesson can
 // move to. No name, learner id, topic or clock time. The recap is a band, never a score.

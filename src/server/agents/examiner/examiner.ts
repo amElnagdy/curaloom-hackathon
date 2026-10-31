@@ -25,7 +25,7 @@ import {
 } from "../../orchestrator/orchestrator.ts";
 import { contentHash, type Store } from "../../store/store.ts";
 import { planFor } from "../architect/architect.ts";
-import { savedLessons } from "../lesson/lesson.ts";
+import { forgetLesson, savedLessons } from "../lesson/lesson.ts";
 import {
   type Answer,
   answerProblems,
@@ -294,6 +294,24 @@ export function savedQuizzes(store: Store, sessionId: string, planId: string): S
   return saved?.for_plan === planId
     ? saved
     : { for_plan: planId, quizzes: [], attempts: [], mastery: [] };
+}
+
+// What a lesson moved to other resources (#26) leaves stale: the lesson as written and its quiz not
+// yet taken, so both are written again from the new resources. Its attempts and mastery stay.
+export function forgetLessonAndQuiz(
+  store: Store,
+  sessionId: string,
+  planId: string,
+  lessonId: string,
+) {
+  forgetLesson(store, sessionId, planId, lessonId);
+  const saved = store.readDoc<SavedQuizzes>(sessionId, QUIZZES_DOC);
+  if (saved?.for_plan !== planId) return;
+  const taken = new Set(saved.attempts.map((a) => a.quiz_id));
+  const quizzes = saved.quizzes.filter((q) => q.lesson_id !== lessonId || taken.has(q.id));
+  if (quizzes.length < saved.quizzes.length) {
+    store.writeDoc(sessionId, QUIZZES_DOC, { ...saved, quizzes });
+  }
 }
 
 export const quizView = (saved: SavedQuizzes, lessonId: string): QuizView => ({

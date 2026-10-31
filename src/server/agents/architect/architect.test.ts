@@ -281,6 +281,7 @@ function plannerSetup(notes: ReplanNote[] = []) {
     : null;
   let searches = 0;
   let learner = profile;
+  const forgotten: string[][] = [];
   const tracer = createTracer(store, "s1");
   const planner = createPlanner({
     orchestrator: createOrchestrator({ store, makeProvider: () => fake.provider }),
@@ -292,9 +293,14 @@ function plannerSetup(notes: ReplanNote[] = []) {
       searches++;
       return seed.resources;
     },
+    forgetLesson: (planId, lessonId) => {
+      forgotten.push([planId, lessonId]);
+    },
   });
   return {
     planner,
+    // Each lesson the planner asked to forget as written, with its plan's id.
+    forgotten,
     saved: () => savedPlan(store, "s1"),
     // The intake saving a new profile, or restarting and saving another.
     becomes: (next: typeof profile) => {
@@ -645,6 +651,96 @@ describe("the proposal's explanation", () => {
   });
 });
 
+// Back on day 10 with no lesson passed, asking for another source. L1, the current lesson, takes
+// its sessions s1 and s2 from r1; the seed's other verified resources are r2 (score 0.74) and r3
+// (0.71), and r4 is unverified.
+const SWITCH: ReplanRequest = { reason: "switch", today: 10, away_days: 10, recap: null };
+const switches = (plan: CoursePlan | null | undefined) =>
+  plan?.diff.filter((c) => c.op === "switch");
+const movedTo = (to: string) => [
+  { op: "switch", session: "s1", from: ["r1"], to: [to] },
+  { op: "switch", session: "s2", from: ["r1"], to: [to] },
+];
+
+describe("a switch", () => {
+  const sparkPicks = (resource_id: string): ReplanNote => ({
+    explanation_ar: "طلبتَ مصدرًا آخر، فاخترنا لدرسك الحالي مصدرًا بديلًا، وجعلنا أسبوعك الأول أخف.",
+    resource_id,
+  });
+  const replanner = (trace: TraceEvent[]) =>
+    trace.filter((e) => e.agent === "replanner").map((e) => e.summary_en);
+
+  it("moves the current lesson to the best candidate when the template explains it", async () => {
+    const { planner, saved, propose, trace } = plannerSetup();
+    await planner.build();
+
+    const proposed = await propose(SWITCH, []);
+
+    expect(proposed).toMatchObject({ ok: true, version: 2 });
+    expect(switches(saved()?.pending)).toEqual(movedTo("r2"));
+    expect(replanner(trace())).toContain("replan v2: L1 moves to r2, code's pick of 2 candidates");
+  });
+
+  it("offers Spark the candidates best first, and lays the plan again with its pick", async () => {
+    const { planner, saved, propose, explained, trace } = plannerSetup([sparkPicks("r3")]);
+    const { limits } = await planner.build();
+
+    await propose(SWITCH, []);
+
+    expect(explained[0]?.input).toMatch(/\nr2 \| ru \| book \| .*\nr3 \| zh \| article \| /);
+    const pending = saved()?.pending as CoursePlan;
+    expect(switches(pending)).toEqual(movedTo("r3"));
+    expect(planViolations(pending, limits)).toEqual([]);
+    expect(pending.explanation_ar).toBe(sparkPicks("r3").explanation_ar);
+    expect(replanner(trace())).toContain(
+      "replan v2: L1 moves to r3, Spark's pick of 2 candidates; code ranked r2 first",
+    );
+  });
+
+  it.each([
+    ["the lesson's own resource", "r1"],
+    ["an unverified resource", "r4"],
+  ])("keeps code's pick when Spark twice names %s", async (_, resource) => {
+    const { planner, saved, propose, explained, trace } = plannerSetup([sparkPicks(resource)]);
+    await planner.build();
+
+    await propose(SWITCH, []);
+
+    expect(explained).toHaveLength(2);
+    expect(switches(saved()?.pending)).toEqual(movedTo("r2"));
+    expect(saved()?.pending?.explanation_ar).toMatch(/^طلبتَ مصدرًا آخر، فرتّبنا خطتك من اليوم ١٠/);
+    expect(replanner(trace())).toContain("replan v2: L1 moves to r2, code's pick of 2 candidates");
+  });
+
+  it("forgets the switched lesson as written once the learner accepts, and says so", async () => {
+    const { planner, propose, forgotten, events } = plannerSetup();
+    const built = await planner.build();
+    await propose(SWITCH, []);
+
+    planner.accept(2);
+
+    expect(forgotten).toEqual([[built.versions[0]?.id, "L1"]]);
+    expect(events().at(-1)).toMatchObject({
+      kind: "output",
+      summary_ar: "اعتمدتَ النسخة ٢ من خطتك، وسيُكتب درس «ما الجدول المحوري» من مصدره الجديد",
+      summary_en:
+        "Learner accepted plan version 2 (switch); L1 will be written again from its new resources",
+    });
+  });
+
+  it("forgets no lesson on a reject, or on an accept with no switch", async () => {
+    const { planner, propose, forgotten } = plannerSetup();
+    await planner.build();
+    await propose(SWITCH, []);
+    planner.reject(2);
+    await propose(SHRINK, ["L1"]);
+
+    planner.accept(2);
+
+    expect(forgotten).toEqual([]);
+  });
+});
+
 // The scout's recorded topic: the plan is recorded on its recorded resources. RECORD_FIXTURES is a
 // test-only switch, as in contracts/smoke.test.ts: re-record with `pnpm fixtures:record`.
 const RECORDED_TOPIC = "Excel pivot tables for data analysis";
@@ -690,6 +786,9 @@ describe("architect, replaying the recorded plan", () => {
             cache,
           })
         ).resources,
+      forgetLesson: () => {
+        throw new Error("a build accepts no version");
+      },
     });
 
     const { versions, resources, limits } = await planner.build();

@@ -29,6 +29,8 @@ import {
   replan,
   replanBrief,
   replanSummary,
+  switchCandidates,
+  switchedLessons,
   templateNote,
 } from "./replan.ts";
 import {
@@ -238,6 +240,9 @@ export type PlannerDeps = {
   // intake's profile and a scout run.
   profile(): LearnerProfile;
   findResources(profile: LearnerProfile): Promise<Resource[]>;
+  // Forgets what was written from a lesson's resources, once an accepted switch makes it stale. The
+  // route passes forgetLessonAndQuiz: the lesson and its quiz not yet taken.
+  forgetLesson(planId: string, lessonId: string): void;
 };
 
 export function createPlanner({
@@ -247,6 +252,7 @@ export function createPlanner({
   sessionId,
   profile,
   findResources,
+  forgetLesson,
 }: PlannerDeps) {
   const save = (plan: SavedPlan) => {
     store.writeDoc(sessionId, PLAN_DOC, plan);
@@ -317,10 +323,20 @@ export function createPlanner({
     // `version` is the one waiting.
     accept(version: number): SavedPlan {
       const { saved, proposal } = waiting(version);
+      // A lesson the version moves to other resources is written again from them. What was written
+      // from the old ones goes before the version is saved, so an accept cut short can be sent again.
+      const switched = switchedLessons(proposal);
+      for (const lesson of switched) forgetLesson(proposal.id, lesson.id);
       const accepted = save({ ...saved, versions: [...saved.versions, proposal], pending: null });
       report(
-        `اعتمدتَ النسخة ${version.toLocaleString("ar-EG")} من خطتك`,
-        `Learner accepted plan version ${version} (${proposal.reason})`,
+        [
+          `اعتمدتَ النسخة ${version.toLocaleString("ar-EG")} من خطتك`,
+          ...switched.map((l) => `وسيُكتب درس «${l.title_ar}» من مصدره الجديد`),
+        ].join("، "),
+        [
+          `Learner accepted plan version ${version} (${proposal.reason})`,
+          ...switched.map((l) => `${l.id} will be written again from its new resources`),
+        ].join("; "),
       );
       return accepted;
     },
@@ -450,13 +466,22 @@ export async function proposeReplan(
     return { ok: false, why };
   }
   const version = active.version + 1;
-  const result = replan(active, original, saved.limits, {
-    today: request.today,
-    passed,
-    reason: request.reason,
-    review_lesson: request.recap?.review_lesson ?? null,
-    switch_to: null,
-  });
+  // A switch moves the current lesson to code's best candidate, unless Spark picks another below.
+  const current = active.committed.lessons.find((l) => !passed.has(l.id));
+  const ranked =
+    request.reason === "switch" && current
+      ? switchCandidates(active, saved.resources, current.id)
+      : [];
+  const best = ranked[0]?.id ?? null;
+  const lay = (switch_to: string | null) =>
+    replan(active, original, saved.limits, {
+      today: request.today,
+      passed,
+      reason: request.reason,
+      review_lesson: request.recap?.review_lesson ?? null,
+      switch_to,
+    });
+  const result = lay(best);
   if (!result.ok) {
     if (saved.pending) store.writeDoc(sessionId, PLAN_DOC, { ...saved, pending: null });
     const why = {
@@ -476,20 +501,20 @@ export async function proposeReplan(
   });
   const summary = replanSummary(result.plan, brief);
   emit("decision", summary.ar, `replan: ${summary.en}`);
-  const explain = async () => {
+  const explain = async (): Promise<ReplanNote> => {
+    const template = { explanation_ar: templateNote(brief), resource_id: null };
     if (!steps) {
       emit(
         "decision",
         "كُتب شرح الخطة المقترحة بنصه الجاهز دون استدعاء نموذج",
         `replan v${version}: explanation from the template, no model call`,
       );
-      return templateNote(brief);
+      return template;
     }
     try {
-      const note = await steps.runStep(sessionId, replanWriter, brief, {
+      return await steps.runStep(sessionId, replanWriter, brief, {
         key: `replan:v${version}:${contentHash(brief)}`,
       });
-      return note.explanation_ar;
     } catch (e) {
       if (!(e instanceof StepFailed)) throw e;
       emit(
@@ -497,10 +522,28 @@ export async function proposeReplan(
         "تعذّرت صياغة الشرح بالنموذج، فكُتب بنصه الجاهز",
         `replan v${version}: the model's explanation failed (${e.message}); the template explains it`,
       );
-      return templateNote(brief);
+      return template;
     }
   };
-  const proposal: CoursePlan = { ...result.plan, explanation_ar: await explain() };
+  const note = await explain();
+  // noteViolations let Spark name only a candidate, and the layout does not depend on which one, so
+  // laying the plan again with Spark's pick keeps every rule the first layout kept.
+  const relaid = note.resource_id && note.resource_id !== best ? lay(note.resource_id) : result;
+  const plan = relaid.ok ? relaid.plan : result.plan;
+  const [switched] = switchedLessons(plan);
+  if (switched) {
+    const bySpark = relaid.ok && note.resource_id !== null;
+    emit(
+      "decision",
+      bySpark
+        ? `اختار مُعيد التخطيط مصدرًا بديلًا لدرس «${switched.title_ar}»`
+        : `اختير لدرس «${switched.title_ar}» المصدر البديل الأعلى تقييمًا`,
+      bySpark
+        ? `replan v${version}: ${switched.id} moves to ${note.resource_id}, Spark's pick of ${ranked.length} candidates; code ranked ${best} first`
+        : `replan v${version}: ${switched.id} moves to ${best}, code's pick of ${ranked.length} candidates`,
+    );
+  }
+  const proposal: CoursePlan = { ...plan, explanation_ar: note.explanation_ar };
   store.writeDoc(sessionId, PLAN_DOC, { ...saved, pending: proposal } satisfies SavedPlan);
   emit(
     "output",

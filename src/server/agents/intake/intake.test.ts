@@ -25,9 +25,15 @@ import { createPlanner, planFor, type SavedPlan } from "../architect/architect.t
 import { planResponse } from "../architect/http.ts";
 import { noteViolations, type ReplanRequest, replanBrief } from "../architect/replan.ts";
 import { planViolations } from "../architect/rules.ts";
-import { courseOf, createExaminer, QuizConflict, savedQuizzes } from "../examiner/examiner.ts";
+import {
+  courseOf,
+  createExaminer,
+  forgetLessonAndQuiz,
+  QuizConflict,
+  savedQuizzes,
+} from "../examiner/examiner.ts";
 import { lessonOpen, quizViolations } from "../examiner/rules.ts";
-import { createLessonBuilder, LessonLocked } from "../lesson/lesson.ts";
+import { createLessonBuilder, LessonLocked, savedLessons } from "../lesson/lesson.ts";
 import { wordCount } from "../lesson/rules.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
 import { DONT_KNOW } from "./diagnostic.ts";
@@ -562,9 +568,10 @@ describe("intake, replaying Omar's recorded interview", () => {
 });
 
 // The demo's path through the HTTP API (#26, #27), as the coach and plan pages post it: Omar, who
-// passed lesson 1 on day 0 and has lesson 2 written, gets the day-10 check-in and taps «جلسات أقصر»;
-// the plan page sees him back and he answers the recap, `right` of five right.
-async function cameBack(right: number) {
+// passed lesson 1 on day 0 and has lesson 2 written, gets the day-10 check-in and taps `choice`,
+// «جلسات أقصر» or «مصدر آخر»; the plan page sees him back and he answers the recap, `right` of five
+// right.
+async function cameBack(right: number, choice: "shrink" | "switch" = "shrink") {
   const course = await passedFirst();
   const { store, orchestrator, builder, second } = course;
   await builder.build(second);
@@ -592,9 +599,7 @@ async function cameBack(right: number) {
   for (const day of [2, 5, 10]) {
     await ok(simResponse(post({ day }), "s1", "set", { ...deps, enabled: true }));
   }
-  const tapped = await ok(
-    inboxResponse(post({ event_id: "checkin_a0_d10", choice: "shrink" }), "s1", deps),
-  );
+  const tapped = await ok(inboxResponse(post({ event_id: "checkin_a0_d10", choice }), "s1", deps));
   const v1 = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile);
   const { comeback } = await ok(comebackResponse(post({}), "s1", "open", deps));
   const keys = new Map(
@@ -621,13 +626,20 @@ async function cameBack(right: number) {
     findResources: async () => {
       throw new Error("the plan is built already");
     },
+    forgetLesson: (planId, lessonId) => forgetLessonAndQuiz(store, "s1", planId, lessonId),
   });
   return { ...course, v1, tapped, comeback, finished, planner, post, ok, sim: deps.sim };
 }
 
-// Whether Spark wrote the proposed v2's explanation, once, within the rules of its brief. The brief
-// is rebuilt from v1, the profile and what the coach passed on.
-function explainedBySpark(store: Store, v2: CoursePlan, request: ReplanRequest) {
+// Whether Spark wrote the proposed v2's explanation, once, within the rules of its brief, and could
+// pick `resource_id` for a switch. The brief is rebuilt from v1, the profile and what the coach
+// passed on.
+function explainedBySpark(
+  store: Store,
+  v2: CoursePlan,
+  request: ReplanRequest,
+  resource_id: string | null = null,
+) {
   const profile = savedProfile(store, "s1") as LearnerProfile;
   const saved = planFor(store, "s1", profile) as SavedPlan;
   const [v1] = saved.versions as [CoursePlan];
@@ -639,10 +651,7 @@ function explainedBySpark(store: Store, v2: CoursePlan, request: ReplanRequest) 
   return {
     models: replanner.filter((e) => e.kind === "model_call").map((e) => e.model),
     fallbacks: replanner.filter((e) => /template/.test(e.summary_en)).map((e) => e.summary_en),
-    violations: noteViolations(
-      { explanation_ar: v2.explanation_ar ?? "", resource_id: null },
-      brief,
-    ),
+    violations: noteViolations({ explanation_ar: v2.explanation_ar ?? "", resource_id }, brief),
   };
 }
 
@@ -729,7 +738,88 @@ describe("the demo's comeback, replaying the recorded course through the HTTP AP
       }),
     ).toEqual({ models: ["muse-spark-1.3"], fallbacks: [], violations: [] });
   }, 600_000);
+
+  // Lesson 2 teaches from r_9109c80f and r_8babb86b. The scout's other verified resources rank
+  // r_43e79caf (0.95), r_8f7bbb8e (0.94), r_19cfaa64 and r_c167a216 (0.77, by id), r_c61a1e51
+  // (0.71) and r_df4da75d (0.61). The day-10 return lays the same days as a plain comeback: the
+  // review on day 10 and lesson 2 from day 12, a lighter week of 15 + 3 × 20 = 75 minutes.
+  it("proposes v2 after «مصدر آخر» with lesson 2 on Spark's pick, and writes lesson 2 again from it once accepted", async () => {
+    const { store, v1, tapped, finished, planner, post, ok, builder, examiner, second } =
+      await cameBack(3, "switch");
+    const untaken = (await examiner.quiz(second)).quizzes;
+    const proposal = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile);
+    const v2 = proposal?.pending as CoursePlan;
+    const said = store
+      .readTrace<TraceEvent>("s1")
+      .filter((e) => (e.agent === "coach" || e.agent === "replanner") && e.kind !== "model_call")
+      .map((e) => e.summary_en);
+    const lessonsBefore = savedLessons(store, "s1", v2);
+    const quizzesBefore = savedQuizzes(store, "s1", v2.id);
+
+    const { plan } = await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+    const lessonsAfter = savedLessons(store, "s1", v2);
+    const quizzesAfter = savedQuizzes(store, "s1", v2.id);
+    const rewritten = (await builder.build(second)).lessons[second] as Lesson;
+
+    expect(tapped.answer).toEqual({ choice: "switch", paused_until: null });
+    expect(finished.replanned).toEqual({ ok: true, version: 2, lighter: { minutes: 75, cap: 84 } });
+    expect(proposal?.versions).toEqual(v1?.versions);
+    expect(v2).toMatchObject({ id: v1?.versions[0]?.id, version: 2, reason: "switch" });
+    expect(v2.diff).toHaveLength(17);
+    expect(v2.diff.filter((c) => c.op === "switch")).toEqual(
+      ["s3", "s4"].map((session) => ({
+        op: "switch",
+        session,
+        from: ["r_9109c80f", "r_8babb86b"],
+        to: [SPARK_PICK],
+      })),
+    );
+    expect(said.filter((s) => /^(comeback_detected|recap_quiz|replan:? |active:)/.test(s))).toEqual(
+      [
+        "comeback_detected: l_omar back after 10 days (via reply)",
+        "recap_quiz: graded by code 3/5 (60%), below the 80% gate -> review L1",
+        "replan: v2 (switch): lighter week 75/84 (60% of 140), 7 missed, 11 moved, 2 shortened, 2 switched, review L1 day 10, module 0 1->3 weeks",
+        `replan v2: L2 moves to ${SPARK_PICK}, Spark's pick of 6 candidates; code ranked r_43e79caf first`,
+        "active: ladder reset on day 10",
+      ],
+    );
+    expect(
+      explainedBySpark(
+        store,
+        v2,
+        {
+          reason: "switch",
+          today: 10,
+          away_days: 10,
+          recap: { below_gate: true, review_lesson: "L1" },
+        },
+        SPARK_PICK,
+      ),
+    ).toEqual({ models: ["muse-spark-1.3"], fallbacks: [], violations: [] });
+
+    expect(plan.versions.map((v: CoursePlan) => v.version)).toEqual([1, 2]);
+    expect(Object.keys(lessonsBefore?.lessons ?? {})).toEqual(["L1", second]);
+    expect(lessonsAfter).toEqual({
+      ...lessonsBefore,
+      lessons: { L1: lessonsBefore?.lessons.L1 },
+    });
+    expect(untaken.map((q) => q.lesson_id)).toEqual([second]);
+    expect(quizzesAfter).toEqual({
+      ...quizzesBefore,
+      quizzes: quizzesBefore.quizzes.filter((q) => q.lesson_id !== second),
+    });
+    expect(quizzesAfter.mastery).toContainEqual(
+      expect.objectContaining({ lesson_id: "L1", passed: true }),
+    );
+    expect(new Set(rewritten.sections.map((s) => s.source_excerpt.resource_id))).toEqual(
+      new Set([SPARK_PICK]),
+    );
+  }, 600_000);
 });
+
+// The resource Spark picked for lesson 2 in the recorded switch: the English step-by-step
+// «Microsoft Office/Create a Pivot Table», over the French encyclopedia article code ranks first.
+const SPARK_PICK = "r_8f7bbb8e";
 
 // Omar's short answers, in Gulf dialect, to the first quiz's short items in order: the first earns
 // full credit by its rubric, the second only half (it filters but never summarises by branch).
@@ -834,6 +924,9 @@ async function planned() {
           cache,
         })
       ).resources,
+    forgetLesson: () => {
+      throw new Error("a build accepts no version");
+    },
   });
   return { store, orchestrator, pages, saved: await planner.build() };
 }

@@ -88,6 +88,8 @@ A learner with a plan of their own is back after a break when they are two or mo
 - `comeback/replan` takes `{}` and finishes a comeback with no recap, for a learner who has passed no lesson yet.
 - Finishing calls the re-planner with the reason (the check-in answer, else the day-5 offer if it was sent, else the return), the day and the recap. It saves the proposal as the plan's `pending` version and sets the anchor to today, so the ladder is `active` again and the next rung is the nudge two days later.
 - Spark explains the proposal through the orchestrator step `replan:v<n>:<hash of the brief>` on the `replan` model role. The brief holds the change's facts, the recap's band and the interview's notes, with no name, learner id or score. `noteViolations()` refuses a note with no Arabic, over 400 characters, with an address, a brace or an emoji, with a number the brief does not give, or with a resource the brief does not offer. After one retry, the template explains it, and the trace says why.
+- A switch moves the current lesson to a verified resource it does not use yet. `switchCandidates()` ranks them by score, an open licence before a personal-study one, then by id. The brief offers them to Spark, which picks one as `resource_id`, and code lays the plan again with Spark's pick. With the template, code keeps its first candidate. The trace names the resource and who picked it.
+- Accepting a version that switched a lesson forgets the lesson as written and its quiz not yet taken (`forgetLessonAndQuiz()`), so the lesson page writes the lesson again from the new resource. Its attempts and mastery stay, and so does the glossary.
 - The routes answer 404 for an unknown action, 400 for a bad body or answers the recap cannot take, and 409 when no comeback is due, for a recap that is no longer the one shown, for a recap when no lesson is passed, or for `replan` while a recap is possible. They run one at a time per session.
 
 ## Wording
@@ -101,10 +103,9 @@ Spark words each message. `coachWriter` runs as an orchestrator step with the ke
 - A coach built with `steps: null` sends every template. The pages and the inbox and consent routes build it that way, since they never move the clock. The sim route passes `coachSteps()`, whose provider calls time out after 30 seconds.
 - Every coach trace names the learner by id only and holds no message text.
 
-`coach.test.ts` replays the seed's Omar to day 24 in both tones. `intake.test.ts` replays the learner the intake saved to the day-10 check-in and a shrink. Re-record both with `pnpm fixtures:record`. In `replay`, a brief with no recording gets the template.
+`coach.test.ts` replays the seed's Omar to day 24 in both tones. `intake.test.ts` replays the learner the intake saved to the day-10 check-in and a shrink or a switch. Re-record both with `pnpm fixtures:record`. In `replay`, a brief with no recording gets the template.
 
 ## Not built yet
 
 - The screens for the comeback: the card on the plan page, the recap and the proposal panel. The API above is built.
-- A switch does not move the lesson to another resource yet.
 - Messages held for quiet hours are not withdrawn when the learner comes back.

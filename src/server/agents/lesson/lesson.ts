@@ -242,6 +242,15 @@ export function savedLessons(
   return saved?.for_plan === plan.id ? saved : undefined;
 }
 
+// Forgets one lesson written for the plan, so its next build writes it from the lesson's resources
+// as they are then. The glossary keeps the lesson's terms.
+export function forgetLesson(store: Store, sessionId: string, planId: string, lessonId: string) {
+  const saved = store.readDoc<SavedLessons>(sessionId, LESSONS_DOC);
+  if (saved?.for_plan !== planId || !saved.lessons[lessonId]) return;
+  const { [lessonId]: _, ...lessons } = saved.lessons;
+  store.writeDoc(sessionId, LESSONS_DOC, { ...saved, lessons });
+}
+
 // A lesson asked for before the learner has a plan.
 export class LessonConflict extends Error {}
 

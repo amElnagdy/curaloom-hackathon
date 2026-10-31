@@ -2,6 +2,7 @@ import { loadOmarSeed } from "../../../../../../../demo/seed.ts";
 import { config } from "../../../../../../config.ts";
 import { createPlanner } from "../../../../../../server/agents/architect/architect.ts";
 import { planResponse } from "../../../../../../server/agents/architect/http.ts";
+import { forgetLessonAndQuiz } from "../../../../../../server/agents/examiner/examiner.ts";
 import { savedProfile } from "../../../../../../server/agents/intake/intake.ts";
 import { runScout, scoutBrief } from "../../../../../../server/agents/scout/scout.ts";
 import { createOrchestrator } from "../../../../../../server/orchestrator/orchestrator.ts";
@@ -46,6 +47,7 @@ export async function POST(
     findResources: async (profile) =>
       (await runScout({ orchestrator, sessionId: id, brief: scoutBrief(profile), pages, cache }))
         .resources,
+    forgetLesson: (planId, lessonId) => forgetLessonAndQuiz(store, id, planId, lessonId),
   });
   return planResponse(request, id, action, planner);
 }
