@@ -1,12 +1,21 @@
 // Settings (#15 slot): the demo layer's settings, read from config. The model profile is read-only;
-// the simulated clock moves from here (#23).
+// the simulated clock moves from here (#23), and the coach's consent shows here, edited on /consent
+// (#24).
 
 import type { Metadata } from "next";
+import Link from "next/link";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
+import type { Consent } from "../../../contracts/index.ts";
+import { loadOmarSeed } from "../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config, PROVIDER_PROFILES, type ProviderProfile } from "../../config.ts";
+import { sessionSim } from "../../server/coach/session.ts";
+import { createFileStore } from "../../server/store/store.ts";
 import { Page, PageHead, Panel, SettingRow, SettingRows } from "../_shell/blocks.tsx";
-import { cx } from "../_shell/ui.tsx";
+import { simDay } from "../_shell/course.ts";
+import { clockTime } from "../_shell/format.ts";
+import { buttonClass, cx, StatusPill } from "../_shell/ui.tsx";
 import { ClockControls } from "./clock-controls.tsx";
 import styles from "./settings.module.css";
 
@@ -44,14 +53,37 @@ const PROFILE: Record<ProviderProfile, { label: string; help: ReactNode }> = {
   },
 };
 
-export default function SettingsPage() {
+const INTENSITY: Record<Consent["intensity"], string> = { gentle: "لطيف", normal: "عادي" };
+
+// The consent as one line: whether messages go out, since when, and within which limits.
+function consentLine(consent: Consent): string {
+  if (consent.opted_out)
+    return `أوقفتها في ${simDay(consent.opted_out_sim_day ?? 0)}، فلا يصلك شيء حتى تعيد تفعيلها.`;
+  if (!consent.granted) return "لم توافق على المتابعة بعد، فلا يصلك شيء.";
+  const quiet = consent.quiet_hours;
+  return [
+    `مفعّلة منذ ${simDay(consent.granted_sim_day ?? 0)}`,
+    quiet ? `لا رسائل من ${clockTime(quiet.start)} حتى ${clockTime(quiet.end)}` : "",
+    `الأسلوب ${INTENSITY[consent.intensity]}`,
+  ]
+    .filter(Boolean)
+    .join("، ")
+    .concat(".");
+}
+
+export default async function SettingsPage() {
+  // The consent is the session's, so the page renders on each request.
+  await connection();
   const profile = PROFILE[config.providerProfile];
+  const store = createFileStore();
+  const consent = sessionSim(store, DEMO_SESSION_ID, loadOmarSeed(config.demoTopic)).sim.consent();
+  const messagesOn = consent.granted && !consent.opted_out;
 
   return (
     <Page width="narrow">
       <PageHead
         title="الإعدادات"
-        lede="إعدادات العرض التجريبي: الساعة المحاكاة، ووضع النماذج، واسم التطبيق. تُقرأ كلها من ملف الإعدادات."
+        lede="إعدادات العرض التجريبي: الساعة المحاكاة، ومتابعة المدرب، ووضع النماذج، واسم التطبيق."
       />
 
       <Panel id="clock-title" title="الساعة المحاكاة" flush>
@@ -72,6 +104,21 @@ export default function SettingsPage() {
             </SettingRow>
           </SettingRows>
         )}
+      </Panel>
+
+      <Panel id="coach-title" title="المدرب" flush>
+        <SettingRows>
+          <SettingRow label="رسائل المدرب" labelId="coach-consent" help={consentLine(consent)}>
+            {messagesOn ? (
+              <StatusPill status="ready">مفعّلة</StatusPill>
+            ) : (
+              <StatusPill status="neutral">متوقفة</StatusPill>
+            )}
+            <Link href="/consent" className={buttonClass("secondary", "sm")}>
+              عدّل حدودك
+            </Link>
+          </SettingRow>
+        </SettingRows>
       </Panel>
 
       <Panel id="models-title" title="النماذج" flush>

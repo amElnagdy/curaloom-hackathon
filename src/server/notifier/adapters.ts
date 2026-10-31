@@ -19,7 +19,7 @@ export type InboxEntry = {
   sim_ts: string;
 };
 
-const INBOX_DOC = "inbox";
+export const INBOX_DOC = "inbox";
 
 export function readInbox(store: Store, sessionId: string): InboxEntry[] {
   return store.readDoc<InboxEntry[]>(sessionId, INBOX_DOC) ?? [];

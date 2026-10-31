@@ -15,7 +15,7 @@ import {
 } from "../clock/time.ts";
 import type { Store } from "../store/store.ts";
 import type { Tracer } from "../trace/trace.ts";
-import { gate, type MessageKind } from "./gate.ts";
+import { gate, type MessageKind, quietUntil } from "./gate.ts";
 
 export type Cta = { label_ar: string; action: "open_lesson"; lesson_id: string };
 
@@ -59,6 +59,13 @@ export type NotifierAdapter = {
 };
 
 export type ReplyResult = { opted_out: boolean; confirmed: boolean };
+
+// What the consent screen (#24) sets: messages on or off, quiet hours, and how the coach writes.
+export type ConsentChoice = {
+  messages: boolean;
+  quiet_hours: Consent["quiet_hours"];
+  intensity: Consent["intensity"];
+};
 
 // Matching ignores case, tashkeel, tatweel, alef forms, punctuation and polite words. As with SMS
 // and WhatsApp opt-out keywords, what is left must be the stop word: a sentence that mentions
@@ -111,8 +118,8 @@ export function isStopWord(text: string): boolean {
 
 const CONFIRMATION_AR = "أوقفنا رسائل المدرب كما طلبت، ولن تصلك منه رسائل أخرى.";
 
-const CONSENT_DOC = "consent";
-const OUTBOX_DOC = "outbox";
+export const CONSENT_DOC = "consent";
+export const OUTBOX_DOC = "outbox";
 
 export type NotifierOptions = {
   store: Store;
@@ -136,6 +143,17 @@ export function createNotifier({
   const learner = initialConsent.learner_id;
   const trace = (at: SimTime, summary_ar: string, summary_en: string) =>
     tracer.emit({ agent: "notifier", kind: "decision", at, summary_ar, summary_en });
+
+  // An opt-out cancels every message still waiting for quiet hours to end.
+  const cancelDeferred = () =>
+    saveOutbox(
+      outbox().map(
+        (e): OutboxEntry =>
+          e.status === "deferred"
+            ? { message: e.message, status: "suppressed_opt_out", deliver_at: null }
+            : e,
+      ),
+    );
 
   // The only path to the adapter.
   const dispatch = (message: NotifierMessage, at: SimTime, kind: MessageKind) => {
@@ -185,6 +203,45 @@ export function createNotifier({
     }
   };
 
+  // Delivers, oldest first, each deferred message whose time has come by `upTo`, asking the gate
+  // again at its delivery time. Returns the entries it settled.
+  const deliverDue = (upTo: SimTime): OutboxEntry[] => {
+    const entries = outbox();
+    const due: { index: number; at: SimTime }[] = [];
+    entries.forEach((e, index) => {
+      if (e.status !== "deferred") return;
+      const at = parseSimTime(e.deliver_at);
+      if (compareSimTime(at, upTo) <= 0) due.push({ index, at });
+    });
+    due.sort((a, b) => compareSimTime(a.at, b.at));
+    return due.map(({ index, at }) => {
+      const entry = entries[index] as OutboxEntry;
+      const next: OutboxEntry = {
+        message: entry.message,
+        ...resultOf(entry.message, at, "coach"),
+      };
+      entries[index] = next;
+      saveOutbox(entries);
+      traceResult(next, at, true);
+      return next;
+    });
+  };
+
+  // New quiet hours hold each waiting message until their end instead, or let it go now when they
+  // have ended.
+  const regateDeferred = (at: SimTime) => {
+    const quiet = consent().quiet_hours;
+    saveOutbox(
+      outbox().map(
+        (e): OutboxEntry =>
+          e.status === "deferred"
+            ? { ...e, deliver_at: formatSimTime(quietUntil(quiet, at) ?? at) }
+            : e,
+      ),
+    );
+    deliverDue(at);
+  };
+
   return {
     consent,
     outbox,
@@ -208,28 +265,39 @@ export function createNotifier({
       return result;
     },
 
-    // Delivers, oldest first, each deferred message whose time has come by `upTo`, asking the gate
-    // again at its delivery time. Returns the entries it settled.
-    deliverDue(upTo: SimTime): OutboxEntry[] {
-      const entries = outbox();
-      const due: { index: number; at: SimTime }[] = [];
-      entries.forEach((e, index) => {
-        if (e.status !== "deferred") return;
-        const at = parseSimTime(e.deliver_at);
-        if (compareSimTime(at, upTo) <= 0) due.push({ index, at });
-      });
-      due.sort((a, b) => compareSimTime(a.at, b.at));
-      return due.map(({ index, at }) => {
-        const entry = entries[index] as OutboxEntry;
-        const next: OutboxEntry = {
-          message: entry.message,
-          ...resultOf(entry.message, at, "coach"),
-        };
-        entries[index] = next;
-        saveOutbox(entries);
-        traceResult(next, at, true);
-        return next;
-      });
+    deliverDue,
+
+    // The consent screen's save. Turning messages off is an opt-out like a stop word, without the
+    // confirmation message, since the learner is on the screen that says so; turning them on grants
+    // consent, keeping the day it was first granted.
+    setConsent(choice: ConsentChoice, at: SimTime): Consent {
+      const before = consent();
+      const next: Consent = {
+        ...before,
+        quiet_hours: choice.quiet_hours,
+        intensity: choice.intensity,
+        ...(choice.messages
+          ? {
+              granted: true,
+              granted_sim_day: before.granted_sim_day ?? at.day,
+              opted_out: false,
+              opted_out_sim_day: null,
+            }
+          : {
+              opted_out: true,
+              opted_out_sim_day: before.opted_out ? before.opted_out_sim_day : at.day,
+            }),
+      };
+      store.writeDoc(sessionId, CONSENT_DOC, next);
+      if (!choice.messages) cancelDeferred();
+      else regateDeferred(at);
+      const quiet = next.quiet_hours;
+      trace(
+        at,
+        `حدّث ${learner} حدود المتابعة: الرسائل ${choice.messages ? "مفعّلة" : "متوقفة"}، ${quiet ? `الهدوء من ${quiet.start} حتى ${quiet.end}` : "بلا ساعات هدوء"}، بأسلوب ${next.intensity === "gentle" ? "لطيف" : "عادي"}`,
+        `Consent saved by ${learner}: messages ${choice.messages ? "on" : "off"}, quiet hours ${quiet ? `${quiet.start}-${quiet.end}` : "none"}, intensity ${next.intensity}`,
+      );
+      return next;
     },
 
     // The inbound reply handler. A stop word opts out at once, whatever the state; the first one
@@ -255,14 +323,7 @@ export function createNotifier({
         opted_out: true,
         opted_out_sim_day: at.day,
       } satisfies Consent);
-      saveOutbox(
-        outbox().map(
-          (e): OutboxEntry =>
-            e.status === "deferred"
-              ? { message: e.message, status: "suppressed_opt_out", deliver_at: null }
-              : e,
-        ),
-      );
+      cancelDeferred();
       trace(
         at,
         `أوقف ${learner} الرسائل بكلمة إيقاف، فأُلغيت كل رسالة مؤجلة`,

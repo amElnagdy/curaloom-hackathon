@@ -2,11 +2,11 @@
 // the scheduler sends through (#22). Each move returns the new time and the coach events it fired;
 // a reply goes to the notifier's inbound handler. The HTTP routes are thin wrappers over it.
 
-import type { CoachEvent } from "../../../contracts/index.ts";
+import type { CoachEvent, Consent } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config, type NotifierAdapterName } from "../../config.ts";
 import { createAdapter } from "../notifier/adapters.ts";
-import { createNotifier, type ReplyResult } from "../notifier/notifier.ts";
+import { type ConsentChoice, createNotifier, type ReplyResult } from "../notifier/notifier.ts";
 import type { Store } from "../store/store.ts";
 import { createTracer } from "../trace/trace.ts";
 import { createSimClock } from "./clock.ts";
@@ -65,6 +65,12 @@ export function createSim({
     outbox: notifier.outbox,
     advance: (by: Duration) => moved(clock.advance(by)),
     set: (day: number) => moved(clock.set(day)),
+    // The consent screen's save (#24), at the current sim time.
+    setConsent(choice: ConsentChoice): Consent {
+      const consent = notifier.setConsent(choice, clock.now());
+      scheduler.syncStatuses();
+      return consent;
+    },
     // The learner's reply from the phone, at the current sim time.
     reply(text: string): ReplyResult {
       const result = notifier.receive(text, clock.now());

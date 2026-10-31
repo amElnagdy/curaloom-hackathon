@@ -5,6 +5,7 @@
 
 import {
   ArrowRight,
+  BellRing,
   CircleCheck,
   CircleDashed,
   Clock,
@@ -25,6 +26,7 @@ import { config } from "../../config.ts";
 import { architectBrief, limitsOf, planFor } from "../../server/agents/architect/architect.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
+import { sessionSim } from "../../server/coach/session.ts";
 import { contentHash, createFileStore } from "../../server/store/store.ts";
 import { ActivityFeed, LiveStatusPill } from "../_shell/activity-feed.tsx";
 import { Callout } from "../_shell/blocks.tsx";
@@ -161,6 +163,9 @@ export default async function PlanPage() {
   const currentName = `الدرس ${ordinal(current?.position ?? 0)}`;
   const startLabel = `${current?.best === undefined ? "ابدأ" : "تابع"} ${currentName}`;
   const writeCurrent = !!(shown?.editable && current && !current.written);
+  // Once the learner's own plan is ready, the coach asks for consent until they answer (#24).
+  const consent = shown?.editable && sessionSim(store, DEMO_SESSION_ID, seed).sim.consent();
+  const askConsent = !!consent && !consent.granted && !consent.opted_out;
 
   const article = (
     <article className={styles.doc} aria-labelledby="plan-title">
@@ -353,6 +358,16 @@ export default async function PlanPage() {
                 </p>
               )}
             </LessonBuilding>
+          )}
+          {askConsent && (
+            <Link href="/consent" className={styles.coachAsk}>
+              <BellRing aria-hidden />
+              <span>
+                <b>فعّل متابعة المدرب</b>
+                <small>رسائل قصيرة حين تغيب عن جلساتك، ضمن حدود تضعها أنت.</small>
+              </span>
+              <DirIcon icon={ArrowRight} />
+            </Link>
           )}
         </div>
       </ActivityFeed>

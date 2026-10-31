@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
 import { createFileStore } from "../store/store";
-import { inboxResponse, simResponse } from "./http";
+import { consentResponse, inboxResponse, simResponse } from "./http";
 
 function setup(enabled = true) {
   const deps = {
@@ -28,7 +28,13 @@ function setup(enabled = true) {
       "s_1",
       deps,
     );
-  return { post, reply };
+  const consent = (body: unknown) =>
+    consentResponse(
+      new Request("http://localhost/x", { method: "POST", body: JSON.stringify(body) }),
+      "s_1",
+      deps,
+    );
+  return { deps, post, reply, consent };
 }
 
 describe("sim and inbox routes", () => {
@@ -72,5 +78,50 @@ describe("sim and inbox routes", () => {
   it("answer 404 for an unknown move and while SIM_CLOCK is off", async () => {
     expect((await setup().post("rewind")).status).toBe(404);
     expect((await setup(false).post("set", { day: 2 })).status).toBe(404);
+  });
+
+  it("saves the consent screen's choices at the sim time, and answers 400 for a bad body", async () => {
+    const { post, consent } = setup();
+    await post("set", { day: 3 });
+
+    const off = await consent({
+      messages: false,
+      quiet_hours: { start: "21:00", end: "07:00" },
+      intensity: "normal",
+    });
+    const bad = await consent({ messages: "yes", quiet_hours: null, intensity: "normal" });
+    const badTime = await consent({
+      messages: true,
+      quiet_hours: { start: "9pm", end: "07:00" },
+      intensity: "normal",
+    });
+
+    expect(off.status).toBe(200);
+    expect((await off.json()).consent).toMatchObject({
+      opted_out: true,
+      opted_out_sim_day: 3,
+      quiet_hours: { start: "21:00", end: "07:00" },
+      intensity: "normal",
+    });
+    expect(bad.status).toBe(400);
+    expect(badTime.status).toBe(400);
+  });
+
+  it("answer 400 for a bad session id and for quiet hours that start when they end", async () => {
+    const { deps, consent } = setup();
+    const body = {
+      messages: true,
+      quiet_hours: { start: "22:00", end: "22:00" },
+      intensity: "gentle",
+    };
+
+    const badId = await consentResponse(
+      new Request("http://localhost/x", { method: "POST", body: JSON.stringify(body) }),
+      "../x",
+      deps,
+    );
+
+    expect(badId.status).toBe(400);
+    expect((await consent(body)).status).toBe(400);
   });
 });

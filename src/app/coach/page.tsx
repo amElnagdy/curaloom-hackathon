@@ -21,8 +21,8 @@ import { Fragment } from "react";
 import { loadOmarSeed } from "../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
-import { createSim } from "../../server/clock/sim.ts";
 import { hhmm, parseSimTime } from "../../server/clock/time.ts";
+import { sessionSim } from "../../server/coach/session.ts";
 import { phoneThread, readInbox, type ThreadItem } from "../../server/notifier/adapters.ts";
 import { createFileStore } from "../../server/store/store.ts";
 import {
@@ -50,7 +50,7 @@ const timeOf = (simTs: string) => clockTime(hhmm(parseSimTime(simTs).minute));
 function ThreadLine({ item }: { item: ThreadItem }) {
   switch (item.kind) {
     case "suppressed":
-      return <li className={styles.system}>لم تُرسل رسالة، لأن الرسائل متوقفة بطلبك.</li>;
+      return <li className={styles.system}>لم تُرسل رسالة، لأن الرسائل متوقفة.</li>;
     case "sent":
       return (
         <li className={cx(styles.bubble, styles.mine)}>
@@ -105,9 +105,8 @@ export default async function CoachPage() {
   // The phone reads the session store, so the page renders on each request.
   await connection();
   const seed = loadOmarSeed(config.demoTopic);
-  const { profile } = seed;
   const store = createFileStore();
-  const sim = createSim({ store, sessionId: DEMO_SESSION_ID, seed });
+  const { learner: profile, sim } = sessionSim(store, DEMO_SESSION_ID, seed);
   const consent = sim.consent();
   const now = sim.now();
   const events = [...sim.coachEvents()].sort((a, b) => a.sim_day - b.sim_day);
@@ -116,9 +115,12 @@ export default async function CoachPage() {
   const quietText = quiet
     ? `لا رسائل من ${clockTime(quiet.start)} حتى ${clockTime(quiet.end)}`
     : "لم تحدد ساعات هدوء";
-  const consentDay = consent.granted_sim_day ?? 0;
+  // The day the learner agreed takes its place among the thread's days.
+  const consentDay = consent.granted ? (consent.granted_sim_day ?? 0) : null;
   const dayOf = (item: ThreadItem) => parseSimTime(item.at).day;
-  const days = [...new Set(thread.map(dayOf))];
+  const days = [
+    ...new Set([...thread.map(dayOf), ...(consentDay === null ? [] : [consentDay])]),
+  ].sort((a, b) => a - b);
 
   return (
     <Page>
@@ -175,11 +177,7 @@ export default async function CoachPage() {
             }
           >
             <MarkList>
-              <MarkItem
-                mark={<Moon />}
-                title="ساعات الهدوء"
-                detail={`${quietText}، فلا تصلك رسائل صباحية.`}
-              />
+              <MarkItem mark={<Moon />} title="ساعات الهدوء" detail={`${quietText}.`} />
               <MarkItem
                 mark={<Clock />}
                 title="وقتك في الأسبوع"
@@ -190,7 +188,7 @@ export default async function CoachPage() {
                 title="كلمة «توقف»"
                 detail={
                   consent.opted_out
-                    ? `أرسلتها في ${simDay(consent.opted_out_sim_day ?? now.day)}، فتوقفت الرسائل.`
+                    ? `توقفت الرسائل في ${simDay(consent.opted_out_sim_day ?? now.day)}، وتعيد تفعيلها من صفحة حدودك.`
                     : "أرسلها في أي وقت، فتتوقف الرسائل فورًا."
                 }
               />
@@ -226,15 +224,19 @@ export default async function CoachPage() {
             </div>
             <div className={styles.thread}>
               <ol className={styles.messages} aria-label="الرسائل">
-                <li className={styles.day}>{simDay(consentDay)}</li>
-                <li className={styles.system}>
-                  {consent.granted
-                    ? `وافق ${profile.name} على رسائل المدرب. ${quietText}.`
-                    : `لم يوافق ${profile.name} على رسائل المدرب بعد.`}
-                </li>
+                {consentDay === null && (
+                  <li className={styles.system}>
+                    {`لم يوافق ${profile.name} على رسائل المدرب بعد.`}
+                  </li>
+                )}
                 {days.map((d) => (
                   <Fragment key={d}>
-                    {d !== consentDay && <li className={styles.day}>{simDay(d)}</li>}
+                    <li className={styles.day}>{simDay(d)}</li>
+                    {d === consentDay && (
+                      <li className={styles.system}>
+                        {`وافق ${profile.name} على رسائل المدرب. ${quietText}.`}
+                      </li>
+                    )}
                     {thread
                       .filter((item) => dayOf(item) === d)
                       .map((item) => (

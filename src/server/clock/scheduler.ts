@@ -88,8 +88,8 @@ export const PLACEHOLDER_RULES: readonly CoachRule[] = [
   ),
 ];
 
-const LEDGER_DOC = "scheduler";
-const EVENTS_DOC = "coach_events";
+export const LEDGER_DOC = "scheduler";
+export const EVENTS_DOC = "coach_events";
 
 // A coach event's status follows its message's: a deferred message is still queued.
 const EVENT_STATUS: Record<SendStatus, CoachEvent["status"]> = {

@@ -26,7 +26,8 @@
     "granted_sim_day": 0,
     "quiet_hours": { "start": "22:00", "end": "12:00" },
     "opted_out": false,
-    "opted_out_sim_day": null
+    "opted_out_sim_day": null,
+    "intensity": "gentle"
   },
   "resources": [
     {

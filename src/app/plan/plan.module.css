@@ -49,6 +49,42 @@
   color: var(--fail-ink);
 }
 
+/* The coach's ask for consent, under the lesson button until the learner answers it (#24). */
+.coachAsk {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border-radius: var(--r-ctl);
+  background: var(--accent-50);
+  color: var(--ink);
+  text-decoration: none;
+}
+.coachAsk:hover {
+  background: var(--accent-100);
+}
+.coachAsk > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.coachAsk b {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.coachAsk small {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.coachAsk :global(.lucide) {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--accent);
+}
+
 .doc {
   min-width: 0;
   padding: var(--s-8) var(--page-gutter) var(--s-12);

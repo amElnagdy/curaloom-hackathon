@@ -204,6 +204,85 @@ describe("opt-out", () => {
 });
 
 describe("adapters", () => {
+  it("sends nothing until the learner saves consent, then sends", () => {
+    const { notifier, received } = setup({ granted: false, granted_sim_day: null });
+
+    const before = notifier.send(message("m1", "day 1 19:00"));
+    const consent = notifier.setConsent(
+      { messages: true, quiet_hours: { start: "22:00", end: "08:00" }, intensity: "normal" },
+      parseSimTime("day 2 18:00"),
+    );
+    const after = notifier.send(message("m2", "day 2 19:00"));
+
+    expect(before.status).toBe("suppressed_opt_out");
+    expect(consent).toMatchObject({ granted: true, granted_sim_day: 2, opted_out: false });
+    expect(after.status).toBe("sent");
+    expect(received().map((e) => e.id)).toEqual(["m2"]);
+  });
+
+  it("defers to the new end of quiet hours once the learner changes them", () => {
+    const { notifier } = setup();
+    const at = parseSimTime("day 2 08:00");
+
+    const early = notifier.send(message("m1", "day 2 07:00"));
+    notifier.setConsent(
+      { messages: true, quiet_hours: { start: "21:00", end: "07:00" }, intensity: "gentle" },
+      at,
+    );
+    const later = notifier.send(message("m2", "day 2 23:00"));
+
+    expect(early).toEqual({ status: "deferred", deliver_at: "day 2 12:00" });
+    expect(later).toEqual({ status: "deferred", deliver_at: "day 3 07:00" });
+  });
+
+  it("moves a held message to the new end of quiet hours, or delivers it at once when they have ended", () => {
+    const { notifier, received } = setup();
+    const quiet = (start: string, end: string, at: string) =>
+      notifier.setConsent(
+        { messages: true, quiet_hours: { start, end }, intensity: "gentle" },
+        parseSimTime(at),
+      );
+    notifier.send(message("m1", "day 2 07:00"));
+    quiet("21:00", "07:00", "day 2 08:00");
+    notifier.send(message("m2", "day 2 23:00"));
+    quiet("22:00", "06:00", "day 2 23:30");
+
+    expect(notifier.outbox().map((e) => [e.message.id, e.status, e.deliver_at])).toEqual([
+      ["m1", "sent", "day 2 08:00"],
+      ["m2", "deferred", "day 3 06:00"],
+    ]);
+    expect(received().map((e) => e.id)).toEqual(["m1"]);
+  });
+
+  it("keeps the first grant's day when messages come back on after a stop word", () => {
+    const { notifier } = setup();
+    notifier.receive("توقف", parseSimTime("day 3 10:00"));
+
+    const consent = notifier.setConsent(
+      { messages: true, quiet_hours: { start: "22:00", end: "12:00" }, intensity: "gentle" },
+      parseSimTime("day 4 10:00"),
+    );
+
+    expect(consent).toMatchObject({ granted: true, granted_sim_day: 0, opted_out: false });
+  });
+
+  it("opts out from the consent screen like a stop word, without a confirmation message", () => {
+    const { notifier, received } = setup();
+    notifier.send(message("m1", "day 2 23:00"));
+
+    const consent = notifier.setConsent(
+      { messages: false, quiet_hours: { start: "22:00", end: "12:00" }, intensity: "gentle" },
+      parseSimTime("day 2 23:30"),
+    );
+
+    expect(consent).toMatchObject({ opted_out: true, opted_out_sim_day: 2, granted: true });
+    expect(notifier.outbox().map((e) => [e.message.id, e.status])).toEqual([
+      ["m1", "suppressed_opt_out"],
+    ]);
+    expect(notifier.deliverDue(parseSimTime("day 3 12:00"))).toEqual([]);
+    expect(received()).toEqual([]);
+  });
+
   it("whatsapp and email are stubs that throw instead of sending", () => {
     const store = createFileStore(mkdtempSync(join(tmpdir(), "adapters-")));
     for (const name of ["whatsapp", "email"] as const) {

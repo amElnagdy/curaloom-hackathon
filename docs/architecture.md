@@ -80,6 +80,7 @@ src/server/orchestrator/
 src/server/providers/
 src/server/clock/    sim clock, coach scheduler, sim and inbox route handlers (#23)
 src/server/notifier/ notifier, consent gate, adapters (#22)
+src/server/coach/    the coach's view of a session: its learner and consent (#24)
 src/server/demo/     dev-only dummy agent and its runner (#15)
 src/server/store/
 src/server/tools/    tools agents call, such as the page fetcher (#17)
@@ -126,6 +127,13 @@ Folders are created by the issue that first puts code in them.
 - `NOTIFIER_ADAPTER` picks the adapter (default `simulated`). The simulated adapter appends to the session's `inbox` document. `whatsapp` and `email` are stubs that throw and list what a real adapter must do. `src/guards.test.ts` fails on `fetch`, sockets or an HTTP module import in `src/server/notifier/`.
 - Notifier traces name the learner by id only, never by number or address, and carry no message text.
 - `/coach` renders the phone from the inbox and the outbox (`phoneThread()`). `POST /api/sessions/{id}/inbox` with `{text}` is the learner's reply and answers `{opted_out, confirmed}`.
+
+## Consent (#24)
+
+- Before the intake the coach follows the seed's Omar, with his seeded consent and coach events. After it, `sessionSimSeed()` (`src/server/coach/session.ts`) gives the sim the saved learner with no consent (quiet hours 22:00-08:00, intensity `gentle`, the softer tone) and no coach events, so no message reaches a learner who has not agreed. When the profile changes it deletes the coach's documents (consent, outbox, inbox, coach events, fired-rule ledger) and records the profile's hash in `coach_for`: what Omar agreed to, was sent or replied before the intake is not the new learner's. `sessionSim()` builds that sim for the pages, and the sim, inbox and consent handlers in `src/server/clock/http.ts` build it from the seed for each request.
+- `setConsent({messages, quiet_hours, intensity}, at)` on the notifier saves the consent screen's choice. Turning messages on grants consent and clears an opt-out, keeping the day consent was first granted, and moves each held message to the end of the new quiet hours, or delivers it now if they have ended. Turning them off is the same opt-out as a stop word: it cancels held messages, but sends no confirmation, since the learner is on the screen. The sim then brings the coach events' statuses in line with the outbox.
+- `/consent` is the form (`consent-form.tsx`): the messages switch, quiet hours, intensity and the channel, where WhatsApp and email are marked «قريبًا». It explains what the coach sends while the learner is away. `POST /api/sessions/{id}/consent` with `{messages, quiet_hours: {start, end}, intensity}` answers `{consent}`, or 400 for a bad body or session id, or quiet hours that end when they start.
+- The plan page asks for consent under the lesson button until the learner answers. Settings shows the consent and links to `/consent`, whether the messages were stopped from the form or by «توقف».
 
 ## Intake (#16)
 

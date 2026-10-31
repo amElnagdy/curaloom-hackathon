@@ -90,6 +90,8 @@ export const Consent = Obj({
   ),
   opted_out: Type.Boolean(),
   opted_out_sim_day: Nullable(Type.Integer()),
+  // How the coach writes: softer and fewer words, or plain.
+  intensity: StringEnum(["gentle", "normal"]),
 });
 
 const ResourceType = StringEnum(["article", "video", "book", "course"]);
