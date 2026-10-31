@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -11,7 +11,12 @@ import {
   type Lesson,
   type Quiz,
 } from "../../../../contracts/index.ts";
-import { INTAKE_MESSAGES, RECORDED_TOPIC, SHORT_ANSWERS } from "../../../../demo/script.ts";
+import {
+  INTAKE_MESSAGES,
+  INTAKE_VOICE_CLIP,
+  RECORDED_TOPIC,
+  SHORT_ANSWERS,
+} from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
 import { comebackResponse, consentResponse, inboxResponse, simResponse } from "../../clock/http.ts";
@@ -38,7 +43,8 @@ import { createLessonBuilder, LessonLocked, savedLessons } from "../lesson/lesso
 import { wordCount } from "../lesson/rules.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
 import { DONT_KNOW } from "./diagnostic.ts";
-import { createIntake, IntakeConflict, savedProfile } from "./intake.ts";
+import { transcribeResponse } from "./http.ts";
+import { createIntake, IntakeConflict, savedProfile, transcribeVoice } from "./intake.ts";
 
 const LEARNER = { id: "l_omar", name: "عمر" };
 
@@ -972,3 +978,65 @@ async function planned() {
   });
   return { store, orchestrator, pages, saved: await planner.build() };
 }
+
+// Omar's first message, spoken (#37). In replay the intake page posts this clip as it is, so its
+// recorded transcription is what the demo shows.
+describe("intake voice message, replaying the bundled clip", () => {
+  it("fills nothing in the interview, and answers the transcript only while it waits for a message", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "intake-voice-"));
+    dirs.push(dir);
+    const store = createFileStore(dir);
+    const tracer = createTracer(store, "s1");
+    const provider = createProvider({
+      models: loadModels(),
+      profile: recording ? "record" : "replay",
+      apiKey: recording ? loadConfig(process.env).modelApiKey : undefined,
+      onTrace: tracer.fromProvider,
+      fetch: recording
+        ? undefined
+        : async () => {
+            throw new Error("replay must not touch the network");
+          },
+    });
+    const intake = createIntake({
+      orchestrator: { runStep: unused },
+      store,
+      cache: createFileCache(dir),
+      sessionId: "s1",
+      learner: LEARNER,
+      topic: RECORDED_TOPIC,
+    });
+    const clip = new Uint8Array(readFileSync(join(process.cwd(), "public", INTAKE_VOICE_CLIP)));
+    const post = () =>
+      transcribeResponse(
+        new Request("http://localhost/x", {
+          method: "POST",
+          headers: { "content-type": "audio/wav" },
+          body: clip,
+        }),
+        (audio) => transcribeVoice({ store, sessionId: "s1", provider }, audio),
+      );
+
+    const early = await post();
+    intake.start();
+    const res = await post();
+
+    expect(early.status).toBe(409);
+    expect(res.status).toBe(200);
+    const { text } = (await res.json()) as { text: string };
+    for (const word of ["محاسب", "الرياض", "محلل بيانات"]) expect(text).toContain(word);
+    expect(intake.view()?.turns).toHaveLength(1);
+    const trace = store.readTrace<TraceEvent>("s1");
+    expect(trace).toMatchObject([
+      {
+        agent: "intake",
+        kind: "model_call",
+        role: "transcribe",
+        model: "muse-voice-transcribe-1.0",
+      },
+    ]);
+    // $0.18 an audio hour (config/models.yaml) for the 9.04 s the recording bills.
+    expect(trace[0]?.cost_usd).toBeCloseTo((0.18 * 9.04) / 3600, 6);
+    expect(`${trace[0]?.summary_ar} ${trace[0]?.summary_en}`).not.toMatch(/محاسب|الرياض/);
+  });
+});

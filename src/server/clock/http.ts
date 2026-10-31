@@ -69,7 +69,7 @@ const ConsentBody = Type.Object(
   { additionalProperties: false },
 );
 
-// A request the route refuses before any work: 400, or 413 for a body over MAX_BODY_BYTES.
+// A request the route refuses before any work: 400, or 413 for a body over its cap.
 export class BadRequest extends Error {
   status: 400 | 413;
 
@@ -102,17 +102,29 @@ const ACTIONS: Record<string, (sim: Sim, body: unknown) => Promise<SimResult>> =
 };
 
 // Every state-changing route reads its body here. There are no accounts yet, so a request from
-// another site is refused, and the body must be typed as JSON: a cross-site form or a no-cors fetch
-// cannot send that type without a preflight, which these routes never answer. Nothing in front of
-// the app limits a body, so one over MAX_BODY_BYTES is refused before it is parsed.
+// another site is refused, and the body must be typed as JSON or WAV audio: a cross-site form or a
+// no-cors fetch cannot send either type without a preflight, which these routes never answer.
+// Nothing in front of the app limits a body, so one over its kind's cap is refused before it is read.
+type BodyKind = { type: RegExp; typeError: string; maxBytes: number; tooLarge: string };
+
+const JSON_BODY: BodyKind = {
+  type: /^application\/json\b/i,
+  typeError: "Body must be sent as application/json",
+  // The largest is a quiz attempt: 20 answers of 2,000 characters, about 80 KB of Arabic.
+  maxBytes: 128 * 1024,
+  tooLarge: "Body must be 128 KB or less",
+};
+
+// The intake's voice message (#37): the page stops recording at a minute, 1.92 MB at 16 kHz.
+const AUDIO_BODY: BodyKind = {
+  type: /^audio\/wav\b/i,
+  typeError: "Body must be sent as audio/wav",
+  maxBytes: 2 * 1024 * 1024,
+  tooLarge: "Audio must be 2 MB or less, about a minute",
+};
+
 export async function jsonBody(request: Request): Promise<unknown> {
-  if (request.headers.get("sec-fetch-site") === "cross-site") {
-    throw new BadRequest("Requests from another site are refused");
-  }
-  const type = request.headers.get("content-type") ?? "";
-  if (!/^application\/json\b/i.test(type))
-    throw new BadRequest("Body must be sent as application/json");
-  const text = await cappedText(request);
+  const text = new TextDecoder().decode(await cappedBody(request, JSON_BODY));
   if (!text.trim()) return {};
   try {
     return JSON.parse(text);
@@ -121,26 +133,29 @@ export async function jsonBody(request: Request): Promise<unknown> {
   }
 }
 
-// The largest body is a quiz attempt: 20 answers of 2,000 characters, about 80 KB of Arabic.
-const MAX_BODY_BYTES = 128 * 1024;
-const TOO_LARGE = "Body must be 128 KB or less";
+export const audioBody = (request: Request): Promise<Uint8Array> => cappedBody(request, AUDIO_BODY);
 
 // A content-length over the cap is refused unread. Any other body is read only until it passes the
 // cap, so a missing or false length gets no more through; leaving the loop cancels the stream.
-async function cappedText(request: Request): Promise<string> {
-  if (Number(request.headers.get("content-length")) > MAX_BODY_BYTES) {
-    throw new BadRequest(TOO_LARGE, 413);
+async function cappedBody(request: Request, kind: BodyKind): Promise<Uint8Array> {
+  if (request.headers.get("sec-fetch-site") === "cross-site") {
+    throw new BadRequest("Requests from another site are refused");
   }
-  if (!request.body) return "";
-  const decoder = new TextDecoder();
-  let text = "";
+  if (!kind.type.test(request.headers.get("content-type") ?? "")) {
+    throw new BadRequest(kind.typeError);
+  }
+  if (Number(request.headers.get("content-length")) > kind.maxBytes) {
+    throw new BadRequest(kind.tooLarge, 413);
+  }
+  if (!request.body) return new Uint8Array();
+  const chunks: Uint8Array[] = [];
   let bytes = 0;
   for await (const chunk of request.body) {
     bytes += chunk.byteLength;
-    if (bytes > MAX_BODY_BYTES) throw new BadRequest(TOO_LARGE, 413);
-    text += decoder.decode(chunk, { stream: true });
+    if (bytes > kind.maxBytes) throw new BadRequest(kind.tooLarge, 413);
+    chunks.push(chunk);
   }
-  return text + decoder.decode();
+  return Buffer.concat(chunks);
 }
 
 // 409 for a clock move into the past, a tap on a message the learner cannot answer or a comeback

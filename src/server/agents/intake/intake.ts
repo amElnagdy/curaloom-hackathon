@@ -18,6 +18,7 @@ import {
   type createOrchestrator,
   withFeedback,
 } from "../../orchestrator/orchestrator.ts";
+import type { Provider } from "../../providers/provider.ts";
 import { type Cache, contentHash, type Store } from "../../store/store.ts";
 import {
   type DiagnosticQuestion,
@@ -302,6 +303,42 @@ const viewOf = (state: IntakeState): IntakeView => ({
 export function intakeView(store: Store, sessionId: string): IntakeView | null {
   const state = store.readDoc<IntakeState>(sessionId, STATE_DOC);
   return state ? viewOf(state) : null;
+}
+
+// Names a learner says in the intake that the transcriber spells its own way unless told: the spike
+// heard «بايثون» as «بيثون» (docs/spikes/api-access.md). These are the tools, course sites and role
+// of a move into data analysis, in the Arabic script the transcript comes back in.
+const VOICE_KEYWORDS = [
+  "إكسل",
+  "بايثون",
+  "باور بي آي",
+  "كورسيرا",
+  "يوديمي",
+  "محلل بيانات",
+  "تحليل البيانات",
+];
+
+// The learner's voice message (#37) as text for the composer, which the learner reads and sends or
+// not. Only while the interview waits for a message, so no transcription is paid for outside it.
+export async function transcribeVoice(
+  { store, sessionId, provider }: { store: Store; sessionId: string; provider: Provider },
+  audio: Uint8Array,
+): Promise<string> {
+  if (intakeView(store, sessionId)?.status !== "interview") {
+    throw new IntakeConflict("The interview is not waiting for a message");
+  }
+  const { text } = await provider.transcribe({
+    role: "transcribe",
+    audio,
+    keywords: VOICE_KEYWORDS,
+    // Never the learner's words: the transcript goes back to the page only.
+    trace: {
+      agent: "intake",
+      summary_ar: "حوّل رسالتك الصوتية إلى نص تراجعه قبل الإرسال",
+      summary_en: "Transcribed the learner's voice message into the composer",
+    },
+  });
+  return text.trim();
 }
 
 export function createIntake({

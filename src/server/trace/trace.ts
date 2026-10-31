@@ -18,6 +18,8 @@ export type TraceEvent = {
   kind: TraceKind;
   summary_ar: string;
   summary_en: string;
+  // A model call's role in config/models.yaml, and the model that served it.
+  role?: string;
   model?: string;
   cost_usd?: number;
   // Session total so far, on every event that has a cost.
@@ -114,6 +116,7 @@ export function createTracer(
         summary_en: e.ok
           ? e.summary_en
           : `Model call failed (attempt ${e.attempt}): ${e.summary_en}: ${e.error}`,
+        role: e.role,
         model: e.model,
         cost_usd: e.cost_usd,
         latency_ms: e.latency_ms,

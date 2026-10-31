@@ -277,11 +277,20 @@ export function ModeBadge({ profile }: { profile: ProviderProfile }) {
 }
 
 // Replay only (#30): puts the text the recorded run was made with into a field, since a replayed
-// reply answers a request only when its text matches word for word. Its label says so.
-export function RecordedFill({ label, onFill }: { label: string; onFill(): void }) {
+// reply answers a request only when its text matches word for word. Its label says so. The intake's
+// recorded voice message (#37) uses it with its own icon.
+export function RecordedFill({
+  label,
+  onFill,
+  icon: Icon = ClipboardPaste,
+}: {
+  label: string;
+  onFill(): void;
+  icon?: LucideIcon;
+}) {
   return (
     <button type="button" className={styles.recordedFill} onClick={onFill}>
-      <ClipboardPaste aria-hidden />
+      <Icon aria-hidden />
       {label}
     </button>
   );

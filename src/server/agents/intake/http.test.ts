@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { StepFailed } from "../../orchestrator/orchestrator.ts";
+import { InvalidNameError } from "../../store/store.ts";
 import { InvalidAnswers } from "./diagnostic.ts";
-import { intakeResponse } from "./http.ts";
+import { intakeResponse, transcribeResponse } from "./http.ts";
 import { type Intake, IntakeConflict, type IntakeView } from "./intake.ts";
+import { encodeWav, MAX_VOICE_SECONDS, WAV_RATE } from "./wav.ts";
 
 const VIEW: IntakeView = {
   status: "interview",
@@ -115,3 +117,127 @@ describe("intake routes", () => {
     expect(res.status).toBe(502);
   });
 });
+
+// A transcriber that records the audio it was given and answers or fails as told.
+function stubTranscriber(fail?: Error) {
+  const heard: Uint8Array[] = [];
+  const transcribe = async (audio: Uint8Array) => {
+    heard.push(audio);
+    if (fail) throw fail;
+    return "أنا محاسب في الرياض";
+  };
+  return { transcribe, heard };
+}
+
+const AUDIO_LIMIT = 2 * 1024 * 1024;
+const voice = (seconds: number) => encodeWav(new Float32Array(Math.round(seconds * WAV_RATE)));
+
+const postVoice = (
+  transcribe: (audio: Uint8Array) => Promise<string>,
+  body: Uint8Array<ArrayBuffer>,
+  headers: Record<string, string> = {},
+) =>
+  transcribeResponse(
+    new Request("http://localhost/x", {
+      method: "POST",
+      headers: { "content-type": "audio/wav", ...headers },
+      body,
+    }),
+    transcribe,
+  );
+
+describe("intake transcribe route", () => {
+  it("passes a voice message on and answers its transcript, a full minute included", async () => {
+    const { transcribe, heard } = stubTranscriber();
+    const minute = voice(MAX_VOICE_SECONDS);
+
+    const res = await postVoice(transcribe, minute);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ text: "أنا محاسب في الرياض" });
+    expect(heard).toHaveLength(1);
+    expect(Buffer.from(heard[0] as Uint8Array).equals(minute)).toBe(true);
+  });
+
+  it("answers 413 for a content-length over 2 MB without reading the body", async () => {
+    const { transcribe, heard } = stubTranscriber();
+    const request = new Request("http://localhost/x", {
+      method: "POST",
+      headers: { "content-type": "audio/wav", "content-length": String(AUDIO_LIMIT + 1) },
+      body: voice(1),
+    });
+
+    const res = await transcribeResponse(request, transcribe);
+
+    expect(res.status).toBe(413);
+    expect(request.bodyUsed).toBe(false);
+    expect(heard).toEqual([]);
+  });
+
+  it("reads a body sent without a length up to 2 MB, and stops reading it past that with 413", async () => {
+    const { transcribe, heard } = stubTranscriber();
+    // Node sends a stream body only with `duplex`, which the DOM's RequestInit does not name.
+    const send = (body: ReadableStream<Uint8Array>) => {
+      const init: RequestInit & { duplex: "half" } = {
+        method: "POST",
+        headers: { "content-type": "audio/wav" },
+        body,
+        duplex: "half",
+      };
+      return transcribeResponse(new Request("http://localhost/x", init), transcribe);
+    };
+    const fits = streamed(voice(MAX_VOICE_SECONDS));
+    const over = streamed(voice(AUDIO_LIMIT / WAV_RATE));
+
+    expect((await send(fits.body)).status).toBe(200);
+    expect((await send(over.body)).status).toBe(413);
+    expect(over.cancelled()).toBe(true);
+    expect(heard).toHaveLength(1);
+  });
+
+  it("answers 400 for a post from another site, a body not sent as audio/wav, or audio it cannot take", async () => {
+    const { transcribe, heard } = stubTranscriber();
+    const stereo = voice(1);
+    new DataView(stereo.buffer).setUint16(22, 2, true);
+
+    const refused = [
+      await postVoice(transcribe, voice(1), { "sec-fetch-site": "cross-site" }),
+      await postVoice(transcribe, voice(1), { "content-type": "application/json" }),
+      await postVoice(transcribe, voice(1), { "content-type": "audio/webm" }),
+      await postVoice(transcribe, stereo),
+      await postVoice(transcribe, voice(0)),
+    ];
+
+    expect(refused.map((r) => r.status)).toEqual([400, 400, 400, 400, 400]);
+    expect(heard).toEqual([]);
+  });
+
+  it("answers 409 when the interview is not waiting for a message, 400 for a bad session id, 502 when the transcription fails", async () => {
+    const statuses = await Promise.all(
+      [
+        new IntakeConflict("The interview is not waiting for a message"),
+        new InvalidNameError("bad session id"),
+        new Error("Meta /asr/transcribe HTTP 500"),
+      ].map(async (fail) => (await postVoice(stubTranscriber(fail).transcribe, voice(1))).status),
+    );
+
+    expect(statuses).toEqual([409, 400, 502]);
+  });
+});
+
+// Bytes streamed in 64 KB chunks with no content-length, as a chunked upload arrives.
+function streamed(bytes: Uint8Array) {
+  let at = 0;
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (at >= bytes.length) return controller.close();
+      controller.enqueue(bytes.subarray(at, at + 64 * 1024));
+      at += 64 * 1024;
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  return { body, cancelled: () => cancelled };
+}

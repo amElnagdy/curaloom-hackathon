@@ -3,7 +3,7 @@
 
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { INTAKE_MESSAGES } from "../../../demo/script.ts";
+import { INTAKE_MESSAGES, INTAKE_VOICE_CLIP } from "../../../demo/script.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
 import { intakeView } from "../../server/agents/intake/intake.ts";
@@ -22,7 +22,11 @@ export default async function IntakePage() {
       <Interview
         sessionId={DEMO_SESSION_ID}
         initial={view}
-        recorded={config.providerProfile === "replay" ? INTAKE_MESSAGES : undefined}
+        recorded={
+          config.providerProfile === "replay"
+            ? { messages: INTAKE_MESSAGES, voiceClip: INTAKE_VOICE_CLIP }
+            : undefined
+        }
       />
     </Page>
   );

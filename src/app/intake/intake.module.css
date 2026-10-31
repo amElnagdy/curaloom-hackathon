@@ -115,7 +115,36 @@
   border-top: 1px solid var(--line);
 }
 .recorded {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
   flex-basis: 100%;
+}
+/* The voice message on its way (#37): recording, played or being turned into text. */
+.voiceStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-basis: 100%;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.recDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--fail);
+  animation: var(--motion-breathe);
+}
+.stopRecording,
+.stopRecording:hover:not(:disabled) {
+  border-color: var(--fail-200);
+  background: var(--fail-50);
+  color: var(--fail-ink);
+}
+.spinning {
+  animation: var(--motion-spin-back);
 }
 .error {
   flex-basis: 100%;

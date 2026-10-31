@@ -1,7 +1,7 @@
 "use client";
 
 // The technical trace (#15): a tab on the left edge with a live event count opens a drawer that
-// overlays the left side. One row per trace event: agent, Arabic and English summary, kind, model,
+// overlays the left side. One row per trace event: agent, Arabic and English summary, kind, role, model,
 // latency, cost and the running total. Esc closes it and focus returns to what opened it.
 
 import {
@@ -45,6 +45,7 @@ const KIND_AR: Record<TraceKind, string> = {
 function TraceEventRow({ event }: { event: TraceEvent }) {
   const Icon = KIND_ICON[event.kind];
   const meta: [string, string][] = [];
+  if (event.role) meta.push(["الدور", event.role]);
   if (event.model) meta.push(["النموذج", event.model]);
   if (event.latency_ms !== undefined) meta.push(["الزمن", latency(event.latency_ms)]);
   if (event.cost_usd !== undefined) meta.push(["التكلفة", usd(event.cost_usd)]);

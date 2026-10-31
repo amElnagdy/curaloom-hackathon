@@ -1,0 +1,30 @@
+{
+  "request": {
+    "path": "/asr/transcribe",
+    "request": {
+      "model": "muse-voice-transcribe-1.0",
+      "audioEncoding": "WAV",
+      "mode": "PUSH_TO_TALK",
+      "languageBias": [
+        "Arabic"
+      ],
+      "keywords": [
+        "إكسل",
+        "بايثون",
+        "باور بي آي",
+        "كورسيرا",
+        "يوديمي",
+        "محلل بيانات",
+        "تحليل البيانات"
+      ]
+    },
+    "audio_sha256": "63f56764a2e7a974575b099f20a6fd40a28b471020694ab4f291479b175cd071"
+  },
+  "body": {
+    "sessionId": "voyager/transcribe/FCD0A6F1A4224C29BF83C79A31787A31",
+    "transcript": "هلا وله انا محاسب بشركة في الرياض من خمس سنين وابي اتحول لمحلل بيانات",
+    "audioDurationMs": 9040,
+    "turns": []
+  },
+  "latency_ms": 2685
+}

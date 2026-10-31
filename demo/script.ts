@@ -14,6 +14,11 @@ export const INTAKE_MESSAGES: readonly string[] = [
   "عادي عندي أي لغة دامها توصلني بالعربي. سجلت بكورسات كورسيرا قبل وما كملتها، كانت طويلة وأملّ بسرعة. وبعد لا تطرشون لي رسايل الصبح.",
 ];
 
+// His first message spoken, under public/ so the intake page can fetch it (#37). macOS's one Arabic
+// voice made it, as docs/demo.md («Voice in replay») says. Its transcription is recorded; in replay
+// the page plays it and fills the composer with the transcript.
+export const INTAKE_VOICE_CLIP = "/demo/omar-intake-1.wav";
+
 // His short answers to the first quiz of lesson 1, in order: the first earns full credit by its
 // rubric, the second only half (it filters but never summarises by branch).
 const FIRST_QUIZ = [

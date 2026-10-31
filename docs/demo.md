@@ -23,7 +23,7 @@ Each command except the reset builds the app and serves it on `http://localhost:
 REPLAY_LATENCY=0.5 pnpm demo:replay
 ```
 
-The recorded calls on the demo's path waited about 5 minutes in all. At `0.3`, a scripted browser walked the presenter steps below, from the intake to lesson 2's quiz, in 2 minutes 8 seconds. Its clicks were instant, so a presenter takes longer by the time they spend reading and clicking.
+The recorded calls on the demo's path waited about 5 minutes in all. At `0.3`, a scripted browser walked the presenter steps below, from the intake to lesson 2's quiz, in 2 minutes 8 seconds. Its clicks were instant, so a presenter takes longer by the time they spend reading and clicking. That walk predates the voice chip in step 2, which adds about 10 seconds: the 9-second clip, then 0.8 seconds of replayed transcription.
 
 ## Reset
 
@@ -39,12 +39,22 @@ Stopping the server and running `pnpm demo:replay` again gives the same start st
 
 A recording answers only the request it was recorded for, word for word. In replay, the intake composer and every short-answer item of a recorded quiz show a dashed chip: «املأ الرسالة المسجّلة» or «املأ الإجابة المسجّلة». The chip puts the recorded text in the field. Send it as it is. Other text has no recording, and the step fails as described below. The chips do not show in live mode.
 
+## Voice in replay
+
+In live mode the intake composer has a mic button. The learner records up to a minute, Muse Voice Transcribe turns it into text, and the text fills the composer for the learner to edit and send. A live recording never has a recording of its transcription, so replay shows no mic button. Replay offers a second chip before the first message instead: «استمع إلى الرسالة الصوتية المسجّلة وأرسلها للتفريغ». It plays `public/demo/omar-intake-1.wav` aloud, Omar's first message spoken by macOS's Arabic voice, then posts the clip to the same transcribe route. The route replays the clip's recorded transcription into the composer, and the trace drawer shows the call with its role, model and cost. Turn the sound on to hear the clip.
+
+The transcript is not word for word the typed message: «هلا وله انا محاسب بشركة في الرياض من خمس سنين وابي اتحول لمحلل بيانات», against «هلا والله. أنا محاسب…». The recorded interview was made with the typed text, so the transcript has no recording of the interviewer's reply. After the transcript fills the composer, click «املأ الرسالة المسجّلة (١ من ٣)». It replaces the transcript with the typed message, and you send that.
+
+The recorded interview stays as it was recorded, on purpose. Re-recording it with the transcript as message 1 would change every interviewer reply after it, so the saved profile's goal and notes would change too. The scout's brief and every lesson request carry the profile, so the whole demo would have to be recorded again, and the quiz answers in the presenter steps rewritten.
+
+To make the clip again, run `say -v Majed -o msg.aiff "<text>"`, then `afconvert -f WAVE -d LEI16@16000 -c 1 msg.aiff public/demo/omar-intake-1.wav`. The text is the first message of `INTAKE_MESSAGES`, with diacritics on «مُحاسِب», «الرِّياض», «أَتَحَوَّل» and «مُحَلِّل», which made the voice say them clearly enough to transcribe. A new clip needs a new recording of its transcription, made by `pnpm fixtures:record`.
+
 ## Presenter steps
 
 This is the recorded path, walked in a browser at 1440×900 on `pnpm demo:replay`. Answer exactly as written. A different pick or text changes the next request, and that request has no recording.
 
 1. Run `pnpm demo:replay` and wait for `Ready`. Open `http://localhost:3107/intake` in a clean browser window at 1440×900.
-2. In the chat, click «املأ الرسالة المسجّلة (١ من ٣)», then «أرسل». Wait for the interviewer's reply. Do the same for (٢ من ٣) and (٣ من ٣).
+2. In the chat, click «استمع إلى الرسالة الصوتية المسجّلة وأرسلها للتفريغ». The clip plays for 9 seconds, then its transcript fills the composer. Click «املأ الرسالة المسجّلة (١ من ٣)», which replaces the transcript with the recorded text, then «أرسل». Wait for the interviewer's reply. For (٢ من ٣) and (٣ من ٣), click the chip, then «أرسل».
 3. In the short check, pick «لا أعرف بعد» in all three questions. Scroll down inside the chat and click «أرسل إجاباتك».
 4. Scroll down the page and click «اذهب إلى خطتك». The plan page builds the plan, then writes lesson 1, in about 50 seconds. When «ابدأ الدرس الأول» in the activity column turns blue, click it.
 5. At the end of lesson 1, click «إلى الاختبار».
