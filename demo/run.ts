@@ -16,6 +16,8 @@ export type DemoMode = "replay" | "preview" | "live";
 type Env = Record<string, string | undefined>;
 
 export const DEMO_PORT = 3107;
+// Only this machine reaches the demo: live mode spends on the models, and no route asks who calls it.
+export const DEMO_HOST = "127.0.0.1";
 // The recorded calls on the demo's path wait about 5 minutes in all; at this pace they wait about
 // 1.5, so the whole demo, clicks included, takes under 4 minutes.
 export const DEMO_PACE = 0.3;
@@ -90,11 +92,11 @@ function main(command: string | undefined) {
   rmSync(server.dataDir, { recursive: true, force: true });
   const settings = loadConfig(server.env);
   console.log(
-    `${command} demo on http://localhost:${DEMO_PORT}: models ${settings.providerProfile}, pace ${settings.replayLatency}, topic "${settings.demoTopic}", data in ${server.dataDir}`,
+    `${command} demo on http://${DEMO_HOST}:${DEMO_PORT}: models ${settings.providerProfile}, pace ${settings.replayLatency}, topic "${settings.demoTopic}", data in ${server.dataDir}`,
   );
   const env = { ...process.env, ...server.env };
   run("next", ["build"], env);
-  run("next", ["start", "-p", String(DEMO_PORT)], env);
+  run("next", ["start", "-H", DEMO_HOST, "-p", String(DEMO_PORT)], env);
 }
 
 if (import.meta.main) main(process.argv[2]);
