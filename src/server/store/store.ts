@@ -24,6 +24,8 @@ export type Store = {
   // seed, so this restores the seeded state.
   clearDocs(sessionId: string): void;
   appendTrace(sessionId: string, event: { id: string }): void;
+  // Whether the session's trace is on disk: a count kept in memory is stale once it is deleted.
+  hasTrace(sessionId: string): boolean;
   // Events in append order; with `after`, only those that follow that event id.
   readTrace<E extends { id: string } = { id: string }>(sessionId: string, after?: string): E[];
   writeBlob(sessionId: string, value: unknown): string;
@@ -120,6 +122,7 @@ function fileStore(root: string): Store {
     appendTrace(sessionId, event) {
       appendFileSync(forWrite(sessionPath(sessionId, "trace.jsonl")), `${JSON.stringify(event)}\n`);
     },
+    hasTrace: (sessionId) => existsSync(sessionPath(sessionId, "trace.jsonl")),
     readTrace<E extends { id: string }>(sessionId: string, after?: string): E[] {
       const path = sessionPath(sessionId, "trace.jsonl");
       if (!existsSync(path)) return [];

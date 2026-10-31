@@ -30,9 +30,11 @@ const isForeignWord = (word: string) =>
   /^\p{L}{2,}$/u.test(word) && !/\p{Script=Arabic}/u.test(word);
 const isAcronym = (word: string) => word === word.toUpperCase() && word !== word.toLowerCase();
 // What the reading prompt asks Spark to translate: words, but not numbers, single letters or
-// acronyms.
-const needsArabic = (text: string) =>
-  writtenWords(text).some((w) => isForeignWord(w) && !isAcronym(w));
+// acronyms. Two or more words in capitals are a title, not acronyms.
+const needsArabic = (text: string) => {
+  const words = writtenWords(text).filter(isForeignWord);
+  return words.length > 1 || words.some((w) => !isAcronym(w));
+};
 
 function occurrences(hay: string[], needle: string[]): number {
   if (!needle.length) return 0;
@@ -55,15 +57,25 @@ function tally<T>(items: T[]): Map<T, number> {
 }
 
 const numbersOf = (texts: string[]) => texts.flatMap((t) => folded(t).match(NUMBER) ?? []);
+const foreignWordsOf = (texts: string[]) => texts.flatMap(wordsOf).filter(isForeignWord);
+const key = (text: string) => wordsOf(text).join(" ");
 
-// The numbers the relabelled image should hold: the source's, with each label's own numbers
-// replaced by those of its Arabic.
-function expectedNumbers(source: string[], labels: Label[]): Map<string, number> {
-  const expected = tally(numbersOf(source));
-  for (const n of numbersOf(labels.map((l) => l.src))) expected.set(n, (expected.get(n) ?? 0) - 1);
-  for (const n of numbersOf(labels.map((l) => l.ar))) expected.set(n, (expected.get(n) ?? 0) + 1);
+// What the relabelled image should hold of the source's numbers, or of its words in Latin or
+// another script, with each label's own replaced by those of its Arabic.
+function expectedCounts(
+  source: string[],
+  labels: Label[],
+  tokensOf: (texts: string[]) => string[],
+): Map<string, number> {
+  const expected = tally(tokensOf(source));
+  for (const t of tokensOf(labels.map((l) => l.src))) expected.set(t, (expected.get(t) ?? 0) - 1);
+  for (const t of tokensOf(labels.map((l) => l.ar))) expected.set(t, (expected.get(t) ?? 0) + 1);
   return expected;
 }
+
+// The Arabic of each text in `texts` that is a label's, in reading order.
+const labelsIn = (texts: string[], arOf: Map<string, string>) =>
+  texts.map((t) => arOf.get(key(t))).filter((ar) => ar !== undefined);
 
 const keptAsWritten = ({ src, ar }: Label) =>
   occurrences(wordsOf(ar), wordsOf(src)) > 0 || !wordsOf(src).some((w) => /\p{L}/u.test(w));
@@ -101,10 +113,34 @@ export function relabelProblems(labels: Label[], source: string[], relabelled: s
   const found = (words: string[]) => blocks.reduce((n, block) => n + occurrences(block, words), 0);
   const problems: string[] = [];
 
+  // Each Arabic label as often as the reading listed it, or as the source shows its text when the
+  // reading missed a repeat.
+  const sourceBlocks = tally(source.map(key));
   const counts = arabicCounts(labels, blocks);
-  for (const [ar, wanted] of tally(labels.map((l) => l.ar.trim()))) {
+  for (const [ar, listed] of tally(labels.map((l) => l.ar.trim()))) {
+    const srcs = new Set(labels.filter((l) => l.ar.trim() === ar).map((l) => key(l.src)));
+    const shown = [...srcs].reduce((n, src) => n + (sourceBlocks.get(src) ?? 0), 0);
+    const wanted = Math.max(listed, shown);
     const seen = counts.get(ar) ?? 0;
-    if (seen < wanted) problems.push(`the Arabic label "${ar}" appears ${seen} of ${wanted} times`);
+    if (seen !== wanted) {
+      problems.push(`the Arabic label "${ar}" appears ${seen} of ${wanted} times`);
+    }
+  }
+
+  // The labels in the sample's reading order against the source's, for those whose count is
+  // right. Two swapped put one region's numbers under the other.
+  const sourceOrder = labelsIn(source, new Map(labels.map((l) => [key(l.src), l.ar.trim()])));
+  const sampleOrder = labelsIn(relabelled, new Map(labels.map((l) => [key(l.ar), l.ar.trim()])));
+  const inSource = tally(sourceOrder);
+  const inSample = tally(sampleOrder);
+  const settled = (ar: string) => inSource.get(ar) === inSample.get(ar);
+  const expectedAt = sourceOrder.filter(settled);
+  const seenAt = sampleOrder.filter(settled);
+  const swapped = expectedAt.findIndex((ar, i) => ar !== seenAt[i]);
+  if (swapped >= 0) {
+    problems.push(
+      `the Arabic label "${seenAt[swapped]}" is where "${expectedAt[swapped]}" should be`,
+    );
   }
 
   const left = new Set<string>();
@@ -112,13 +148,21 @@ export function relabelProblems(labels: Label[], source: string[], relabelled: s
     if (!keptAsWritten(label) && found(wordsOf(label.src))) left.add(label.src.trim());
   }
   // A text Spark's reading missed was never sent to Muse Image, so it is still in the image.
-  const listed = new Set(labels.map((l) => wordsOf(l.src).join(" ")));
-  const shown = new Set(blocks.map((block) => block.join(" ")));
+  const listed = new Set(labels.map((l) => key(l.src)));
   for (const text of source) {
-    const words = wordsOf(text).join(" ");
-    if (needsArabic(text) && !listed.has(words) && shown.has(words)) left.add(text.trim());
+    if (needsArabic(text) && !listed.has(key(text)) && found(wordsOf(text))) left.add(text.trim());
   }
   for (const src of left) problems.push(`the source text "${src}" is still there`);
+
+  // A word of a label left beside its Arabic, or a label split over two blocks.
+  const covered = new Set(foreignWordsOf([...left]));
+  const words = expectedCounts(source, labels, foreignWordsOf);
+  for (const [word, have] of tally(foreignWordsOf(relabelled))) {
+    const want = Math.max(0, words.get(word) ?? 0);
+    if (words.has(word) && !covered.has(word) && have > want) {
+      problems.push(`the source word "${word}" is still there`);
+    }
+  }
 
   const known = new Set([...source, ...labels.map((l) => l.ar)].flatMap(wordsOf));
   for (const text of new Set(relabelled.map((t) => t.trim()))) {
@@ -127,10 +171,10 @@ export function relabelProblems(labels: Label[], source: string[], relabelled: s
     }
   }
 
-  const expected = expectedNumbers(source, labels);
+  const numbers = expectedCounts(source, labels, numbersOf);
   const got = tally(numbersOf(relabelled));
-  for (const n of new Set([...expected.keys(), ...got.keys()])) {
-    const want = Math.max(0, expected.get(n) ?? 0);
+  for (const n of new Set([...numbers.keys(), ...got.keys()])) {
+    const want = Math.max(0, numbers.get(n) ?? 0);
     const have = got.get(n) ?? 0;
     if (have !== want) problems.push(`the number ${n} appears ${have} times, not ${want}`);
   }
@@ -171,7 +215,9 @@ export type PageFigures<F> = {
   figures: (F & { heading: string })[];
 };
 
-export function rankFigures<F>(pages: PageFigures<F>[]): (F & { section: number })[] {
+export function rankFigures<F extends { file_page: string }>(
+  pages: PageFigures<F>[],
+): (F & { section: number })[] {
   const ranked = pages.flatMap((page, p) =>
     page.figures.map((figure, i) => {
       const quoted = page.sections.find(
@@ -187,7 +233,12 @@ export function rankFigures<F>(pages: PageFigures<F>[]): (F & { section: number 
     }),
   );
   ranked.sort((a, b) => a.unquoted - b.unquoted || a.place - b.place || a.onPage - b.onPage);
-  return ranked.map((r) => r.figure);
+  // The same Commons file on two pages is tried once, at its best rank.
+  const figures: (F & { section: number })[] = [];
+  for (const { figure } of ranked) {
+    if (!figures.some((f) => f.file_page === figure.file_page)) figures.push(figure);
+  }
+  return figures;
 }
 
 export type ImageHeader = {

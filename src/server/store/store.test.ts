@@ -1,17 +1,25 @@
 import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createFileCache, createFileStore } from "./store";
 
 const tempRoot = () => mkdtempSync(join(tmpdir(), "store-"));
 
+// Imports the store afresh, as a new process would, so nothing kept in memory carries over.
+async function restarted() {
+  vi.resetModules();
+  const { createFileStore: open } = await import("./store");
+  return open;
+}
+
 describe("file store", () => {
-  it("keeps documents across a restart", () => {
+  it("keeps documents across a restart", async () => {
     const root = tempRoot();
     createFileStore(root).writeDoc("s_1", "profile", { name: "عمر" });
 
-    expect(createFileStore(root).readDoc("s_1", "profile")).toEqual({ name: "عمر" });
+    const open = await restarted();
+    expect(open(root).readDoc("s_1", "profile")).toEqual({ name: "عمر" });
   });
 
   it("returns undefined for a document never written", () => {
@@ -44,12 +52,12 @@ describe("file store", () => {
     expect(store.readBlob("s_1", ref)).toEqual({ big: "x" });
   });
 
-  it("returns trace events in append order, after a cursor, across a restart", () => {
+  it("returns trace events in append order, after a cursor, across a restart", async () => {
     const root = tempRoot();
     const store = createFileStore(root);
     for (const id of ["evt_0001", "evt_0002", "evt_0003"]) store.appendTrace("s_1", { id });
 
-    const reloaded = createFileStore(root);
+    const reloaded = (await restarted())(root);
     expect(reloaded.readTrace("s_1").map((e) => e.id)).toEqual([
       "evt_0001",
       "evt_0002",

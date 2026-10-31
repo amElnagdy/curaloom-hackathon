@@ -92,14 +92,8 @@ type Body = "page" | "robots" | "html" | "image";
 
 const variantOf = (body: Body) => (body === "page" || body === "robots" ? undefined : body);
 
-const typesOf = (body: Body) =>
-  body === "page"
-    ? TEXT_TYPES
-    : body === "image"
-      ? IMAGE_TYPES
-      : body === "robots"
-        ? /./
-        : HTML_TYPES;
+const typesOf = (body: Exclude<Body, "robots">) =>
+  body === "page" ? TEXT_TYPES : body === "image" ? IMAGE_TYPES : HTML_TYPES;
 
 // A failure that may pass: a network error or timeout, a busy server or a rate limit.
 const passing = (seen: Seen) =>
@@ -139,7 +133,7 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
           ? { kind: "redirect", status: res.status, location: next.href }
           : { kind: "failed", reason: `HTTP ${res.status} to an invalid URL`, transient: false };
       }
-      if (res.status >= 300 || !typesOf(body).test(content_type)) {
+      if (res.status >= 300 || (body !== "robots" && !typesOf(body).test(content_type))) {
         await res.body?.cancel();
         return { kind: "page", status: res.status, content_type, truncated: false, text: "" };
       }

@@ -143,26 +143,42 @@ const result = <J>(json: J, image: ModelResult["image"] = null): ModelResult<J> 
   model: "fake",
 });
 
+const SHOWN: Record<string, Figure[]> = {
+  [EN_PAGE]: [{ file_page: EXAMPLE, heading: "Implementation", width: 512, height: 576 }],
+  [RU_PAGE]: [{ file_page: PIVOTED, heading: "Пример сводной таблицы", width: 558, height: 137 }],
+};
+
 type Script = {
+  shown?: Record<string, Figure[]>;
   files?: Record<string, FileInfo>;
   readings?: DiagramLabels[];
   samples?: string[][];
   // How many readings fail before one answers, and whether the source's transcript fails.
   failedReadings?: number;
   sourceFails?: boolean;
+  // How many edits throw, then how many answer bytes code cannot read, before one answers; and
+  // how many samples' transcripts throw before one answers.
+  failedEdits?: number;
+  unreadableEdits?: number;
+  failedSamples?: number;
 };
 
 function setup({
+  shown = SHOWN,
   files = { [PIVOTED]: file(["Public domain"]) },
   readings = [LABELS],
   samples = [GOOD],
   failedReadings = 0,
   sourceFails = false,
+  failedEdits = 0,
+  unreadableEdits = 0,
+  failedSamples = 0,
 }: Script = {}) {
   const dir = mkdtempSync(join(tmpdir(), "diagrams-"));
   dirs.push(dir);
   const store = createFileStore(dir);
   const sent = { reads: [] as string[], edits: [] as string[], files: [] as string[] };
+  let transcribed = 0;
   const promptOf = (input: unknown) =>
     JSON.stringify(input).match(/"input_text","text":"((?:[^"\\]|\\.)*)"/)?.[1] ?? "";
   const provider = {
@@ -176,23 +192,21 @@ function setup({
       const marked = JSON.stringify(call.input).match(/data:image\/webp;base64,([^"]+)/)?.[1];
       const sample = marked ? (Buffer.from(marked, "base64")[30] ?? 0) : 0;
       if (!sample && sourceFails) throw new Error("Spark is down");
+      if (sample && ++transcribed <= failedSamples) throw new Error("Spark is down");
       const texts: ImageTexts = { texts: sample ? (samples[sample - 1] ?? GOOD) : SOURCE_TEXTS };
       return result(texts);
     },
     async imageEdit(call: { prompt: string }) {
       sent.edits.push(call.prompt);
-      return result(null, { b64: webp(sent.edits.length), format: "webp" });
+      if (sent.edits.length <= failedEdits) throw new Error("Muse Image is down");
+      const unreadable = sent.edits.length <= failedEdits + unreadableEdits;
+      const b64 = unreadable ? Buffer.from("<svg/>").toString("base64") : webp(sent.edits.length);
+      return result(null, { b64, format: "webp" });
     },
   } as unknown as Provider;
   const pages: Pick<PageFetcher, "fetchView" | "fetchImage"> = {
     async fetchView<T>(url: string, view: PageView<T>) {
       if (view.name === "figures") {
-        const shown: Record<string, Figure[]> = {
-          [EN_PAGE]: [{ file_page: EXAMPLE, heading: "Implementation", width: 512, height: 576 }],
-          [RU_PAGE]: [
-            { file_page: PIVOTED, heading: "Пример сводной таблицы", width: 558, height: 137 },
-          ],
-        };
         return { ok: true, final_url: url, value: (shown[url] ?? []) as T };
       }
       sent.files.push(url);
@@ -382,6 +396,53 @@ describe("a lesson's diagrams", () => {
 
     const always = setup({ files: open, failedReadings: Number.POSITIVE_INFINITY });
     await expect(always.builder.build("L2")).rejects.toThrow(StepFailed);
+  });
+
+  it("counts an edit that answers no readable image as a failed sample", async () => {
+    const { builder, sent, trace } = setup({ unreadableEdits: 1 });
+
+    const [diagram] = await builder.build("L2");
+
+    expect(sent.edits).toHaveLength(2);
+    expect(diagram).toMatchObject({ method: "muse_image", check: { attempts: 2, problems: [] } });
+    expect(trace().map((e) => e.summary_en)).toContain(
+      "Pivottable-Pivoted.PNG sample 1 fails the code check: Muse Image returned no image code can read",
+    );
+  });
+
+  it.each([
+    ["edit", (failedEdits: number) => ({ failedEdits }), "Muse Image is down"],
+    ["sample's transcription", (failedSamples: number) => ({ failedSamples }), "Spark is down"],
+  ])(
+    "tries the next image when the %s throws, and fails the step, saving nothing, when every image's does",
+    async (_, failing, error) => {
+      const open = { [EXAMPLE]: file(["Public domain"]), [PIVOTED]: file(["Public domain"]) };
+      const once = setup({ files: open, ...failing(1) });
+
+      const [diagram] = await once.builder.build("L2");
+
+      expect(diagram).toMatchObject({ file: { page_url: PIVOTED }, method: "muse_image" });
+      expect(once.trace().map((e) => e.summary_en)).toContain(
+        `Pivot table example.svg failed (${error}); trying the next image`,
+      );
+
+      const always = setup({ files: open, ...failing(Number.POSITIVE_INFINITY) });
+      await expect(always.builder.build("L2")).rejects.toThrow(StepFailed);
+      expect(always.store.readDoc("s1", "diagrams")).toBeUndefined();
+    },
+  );
+
+  it("tries a file that two of the lesson's pages show once", async () => {
+    const pivoted = { file_page: PIVOTED, heading: "Example", width: 558, height: 137 };
+    const acronyms = { ...LABELS, labels: [{ src: "ETL", ar: "ETL", box: [0, 0, 100, 100] }] };
+    const { builder, sent } = setup({
+      shown: { [EN_PAGE]: [pivoted], [RU_PAGE]: [pivoted] },
+      readings: [acronyms],
+    });
+
+    expect(await builder.build("L2")).toEqual([]);
+    expect(sent.files).toEqual([PIVOTED]);
+    expect(sent.reads).toHaveLength(1);
   });
 
   it("skips an image whose file page cannot be read, or whose text stays untranslated", async () => {

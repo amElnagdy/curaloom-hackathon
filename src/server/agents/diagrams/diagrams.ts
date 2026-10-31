@@ -229,26 +229,26 @@ async function relabel(
     (texts) => ({ texts }),
     (e: unknown) => ({ error: messageOf(e) }),
   );
+  // A throw from the edit or the sample's transcription goes up to the agent, which tries the next
+  // image. Caught here, it would save a legend that outlives the outage.
   let problems: string[] = [];
   for (let sample = 1; sample <= MAX_SAMPLES; sample++) {
-    let output: Image | null = null;
-    try {
-      const edit = await ctx.provider.imageEdit({
-        role: "image_edit",
-        trace: {
-          agent: "diagrams",
-          summary_ar: `يعيد رسم ${title} بالنصوص العربية`,
-          summary_en: `Redrawing ${title} with the Arabic labels (sample ${sample})`,
-        },
-        prompt: editPrompt(labels, problems),
-        images: [image],
-        size: { width: image.width, height: image.height },
-        format: "webp",
-      });
-      const b64 = edit.image?.b64 ?? "";
-      const header = imageHeader(Buffer.from(b64, "base64"));
-      if (!header) throw new Error("Muse Image returned no image code can read");
-      output = { b64, ...header };
+    const edit = await ctx.provider.imageEdit({
+      role: "image_edit",
+      trace: {
+        agent: "diagrams",
+        summary_ar: `يعيد رسم ${title} بالنصوص العربية`,
+        summary_en: `Redrawing ${title} with the Arabic labels (sample ${sample})`,
+      },
+      prompt: editPrompt(labels, problems),
+      images: [image],
+      size: { width: image.width, height: image.height },
+      format: "webp",
+    });
+    const b64 = edit.image?.b64 ?? "";
+    const header = imageHeader(Buffer.from(b64, "base64"));
+    const output: Image | null = header ? { b64, ...header } : null;
+    if (output) {
       const read = await source;
       if ("error" in read) {
         ctx.trace({
@@ -270,21 +270,19 @@ async function relabel(
         en: `${title} relabelled (sample ${sample})`,
       });
       problems = relabelProblems(labels, read.texts, texts);
-    } catch (e) {
-      problems = [`the sample could not be made or read: ${messageOf(e)}`];
-    }
-    if (!problems.length && output) {
-      ctx.trace({
-        kind: "decision",
-        summary_ar: `اجتاز الرسم المعرَّب ${title} فحص الكود: كل نص عربي في مكانه ولا نص من الأصل باقٍ`,
-        summary_en: `${title} relabelled: sample ${sample} passes the code check`,
-      });
-      return {
-        method: "muse_image",
-        output: saveImage(ctx, output),
-        check: { attempts: sample, problems },
-      };
-    }
+      if (!problems.length) {
+        ctx.trace({
+          kind: "decision",
+          summary_ar: `اجتاز الرسم المعرَّب ${title} فحص الكود: كل تسمية عربية بعددها وترتيبها، ولا نص من الأصل باقٍ، والأرقام كما هي`,
+          summary_en: `${title} relabelled: sample ${sample} passes the code check`,
+        });
+        return {
+          method: "muse_image",
+          output: saveImage(ctx, output),
+          check: { attempts: sample, problems },
+        };
+      }
+    } else problems = ["Muse Image returned no image code can read"];
     ctx.trace({
       kind: "decision",
       summary_ar:

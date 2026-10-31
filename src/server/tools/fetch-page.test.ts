@@ -184,6 +184,22 @@ describe("fetchPage", () => {
     },
   );
 
+  it("reads the rules of a robots.txt served with no Content-Type", async () => {
+    const blocked = "https://open.example.org/private/notes";
+    const web = fakeWeb({ [ROBOTS]: { body: "User-agent: *\nDisallow: /private/\n" } });
+    const untyped: Transport = async (url, init) => {
+      const res = await web.transport(url, init);
+      res.headers.delete("content-type");
+      return res;
+    };
+    const { pages, trace } = fetcher({ profile: "live", transport: untyped });
+
+    expect(await pages.fetchPage(blocked, trace)).toMatchObject({
+      ok: false,
+      reason: "robots.txt disallows it",
+    });
+  });
+
   it("fetches nothing from a site whose robots.txt cannot be read", async () => {
     const down = fakeWeb({ [PAGE]: { body: HTML } });
     const failing: Transport = async (url, init) => {

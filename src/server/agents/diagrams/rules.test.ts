@@ -110,6 +110,47 @@ describe("the relabel check", () => {
       'the source text "North" is still there',
     ]);
   });
+
+  it("expects a label as often as the source shows it when the reading listed it once, and lets a label share a block with its number", () => {
+    const labels = [label("North", "الشمال"), label("East", "الشرق")];
+
+    expect(
+      relabelProblems(labels, ["North", "North", "East", "66"], ["الشمال", "الشمال", "الشرق 66"]),
+    ).toEqual([]);
+  });
+
+  it("finds an Arabic label written once too often, and two swapped", () => {
+    const labels = [label("Sales", "المبيعات"), label("East", "الشرق"), label("West", "الغرب")];
+    const source = ["Sales", "East", "66", "West", "40"];
+
+    expect(
+      relabelProblems(labels, source, ["المبيعات", "الشرق", "66", "الغرب", "40", "المبيعات"]),
+    ).toEqual(['the Arabic label "المبيعات" appears 2 of 1 times']);
+    expect(relabelProblems(labels, source, ["المبيعات", "الغرب", "66", "الشرق", "40"])).toEqual([
+      'the Arabic label "الغرب" is where "الشرق" should be',
+    ]);
+  });
+
+  it("finds a source word left beside its Arabic, and a label split over two blocks", () => {
+    const labels = [label("Sum of Units", "مجموع الوحدات"), label("Grand Total", "الإجمالي العام")];
+    const source = ["Sum of Units", "Grand Total", "66"];
+
+    expect(
+      relabelProblems(labels, source, ["مجموع الوحدات Units", "الإجمالي العام", "66"]),
+    ).toEqual(['the source word "units" is still there']);
+    expect(
+      relabelProblems(labels, source, ["مجموع الوحدات", "الإجمالي العام", "Grand", "Total", "66"]),
+    ).toEqual(['the source word "grand" is still there', 'the source word "total" is still there']);
+  });
+
+  it("finds a title in capitals the reading missed still in the image, but keeps an acronym", () => {
+    const labels = [label("Region", "المنطقة")];
+    const source = ["SALES REPORT", "Region", "ETL"];
+
+    expect(relabelProblems(labels, source, ["SALES REPORT", "المنطقة", "ETL"])).toEqual([
+      'the source text "SALES REPORT" is still there',
+    ]);
+  });
 });
 
 describe("the glossary check", () => {
@@ -134,7 +175,7 @@ describe("the glossary check", () => {
 });
 
 describe("the figures to try", () => {
-  it("puts the figures under the headings the lesson quotes first, in its order, then the rest", () => {
+  it("puts the figures under the headings the lesson quotes first, in its order, then the rest, each file once", () => {
     const pages = [
       {
         sections: [
@@ -142,19 +183,25 @@ describe("the figures to try", () => {
           { index: 3, heading: "Graphiques" },
         ],
         figures: [
-          { id: "logo", heading: "Sommaire" },
-          { id: "chart", heading: "Graphiques" },
-          { id: "cells", heading: "Fonctionnement" },
+          { file_page: "logo", heading: "Sommaire" },
+          { file_page: "chart", heading: "Graphiques" },
+          { file_page: "cells", heading: "Fonctionnement" },
         ],
       },
       {
         sections: [{ index: 0, heading: "Origines" }],
-        figures: [{ id: "visicalc", heading: "Origines" }],
+        figures: [{ file_page: "visicalc", heading: "Origines" }],
       },
-      { sections: [], figures: [{ id: "unquoted", heading: "Exemple" }] },
+      {
+        sections: [],
+        figures: [
+          { file_page: "visicalc", heading: "Histoire" },
+          { file_page: "unquoted", heading: "Exemple" },
+        ],
+      },
     ];
 
-    expect(rankFigures(pages).map((f) => [f.id, f.section])).toEqual([
+    expect(rankFigures(pages).map((f) => [f.file_page, f.section])).toEqual([
       ["visicalc", 0],
       ["cells", 1],
       ["chart", 3],

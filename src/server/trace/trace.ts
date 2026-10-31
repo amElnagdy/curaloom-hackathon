@@ -57,7 +57,8 @@ export function sessionClock(store: Store, sessionId: string): TraceClock {
 type Tally = { count: number; total: number };
 
 // One tally per session per store, shared by every tracer in the process, so tracers in different
-// requests (a dummy run, a clock jump) never reuse an id. It is read from the stored trace once.
+// requests (a dummy run, a clock jump) never reuse an id. It is read from the stored trace once,
+// and again after the trace is deleted under the server (`pnpm demo:reset`).
 const tallies = new WeakMap<Store, Map<string, Tally>>();
 
 function tallyOf(store: Store, sessionId: string): Tally {
@@ -67,7 +68,7 @@ function tallyOf(store: Store, sessionId: string): Tally {
     tallies.set(store, sessions);
   }
   let tally = sessions.get(sessionId);
-  if (!tally) {
+  if (!tally || !store.hasTrace(sessionId)) {
     const existing = store.readTrace<TraceEvent>(sessionId);
     tally = {
       count: existing.length,
