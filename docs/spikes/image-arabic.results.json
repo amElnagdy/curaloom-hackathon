@@ -1,0 +1,4413 @@
+{
+  "run_cost_usd": 1.2022,
+  "all_cached_calls_cost_usd": 1.2671,
+  "cached_calls": 117,
+  "sam_controls": [
+    {
+      "image": "apple",
+      "phrase": "apple",
+      "matches": 1,
+      "http_status": 200,
+      "cost_usd": 0.0025
+    },
+    {
+      "image": "sign",
+      "phrase": "text",
+      "matches": 0,
+      "http_status": 200,
+      "cost_usd": 0.0025
+    },
+    {
+      "image": "sign",
+      "phrase": "street sign",
+      "matches": 1,
+      "http_status": 200,
+      "cost_usd": 0.0025
+    },
+    {
+      "image": "sign",
+      "phrase": "letter",
+      "matches": 23,
+      "http_status": 200,
+      "cost_usd": 0.0025
+    },
+    {
+      "image": "dwh",
+      "phrase": "rectangle",
+      "matches": 25,
+      "http_status": 200,
+      "cost_usd": 0.0025
+    },
+    {
+      "image": "dwh",
+      "phrase": "arrow",
+      "matches": 7,
+      "http_status": 200,
+      "cost_usd": 0.0025
+    },
+    {
+      "image": "dwh",
+      "phrase": "cylinder",
+      "matches": 2,
+      "http_status": 200,
+      "cost_usd": 0.0025
+    }
+  ],
+  "results": [
+    {
+      "diagram": {
+        "id": "pivot",
+        "lang": "en",
+        "title": "Pivot table: sum of units by region and ship date",
+        "page": "https://commons.wikimedia.org/wiki/File:Pivottable-Pivoted.PNG",
+        "file_url": "https://upload.wikimedia.org/wikipedia/commons/6/63/Pivottable-Pivoted.PNG",
+        "author": "Wikidan829, later version by Jbarta (English Wikipedia)",
+        "license": "Public domain"
+      },
+      "source_size": [
+        558,
+        137
+      ],
+      "working_size": [
+        1116,
+        274
+      ],
+      "scale": 2,
+      "labels": [
+        {
+          "src": "Sum of Units",
+          "ar": "مجموع الوحدات",
+          "spark_box": [
+            6,
+            5,
+            145,
+            29
+          ],
+          "sam_refined_box": [
+            0,
+            2,
+            162,
+            33
+          ],
+          "sam_iou_with_spark": 0.66,
+          "sam_box": [
+            0,
+            2,
+            162,
+            33
+          ],
+          "snap_box": [
+            2,
+            7,
+            162,
+            32
+          ],
+          "best_box": [
+            2,
+            7,
+            162,
+            32
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Ship Date",
+          "ar": "تاريخ الشحن",
+          "spark_box": [
+            160,
+            5,
+            283,
+            29
+          ],
+          "sam_refined_box": [
+            166,
+            2,
+            297,
+            33
+          ],
+          "sam_iou_with_spark": 0.67,
+          "sam_box": [
+            166,
+            2,
+            297,
+            33
+          ],
+          "snap_box": [
+            135,
+            7,
+            308,
+            32
+          ],
+          "best_box": [
+            135,
+            7,
+            308,
+            32
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Region",
+          "ar": "المنطقة",
+          "spark_box": [
+            6,
+            38,
+            94,
+            62
+          ],
+          "sam_refined_box": [
+            0,
+            39,
+            88,
+            67
+          ],
+          "sam_iou_with_spark": 0.7,
+          "sam_box": [
+            0,
+            39,
+            88,
+            67
+          ],
+          "snap_box": [
+            2,
+            41,
+            85,
+            66
+          ],
+          "best_box": [
+            2,
+            41,
+            85,
+            66
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "East",
+          "ar": "الشرق",
+          "spark_box": [
+            7,
+            73,
+            67,
+            96
+          ],
+          "sam_refined_box": [
+            0,
+            71,
+            66,
+            98
+          ],
+          "sam_iou_with_spark": 0.75,
+          "sam_box": [
+            0,
+            71,
+            66,
+            98
+          ],
+          "snap_box": [
+            5,
+            75,
+            88,
+            96
+          ],
+          "best_box": [
+            5,
+            75,
+            88,
+            96
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "North",
+          "ar": "الشمال",
+          "spark_box": [
+            7,
+            107,
+            80,
+            130
+          ],
+          "sam_refined_box": [
+            0,
+            107,
+            71,
+            131
+          ],
+          "sam_iou_with_spark": 0.77,
+          "sam_box": [
+            0,
+            107,
+            71,
+            131
+          ],
+          "snap_box": [
+            7,
+            110,
+            68,
+            130
+          ],
+          "best_box": [
+            7,
+            110,
+            68,
+            130
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "South",
+          "ar": "الجنوب",
+          "spark_box": [
+            7,
+            141,
+            80,
+            164
+          ],
+          "sam_refined_box": [
+            2,
+            140,
+            79,
+            166
+          ],
+          "sam_iou_with_spark": 0.82,
+          "sam_box": [
+            2,
+            140,
+            79,
+            166
+          ],
+          "snap_box": [
+            5,
+            143,
+            72,
+            164
+          ],
+          "best_box": [
+            5,
+            143,
+            72,
+            164
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "West",
+          "ar": "الغرب",
+          "spark_box": [
+            7,
+            175,
+            76,
+            199
+          ],
+          "sam_refined_box": [
+            0,
+            174,
+            75,
+            201
+          ],
+          "sam_iou_with_spark": 0.8,
+          "sam_box": [
+            0,
+            174,
+            75,
+            201
+          ],
+          "snap_box": [
+            5,
+            177,
+            82,
+            198
+          ],
+          "best_box": [
+            5,
+            177,
+            82,
+            198
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "(blank)",
+          "ar": "(فارغ)",
+          "spark_box": [
+            6,
+            210,
+            90,
+            233
+          ],
+          "sam_refined_box": [
+            3,
+            209,
+            85,
+            237
+          ],
+          "sam_iou_with_spark": 0.75,
+          "sam_box": [
+            3,
+            209,
+            85,
+            237
+          ],
+          "snap_box": [
+            7,
+            211,
+            114,
+            236
+          ],
+          "best_box": [
+            7,
+            211,
+            114,
+            236
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Grand Total",
+          "ar": "المجموع الكلي",
+          "spark_box": [
+            6,
+            244,
+            131,
+            267
+          ],
+          "sam_refined_box": [
+            0,
+            241,
+            142,
+            271
+          ],
+          "sam_iou_with_spark": 0.67,
+          "sam_box": [
+            0,
+            241,
+            142,
+            271
+          ],
+          "snap_box": [
+            7,
+            245,
+            138,
+            266
+          ],
+          "best_box": [
+            7,
+            245,
+            138,
+            266
+          ],
+          "best_from": "spark_snapped"
+        }
+      ],
+      "sam_concept_matches": {
+        "text": 0,
+        "text label": 0,
+        "word": 0,
+        "words": 0,
+        "label": 0,
+        "letter": 0,
+        "character": 0,
+        "writing": 0,
+        "caption": 0
+      },
+      "labels_with_sam_concept_box": 0,
+      "sam_box_prompt": {
+        "calls": 1,
+        "records": 9,
+        "kept": 9,
+        "output_prefix": "<0f>0<|box;x1=0;y1=2;x2=162;y2=33;w=1116;h=274;c=0.9453125|><|mask;x=0;y=0;c=0.9453125;data=32,163,~!!!6c!4DI/N@ONKPeK:^=vZdfKGpQQodRK!?%GS5$.3m#Y]2jnW7wotwRv9b$!91&ujDoRNRH7qf&^69'j6oiib^:=D*H73rrpU1)`m/@Rb^Rk$^F5rFV0y=^V=%'*H4Fz$Fo1oKL'uel)&Jtl34@XhRCWCtNuZd=gjeNB[-!kDeZ-pF2F5Md6Fkk5gu:7U/gAyuxaS-"
+      },
+      "muse": {
+        "ok": true,
+        "http_status": 200,
+        "size": [
+          2928,
+          720
+        ],
+        "prompt": "Edit this diagram: replace each text below with its Arabic translation, everywhere it appears.\nChange nothing else. Keep the layout, shapes, colours, lines, numbers, dates and acronyms exactly as they are.\nWrite the Arabic right to left, with correctly joined letters, in a plain sans-serif font sized to fit the space of the text it replaces.\n\"Sum of Units\" -> \"مجموع الوحدات\"\n\"Ship Date\" -> \"تاريخ الشحن\"\n\"Region\" -> \"المنطقة\"\n\"East\" -> \"الشرق\"\n\"North\" -> \"الشمال\"\n\"South\" -> \"الجنوب\"\n\"West\" -> \"الغرب\"\n\"(blank)\" -> \"(فارغ)\"\n\"Grand Total\" -> \"المجموع الكلي\"",
+        "error": null,
+        "repeat_samples": 2,
+        "repeat_http_status": 200
+      },
+      "spark_checks": {
+        "muse": {
+          "issues": [],
+          "pass": true
+        },
+        "muse_repeat_1": {
+          "issues": [
+            "Top header 'مجموع الوحدات' is rendered left-to-right with words in reverse order instead of right-to-left joined Arabic",
+            "Header 'تاريخ الشحن' is rendered left-to-right with words in reverse order instead of right-to-left joined Arabic",
+            "Row label 'المنطقة' is rendered left-to-right with disconnected letters instead of right-to-left joined form",
+            "Row labels 'الشرق', 'الشمال', 'الجنوب', 'الغرب' are rendered left-to-right with disconnected letters instead of right-to-left joined form",
+            "Row label '(فارغ)' is rendered left-to-right with reversed order/parentheses instead of right-to-left joined form",
+            "Bottom label 'المجموع الكلي' is rendered left-to-right with words in reverse order instead of right-to-left joined Arabic"
+          ],
+          "pass": false
+        },
+        "muse_repeat_2": {
+          "issues": [],
+          "pass": true
+        },
+        "svg": {
+          "issues": [
+            "Ship Date dropdown arrow/button visible in image 1 to the right of 'Ship Date' is missing in image 2 to the right of 'تاريخ الشحن'",
+            "Vertical grid line separating the 'Sum of Units' and 'Ship Date' header cells in image 1 is missing/obscured in image 2 where 'مجموع الوحدات' and 'تاريخ الشحن' run together"
+          ],
+          "pass": false
+        }
+      },
+      "readback_checks": {
+        "muse": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_1": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_2": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "svg": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        }
+      },
+      "svg": {
+        "font_loaded": true,
+        "boxes_widened": {
+          "best": 0,
+          "sam_box_prompt": 0,
+          "spark": 0
+        }
+      },
+      "evidence": {
+        "source": "img/pivot-source.webp",
+        "boxes": "img/pivot-boxes.webp",
+        "masks": "img/pivot-masks.webp",
+        "svg": "img/pivot-svg.webp",
+        "svg_sam_box_prompt": "img/pivot-svg-sam.webp",
+        "svg_spark_boxes": "img/pivot-svg-spark.webp",
+        "muse": "img/pivot-muse.webp",
+        "muse_repeats": "img/pivot-muse-repeats.webp"
+      },
+      "calls": [
+        {
+          "at": 1793469068.3191512,
+          "name": "spark-pivot",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 13868,
+          "cost_usd": 0.01114
+        },
+        {
+          "at": 1793469070.3223438,
+          "name": "sam-pivot-text",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1986,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469071.819081,
+          "name": "sam-pivot-text_label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1486,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469073.4002109,
+          "name": "sam-pivot-word",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1575,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469165.672682,
+          "name": "sam-pivot-words",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2067,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469157.624795,
+          "name": "sam-pivot-label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1696,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469246.496771,
+          "name": "sam-pivot-letter",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1133,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469247.8253179,
+          "name": "sam-pivot-character",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1323,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469160.784174,
+          "name": "sam-pivot-writing",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1849,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469161.8246138,
+          "name": "sam-pivot-caption",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1032,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469075.275768,
+          "name": "sam-pivot-boxes0",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1866,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469093.4170601,
+          "name": "muse-pivot",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 18132,
+          "cost_usd": 0.01
+        },
+        {
+          "at": 1793469865.7871418,
+          "name": "muse-pivot-repeat",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 27391,
+          "cost_usd": 0.02
+        },
+        {
+          "at": 1793469885.797981,
+          "name": "verify-pivot-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 14874,
+          "cost_usd": 0.0197
+        },
+        {
+          "at": 1793469915.580318,
+          "name": "verify-pivot-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 29671,
+          "cost_usd": 0.03864
+        },
+        {
+          "at": 1793469933.3309991,
+          "name": "verify-pivot-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 17636,
+          "cost_usd": 0.02137
+        },
+        {
+          "at": 1793469974.162966,
+          "name": "verify-pivot-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 40811,
+          "cost_usd": 0.05253
+        },
+        {
+          "at": 1793470469.243808,
+          "name": "readback-pivot-source",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 4802,
+          "cost_usd": 0.00573
+        },
+        {
+          "at": 1793470474.9372659,
+          "name": "readback-pivot-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 10412,
+          "cost_usd": 0.01049
+        },
+        {
+          "at": 1793470476.3952582,
+          "name": "readback-pivot-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 11866,
+          "cost_usd": 0.0139
+        },
+        {
+          "at": 1793470476.938763,
+          "name": "readback-pivot-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 12412,
+          "cost_usd": 0.01266
+        },
+        {
+          "at": 1793470509.2120728,
+          "name": "readback-pivot-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 44769,
+          "cost_usd": 0.05379
+        }
+      ]
+    },
+    {
+      "diagram": {
+        "id": "flat",
+        "lang": "en",
+        "title": "Source data of the pivot table",
+        "page": "https://commons.wikimedia.org/wiki/File:Pivottable-Flatdata.png",
+        "file_url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Pivottable-Flatdata.png",
+        "author": "Wikidan829 (English Wikipedia)",
+        "license": "Public domain"
+      },
+      "source_size": [
+        475,
+        222
+      ],
+      "working_size": [
+        1425,
+        666
+      ],
+      "scale": 3,
+      "labels": [
+        {
+          "src": "Region",
+          "ar": "منطقة",
+          "spark_box": [
+            86,
+            53,
+            221,
+            100
+          ],
+          "sam_refined_box": [
+            87,
+            62,
+            221,
+            102
+          ],
+          "sam_iou_with_spark": 0.77,
+          "sam_box": [
+            87,
+            62,
+            221,
+            102
+          ],
+          "snap_box": [
+            81,
+            54,
+            219,
+            101
+          ],
+          "best_box": [
+            81,
+            54,
+            219,
+            101
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Gender",
+          "ar": "الجنس",
+          "spark_box": [
+            274,
+            53,
+            430,
+            100
+          ],
+          "sam_refined_box": [
+            277,
+            61,
+            425,
+            99
+          ],
+          "sam_iou_with_spark": 0.77,
+          "sam_box": [
+            277,
+            61,
+            425,
+            99
+          ],
+          "snap_box": [
+            273,
+            54,
+            419,
+            93
+          ],
+          "best_box": [
+            273,
+            54,
+            419,
+            93
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Style",
+          "ar": "الطراز",
+          "spark_box": [
+            442,
+            53,
+            542,
+            100
+          ],
+          "sam_refined_box": [
+            465,
+            61,
+            562,
+            102
+          ],
+          "sam_iou_with_spark": 0.53,
+          "sam_box": [
+            465,
+            61,
+            562,
+            102
+          ],
+          "snap_box": [
+            455,
+            54,
+            576,
+            101
+          ],
+          "best_box": [
+            455,
+            54,
+            576,
+            101
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Ship Date",
+          "ar": "تاريخ الشحن",
+          "spark_box": [
+            658,
+            53,
+            869,
+            100
+          ],
+          "sam_refined_box": [
+            662,
+            61,
+            854,
+            102
+          ],
+          "sam_iou_with_spark": 0.73,
+          "sam_box": [
+            662,
+            61,
+            854,
+            102
+          ],
+          "snap_box": [
+            657,
+            54,
+            915,
+            101
+          ],
+          "best_box": [
+            657,
+            54,
+            915,
+            101
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Units",
+          "ar": "الوحدات",
+          "spark_box": [
+            886,
+            53,
+            983,
+            100
+          ],
+          "sam_refined_box": [
+            881,
+            53,
+            982,
+            103
+          ],
+          "sam_iou_with_spark": 0.89,
+          "sam_box": [
+            881,
+            53,
+            982,
+            103
+          ],
+          "snap_box": [
+            849,
+            54,
+            960,
+            93
+          ],
+          "best_box": [
+            849,
+            54,
+            960,
+            93
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Price",
+          "ar": "السعر",
+          "spark_box": [
+            1063,
+            53,
+            1161,
+            100
+          ],
+          "sam_refined_box": [
+            1044,
+            58,
+            1148,
+            100
+          ],
+          "sam_iou_with_spark": 0.66,
+          "sam_box": [
+            1044,
+            58,
+            1148,
+            100
+          ],
+          "snap_box": [
+            1041,
+            54,
+            1209,
+            93
+          ],
+          "best_box": [
+            1041,
+            54,
+            1209,
+            93
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Cost",
+          "ar": "التكلفة",
+          "spark_box": [
+            1237,
+            53,
+            1332,
+            100
+          ],
+          "sam_refined_box": [
+            1238,
+            60,
+            1325,
+            98
+          ],
+          "sam_iou_with_spark": 0.74,
+          "sam_box": [
+            1238,
+            60,
+            1325,
+            98
+          ],
+          "snap_box": [
+            1233,
+            54,
+            1380,
+            93
+          ],
+          "best_box": [
+            1233,
+            54,
+            1380,
+            93
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "East",
+          "ar": "الشرق",
+          "spark_box": [
+            86,
+            110,
+            168,
+            150
+          ],
+          "sam_refined_box": [
+            86,
+            112,
+            167,
+            146
+          ],
+          "sam_iou_with_spark": 0.84,
+          "sam_box": [
+            86,
+            112,
+            167,
+            146
+          ],
+          "snap_box": [
+            81,
+            113,
+            207,
+            144
+          ],
+          "best_box": [
+            81,
+            113,
+            207,
+            144
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Boy",
+          "ar": "ولد",
+          "spark_box": [
+            274,
+            110,
+            345,
+            150
+          ],
+          "sam_refined_box": [
+            277,
+            112,
+            346,
+            153
+          ],
+          "sam_iou_with_spark": 0.84,
+          "sam_box": [
+            277,
+            112,
+            346,
+            153
+          ],
+          "snap_box": [
+            281,
+            113,
+            386,
+            152
+          ],
+          "best_box": [
+            281,
+            113,
+            386,
+            152
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Tee",
+          "ar": "تي",
+          "spark_box": [
+            442,
+            110,
+            506,
+            150
+          ],
+          "sam_refined_box": [
+            433,
+            105,
+            508,
+            154
+          ],
+          "sam_iou_with_spark": 0.7,
+          "sam_box": [
+            433,
+            105,
+            508,
+            154
+          ],
+          "snap_box": [
+            470,
+            113,
+            547,
+            144
+          ],
+          "best_box": [
+            470,
+            113,
+            547,
+            144
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "East",
+          "ar": "الشرق",
+          "spark_box": [
+            86,
+            157,
+            168,
+            196
+          ],
+          "sam_refined_box": [
+            85,
+            161,
+            167,
+            197
+          ],
+          "sam_iou_with_spark": 0.86,
+          "sam_box": [
+            85,
+            161,
+            167,
+            197
+          ],
+          "snap_box": [
+            81,
+            164,
+            165,
+            195
+          ],
+          "best_box": [
+            81,
+            164,
+            165,
+            195
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Boy",
+          "ar": "ولد",
+          "spark_box": [
+            274,
+            157,
+            345,
+            196
+          ],
+          "sam_refined_box": [
+            276,
+            163,
+            347,
+            204
+          ],
+          "sam_iou_with_spark": 0.67,
+          "sam_box": [
+            276,
+            163,
+            347,
+            204
+          ],
+          "snap_box": [
+            281,
+            164,
+            345,
+            203
+          ],
+          "best_box": [
+            281,
+            164,
+            345,
+            203
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Golf",
+          "ar": "جولف",
+          "spark_box": [
+            442,
+            157,
+            523,
+            196
+          ],
+          "sam_refined_box": [
+            444,
+            156,
+            543,
+            201
+          ],
+          "sam_iou_with_spark": 0.68,
+          "sam_box": [
+            444,
+            156,
+            543,
+            201
+          ],
+          "snap_box": [
+            473,
+            164,
+            563,
+            195
+          ],
+          "best_box": [
+            473,
+            164,
+            563,
+            195
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "East",
+          "ar": "الشرق",
+          "spark_box": [
+            86,
+            206,
+            168,
+            246
+          ],
+          "sam_refined_box": [
+            86,
+            213,
+            167,
+            247
+          ],
+          "sam_iou_with_spark": 0.8,
+          "sam_box": [
+            86,
+            213,
+            167,
+            247
+          ],
+          "snap_box": [
+            81,
+            207,
+            165,
+            246
+          ],
+          "best_box": [
+            81,
+            207,
+            165,
+            246
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Boy",
+          "ar": "ولد",
+          "spark_box": [
+            274,
+            206,
+            345,
+            246
+          ],
+          "sam_refined_box": [
+            277,
+            213,
+            347,
+            255
+          ],
+          "sam_iou_with_spark": 0.63,
+          "sam_box": [
+            277,
+            213,
+            347,
+            255
+          ],
+          "snap_box": [
+            281,
+            215,
+            345,
+            254
+          ],
+          "best_box": [
+            281,
+            215,
+            345,
+            254
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Fancy",
+          "ar": "فاخر",
+          "spark_box": [
+            442,
+            206,
+            560,
+            246
+          ],
+          "sam_refined_box": [
+            466,
+            211,
+            578,
+            255
+          ],
+          "sam_iou_with_spark": 0.52,
+          "sam_box": [
+            466,
+            211,
+            578,
+            255
+          ],
+          "snap_box": [
+            470,
+            215,
+            576,
+            254
+          ],
+          "best_box": [
+            470,
+            215,
+            576,
+            254
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "East",
+          "ar": "الشرق",
+          "spark_box": [
+            86,
+            256,
+            168,
+            296
+          ],
+          "sam_refined_box": [
+            86,
+            264,
+            166,
+            298
+          ],
+          "sam_iou_with_spark": 0.74,
+          "sam_box": [
+            86,
+            264,
+            166,
+            298
+          ],
+          "snap_box": [
+            81,
+            258,
+            165,
+            297
+          ],
+          "best_box": [
+            81,
+            258,
+            165,
+            297
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Girl",
+          "ar": "فتاة",
+          "spark_box": [
+            274,
+            256,
+            342,
+            296
+          ],
+          "sam_refined_box": [
+            275,
+            259,
+            339,
+            299
+          ],
+          "sam_iou_with_spark": 0.81,
+          "sam_box": [
+            275,
+            259,
+            339,
+            299
+          ],
+          "snap_box": [
+            281,
+            266,
+            345,
+            297
+          ],
+          "best_box": [
+            281,
+            266,
+            345,
+            297
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Tee",
+          "ar": "تي",
+          "spark_box": [
+            442,
+            256,
+            506,
+            296
+          ],
+          "sam_refined_box": [
+            456,
+            257,
+            531,
+            300
+          ],
+          "sam_iou_with_spark": 0.51,
+          "sam_box": [
+            456,
+            257,
+            531,
+            300
+          ],
+          "snap_box": [
+            470,
+            266,
+            547,
+            297
+          ],
+          "best_box": [
+            470,
+            266,
+            547,
+            297
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "East",
+          "ar": "الشرق",
+          "spark_box": [
+            86,
+            303,
+            168,
+            343
+          ],
+          "sam_refined_box": [
+            86,
+            315,
+            167,
+            349
+          ],
+          "sam_iou_with_spark": 0.6,
+          "sam_box": [
+            86,
+            315,
+            167,
+            349
+          ],
+          "snap_box": [
+            81,
+            305,
+            165,
+            348
+          ],
+          "best_box": [
+            81,
+            305,
+            165,
+            348
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Girl",
+          "ar": "فتاة",
+          "spark_box": [
+            274,
+            303,
+            342,
+            343
+          ],
+          "sam_refined_box": [
+            274,
+            309,
+            341,
+            349
+          ],
+          "sam_iou_with_spark": 0.73,
+          "sam_box": [
+            274,
+            309,
+            341,
+            349
+          ],
+          "snap_box": [
+            281,
+            317,
+            336,
+            348
+          ],
+          "best_box": [
+            281,
+            317,
+            336,
+            348
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Golf",
+          "ar": "جولف",
+          "spark_box": [
+            442,
+            303,
+            523,
+            343
+          ],
+          "sam_refined_box": [
+            462,
+            306,
+            543,
+            349
+          ],
+          "sam_iou_with_spark": 0.51,
+          "sam_box": [
+            462,
+            306,
+            543,
+            349
+          ],
+          "snap_box": [
+            471,
+            317,
+            543,
+            348
+          ],
+          "best_box": [
+            471,
+            317,
+            543,
+            348
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "East",
+          "ar": "الشرق",
+          "spark_box": [
+            86,
+            350,
+            168,
+            390
+          ],
+          "sam_refined_box": [
+            88,
+            367,
+            166,
+            399
+          ],
+          "sam_iou_with_spark": 0.45,
+          "sam_box": [
+            88,
+            367,
+            166,
+            399
+          ],
+          "snap_box": [
+            81,
+            356,
+            174,
+            399
+          ],
+          "best_box": [
+            81,
+            356,
+            174,
+            399
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Girl",
+          "ar": "فتاة",
+          "spark_box": [
+            274,
+            350,
+            342,
+            390
+          ],
+          "sam_refined_box": [
+            274,
+            360,
+            338,
+            399
+          ],
+          "sam_iou_with_spark": 0.58,
+          "sam_box": [
+            274,
+            360,
+            338,
+            399
+          ],
+          "snap_box": [
+            281,
+            368,
+            336,
+            399
+          ],
+          "best_box": [
+            281,
+            368,
+            336,
+            399
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Fancy",
+          "ar": "فاخر",
+          "spark_box": [
+            442,
+            350,
+            560,
+            390
+          ],
+          "sam_refined_box": [
+            470,
+            367,
+            576,
+            399
+          ],
+          "sam_iou_with_spark": 0.34,
+          "sam_box": [
+            470,
+            367,
+            576,
+            399
+          ],
+          "snap_box": [
+            470,
+            368,
+            576,
+            407
+          ],
+          "best_box": [
+            470,
+            368,
+            576,
+            407
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "West",
+          "ar": "الغرب",
+          "spark_box": [
+            86,
+            396,
+            174,
+            436
+          ],
+          "sam_refined_box": [
+            85,
+            414,
+            177,
+            447
+          ],
+          "sam_iou_with_spark": 0.42,
+          "sam_box": [
+            85,
+            414,
+            177,
+            447
+          ],
+          "snap_box": [
+            81,
+            368,
+            177,
+            450
+          ],
+          "best_box": [
+            86,
+            396,
+            174,
+            436
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Boy",
+          "ar": "ولد",
+          "spark_box": [
+            274,
+            396,
+            345,
+            436
+          ],
+          "sam_refined_box": [
+            274,
+            400,
+            345,
+            440
+          ],
+          "sam_iou_with_spark": 0.82,
+          "sam_box": [
+            274,
+            400,
+            345,
+            440
+          ],
+          "snap_box": [
+            281,
+            368,
+            345,
+            458
+          ],
+          "best_box": [
+            274,
+            396,
+            345,
+            436
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Tee",
+          "ar": "تي",
+          "spark_box": [
+            442,
+            396,
+            506,
+            436
+          ],
+          "sam_refined_box": [
+            438,
+            401,
+            514,
+            440
+          ],
+          "sam_iou_with_spark": 0.68,
+          "sam_box": [
+            438,
+            401,
+            514,
+            440
+          ],
+          "snap_box": [
+            470,
+            368,
+            547,
+            450
+          ],
+          "best_box": [
+            442,
+            396,
+            506,
+            436
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "West",
+          "ar": "الغرب",
+          "spark_box": [
+            86,
+            443,
+            174,
+            483
+          ],
+          "sam_refined_box": [
+            90,
+            442,
+            177,
+            462
+          ],
+          "sam_iou_with_spark": 0.44,
+          "sam_box": [
+            90,
+            442,
+            177,
+            462
+          ],
+          "snap_box": [
+            81,
+            419,
+            177,
+            501
+          ],
+          "best_box": [
+            86,
+            443,
+            174,
+            483
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Boy",
+          "ar": "ولد",
+          "spark_box": [
+            274,
+            443,
+            345,
+            483
+          ],
+          "sam_refined_box": [
+            273,
+            434,
+            349,
+            480
+          ],
+          "sam_iou_with_spark": 0.71,
+          "sam_box": [
+            273,
+            434,
+            349,
+            480
+          ],
+          "snap_box": [
+            281,
+            419,
+            345,
+            509
+          ],
+          "best_box": [
+            274,
+            443,
+            345,
+            483
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Golf",
+          "ar": "جولف",
+          "spark_box": [
+            442,
+            443,
+            523,
+            483
+          ],
+          "sam_refined_box": [
+            441,
+            440,
+            532,
+            481
+          ],
+          "sam_iou_with_spark": 0.79,
+          "sam_box": [
+            441,
+            440,
+            532,
+            481
+          ],
+          "snap_box": [
+            470,
+            419,
+            543,
+            501
+          ],
+          "best_box": [
+            442,
+            443,
+            523,
+            483
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "West",
+          "ar": "الغرب",
+          "spark_box": [
+            86,
+            493,
+            174,
+            533
+          ],
+          "sam_refined_box": [
+            86,
+            518,
+            175,
+            538
+          ],
+          "sam_iou_with_spark": 0.33,
+          "sam_box": [
+            86,
+            518,
+            175,
+            538
+          ],
+          "snap_box": [
+            81,
+            470,
+            177,
+            552
+          ],
+          "best_box": [
+            86,
+            493,
+            174,
+            533
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Boy",
+          "ar": "ولد",
+          "spark_box": [
+            274,
+            493,
+            345,
+            533
+          ],
+          "sam_refined_box": [
+            273,
+            480,
+            346,
+            535
+          ],
+          "sam_iou_with_spark": 0.71,
+          "sam_box": [
+            273,
+            480,
+            346,
+            535
+          ],
+          "snap_box": [
+            281,
+            470,
+            345,
+            560
+          ],
+          "best_box": [
+            274,
+            493,
+            345,
+            533
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Fancy",
+          "ar": "فاخر",
+          "spark_box": [
+            442,
+            493,
+            560,
+            533
+          ],
+          "sam_refined_box": [
+            457,
+            491,
+            576,
+            538
+          ],
+          "sam_iou_with_spark": 0.67,
+          "sam_box": [
+            457,
+            491,
+            576,
+            538
+          ],
+          "snap_box": [
+            473,
+            470,
+            576,
+            560
+          ],
+          "best_box": [
+            442,
+            493,
+            560,
+            533
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "West",
+          "ar": "الغرب",
+          "spark_box": [
+            86,
+            539,
+            174,
+            579
+          ],
+          "sam_refined_box": [
+            85,
+            523,
+            178,
+            565
+          ],
+          "sam_iou_with_spark": 0.45,
+          "sam_box": [
+            85,
+            523,
+            178,
+            565
+          ],
+          "snap_box": [
+            81,
+            521,
+            177,
+            603
+          ],
+          "best_box": [
+            86,
+            539,
+            174,
+            579
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Girl",
+          "ar": "فتاة",
+          "spark_box": [
+            274,
+            539,
+            342,
+            579
+          ],
+          "sam_refined_box": [
+            276,
+            531,
+            345,
+            566
+          ],
+          "sam_iou_with_spark": 0.53,
+          "sam_box": [
+            276,
+            531,
+            345,
+            566
+          ],
+          "snap_box": [
+            281,
+            521,
+            345,
+            603
+          ],
+          "best_box": [
+            274,
+            539,
+            342,
+            579
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Tee",
+          "ar": "تي",
+          "spark_box": [
+            442,
+            539,
+            506,
+            579
+          ],
+          "sam_refined_box": [
+            440,
+            534,
+            515,
+            577
+          ],
+          "sam_iou_with_spark": 0.73,
+          "sam_box": [
+            440,
+            534,
+            515,
+            577
+          ],
+          "snap_box": [
+            470,
+            521,
+            547,
+            603
+          ],
+          "best_box": [
+            442,
+            539,
+            506,
+            579
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "West",
+          "ar": "الغرب",
+          "spark_box": [
+            86,
+            593,
+            174,
+            646
+          ],
+          "sam_refined_box": [
+            84,
+            583,
+            179,
+            657
+          ],
+          "sam_iou_with_spark": 0.66,
+          "sam_box": [
+            84,
+            583,
+            179,
+            657
+          ],
+          "snap_box": [
+            81,
+            564,
+            177,
+            663
+          ],
+          "best_box": [
+            86,
+            593,
+            174,
+            646
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Girl",
+          "ar": "فتاة",
+          "spark_box": [
+            274,
+            593,
+            342,
+            646
+          ],
+          "sam_refined_box": [
+            279,
+            596,
+            338,
+            655
+          ],
+          "sam_iou_with_spark": 0.71,
+          "sam_box": [
+            279,
+            596,
+            338,
+            655
+          ],
+          "snap_box": [
+            273,
+            572,
+            339,
+            654
+          ],
+          "best_box": [
+            273,
+            572,
+            339,
+            654
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Golf",
+          "ar": "جولف",
+          "spark_box": [
+            442,
+            593,
+            523,
+            646
+          ],
+          "sam_refined_box": [
+            471,
+            583,
+            542,
+            655
+          ],
+          "sam_iou_with_spark": 0.41,
+          "sam_box": [
+            471,
+            583,
+            542,
+            655
+          ],
+          "snap_box": [
+            461,
+            572,
+            570,
+            654
+          ],
+          "best_box": [
+            442,
+            593,
+            523,
+            646
+          ],
+          "best_from": "spark"
+        }
+      ],
+      "sam_concept_matches": {
+        "text": 0,
+        "text label": 0,
+        "word": 0,
+        "words": 0,
+        "label": 0,
+        "letter": 0,
+        "character": 0,
+        "writing": 0,
+        "caption": 0
+      },
+      "labels_with_sam_concept_box": 0,
+      "sam_box_prompt": {
+        "calls": 3,
+        "records": 40,
+        "kept": 40,
+        "output_prefix": "<0f>0<|box;x1=87;y1=62;x2=221;y2=102;w=1425;h=666;c=0.8828125|><|mask;x=0;y=0;c=0.8828125;data=41,135,~!!!3t#Lh=]cuO#)Xolqns.a=:Xdd2y/seUwNPsW!vauis=0[qnOg=%T@*kp=[V'xyw_b^YP$sHSrPQsY6B7e$`cHSfJi.$a?x3nkT:-Ur*rmJkfWAF2:Vf9X$%h=PEDZE]WAVAnhu(((qh:sBAu2ZNv'AQ-l-VsWJQ2oDse(C4dtt?s&P:Fz&^wjFe#C5-wsllQ!K"
+      },
+      "muse": {
+        "ok": true,
+        "http_status": 200,
+        "size": [
+          2192,
+          1024
+        ],
+        "prompt": "Edit this diagram: replace each text below with its Arabic translation, everywhere it appears.\nChange nothing else. Keep the layout, shapes, colours, lines, numbers, dates and acronyms exactly as they are.\nWrite the Arabic right to left, with correctly joined letters, in a plain sans-serif font sized to fit the space of the text it replaces.\n\"Region\" -> \"منطقة\"\n\"Gender\" -> \"الجنس\"\n\"Style\" -> \"الطراز\"\n\"Ship Date\" -> \"تاريخ الشحن\"\n\"Units\" -> \"الوحدات\"\n\"Price\" -> \"السعر\"\n\"Cost\" -> \"التكلفة\"\n\"East\" -> \"الشرق\"\n\"Boy\" -> \"ولد\"\n\"Tee\" -> \"تي\"\n\"Golf\" -> \"جولف\"\n\"Fancy\" -> \"فاخر\"\n\"Girl\" -> \"فتاة\"\n\"West\" -> \"الغرب\"",
+        "error": null,
+        "repeat_samples": 2,
+        "repeat_http_status": 200
+      },
+      "spark_checks": {
+        "muse": {
+          "issues": [],
+          "pass": true
+        },
+        "muse_repeat_1": {
+          "issues": [],
+          "pass": true
+        },
+        "muse_repeat_2": {
+          "issues": [],
+          "pass": true
+        },
+        "svg": {
+          "issues": [
+            "Header D/E: expected 'تاريخ الشحن' and 'الوحدات' are overlapped/garbled together in columns D-E, so 'الوحدات' does not appear cleanly where 'Units' was",
+            "Table grid/lines from image 1 are obscured or removed in header row and columns A-C rows 2-12 by opaque white label backgrounds",
+            "Column A rows 3-7: East labels do not match expected 'الشرق' exactly - misrendered as 'الشرق' with missing/wrong joining/dots",
+            "Column B rows 8-11: 'ولد'/'فتاة' labels show faint duplicate ghost text and horizontal line artifacts overlapping the cells",
+            "Column C rows 8-12: Style labels expected 'تي'/'جولف'/'فاخر' are overlapped, illegible, with extra gray characters and stray marks",
+            "Row 12 column B: 'فتاة' rendered in different bold larger font overlapping adjacent cells, inconsistent with other labels",
+            "Row 12 column C and surrounding cells: extra added characters/marks not in image 1, including Latin 'f' fragment and 'ء' like fragments",
+            "Multiple Arabic labels show disconnected/unjoined letters and incorrect shaping rather than properly joined right-to-left text as required",
+            "New white boxes and stray fragments added throughout, changing shapes and lines from image 1"
+          ],
+          "pass": false
+        }
+      },
+      "readback_checks": {
+        "muse": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_1": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_2": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "svg": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        }
+      },
+      "svg": {
+        "font_loaded": true,
+        "boxes_widened": {
+          "best": 0,
+          "sam_box_prompt": 2,
+          "spark": 0
+        }
+      },
+      "evidence": {
+        "source": "img/flat-source.webp",
+        "boxes": "img/flat-boxes.webp",
+        "masks": "img/flat-masks.webp",
+        "svg": "img/flat-svg.webp",
+        "svg_sam_box_prompt": "img/flat-svg-sam.webp",
+        "svg_spark_boxes": "img/flat-svg-spark.webp",
+        "muse": "img/flat-muse.webp",
+        "muse_repeats": "img/flat-muse-repeats.webp"
+      },
+      "calls": [
+        {
+          "at": 1793469382.182476,
+          "name": "spark-flat",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 16143,
+          "cost_usd": 0.01778
+        },
+        {
+          "at": 1793469383.906244,
+          "name": "sam-flat-text",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1704,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469386.226885,
+          "name": "sam-flat-text_label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2301,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469387.810722,
+          "name": "sam-flat-word",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1553,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469389.732537,
+          "name": "sam-flat-words",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1891,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469391.614523,
+          "name": "sam-flat-label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1854,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469249.640073,
+          "name": "sam-flat-letter",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1540,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469251.251104,
+          "name": "sam-flat-character",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1594,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469393.3822432,
+          "name": "sam-flat-writing",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1711,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469395.5813,
+          "name": "sam-flat-caption",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2170,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469397.241224,
+          "name": "sam-flat-boxes0",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1643,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469398.955494,
+          "name": "sam-flat-boxes1",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1683,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469400.7410219,
+          "name": "sam-flat-boxes2",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1766,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469432.642317,
+          "name": "muse-flat",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 31877,
+          "cost_usd": 0.01
+        },
+        {
+          "at": 1793470017.272608,
+          "name": "muse-flat-repeat",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 42113,
+          "cost_usd": 0.02
+        },
+        {
+          "at": 1793470063.266518,
+          "name": "verify-flat-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 40420,
+          "cost_usd": 0.03335
+        },
+        {
+          "at": 1793470092.219862,
+          "name": "verify-flat-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 28804,
+          "cost_usd": 0.02892
+        },
+        {
+          "at": 1793470140.452644,
+          "name": "verify-flat-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 48087,
+          "cost_usd": 0.04712
+        },
+        {
+          "at": 1793470163.566706,
+          "name": "verify-flat-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 23065,
+          "cost_usd": 0.02154
+        },
+        {
+          "at": 1793470524.364981,
+          "name": "readback-flat-source",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 8658,
+          "cost_usd": 0.01095
+        },
+        {
+          "at": 1793470533.2668009,
+          "name": "readback-flat-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 17449,
+          "cost_usd": 0.01816
+        },
+        {
+          "at": 1793470530.9398348,
+          "name": "readback-flat-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 15117,
+          "cost_usd": 0.01471
+        },
+        {
+          "at": 1793470533.816816,
+          "name": "readback-flat-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 17999,
+          "cost_usd": 0.01871
+        },
+        {
+          "at": 1793470539.9000618,
+          "name": "readback-flat-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 24195,
+          "cost_usd": 0.0261
+        }
+      ]
+    },
+    {
+      "diagram": {
+        "id": "etl",
+        "lang": "zh",
+        "title": "ETL basic flow (ETL基本流程)",
+        "page": "https://commons.wikimedia.org/wiki/File:ETL%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B.png",
+        "file_url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/ETL%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B.png",
+        "author": "Aywstc",
+        "license": "CC BY-SA 4.0"
+      },
+      "source_size": [
+        575,
+        668
+      ],
+      "working_size": [
+        1150,
+        1336
+      ],
+      "scale": 2,
+      "labels": [
+        {
+          "src": "开始",
+          "ar": "البداية",
+          "spark_box": [
+            505,
+            61,
+            596,
+            110
+          ],
+          "sam_refined_box": [
+            496,
+            51,
+            597,
+            122
+          ],
+          "concept_box": [
+            521,
+            81,
+            591,
+            116
+          ],
+          "sam_iou_with_spark": 0.62,
+          "sam_box": [
+            496,
+            51,
+            597,
+            122
+          ],
+          "snap_box": [
+            455,
+            52,
+            646,
+            137
+          ],
+          "best_box": [
+            521,
+            81,
+            591,
+            116
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "抽取定义",
+          "ar": "تعريف الاستخراج",
+          "spark_box": [
+            469,
+            278,
+            621,
+            335
+          ],
+          "sam_refined_box": [
+            453,
+            272,
+            633,
+            333
+          ],
+          "concept_box": [
+            485,
+            272,
+            629,
+            309
+          ],
+          "sam_iou_with_spark": 0.74,
+          "sam_box": [
+            453,
+            272,
+            633,
+            333
+          ],
+          "snap_box": [
+            484,
+            274,
+            628,
+            307
+          ],
+          "best_box": [
+            485,
+            272,
+            629,
+            309
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "数据抽取",
+          "ar": "استخراج البيانات",
+          "spark_box": [
+            486,
+            477,
+            624,
+            530
+          ],
+          "sam_refined_box": [
+            472,
+            469,
+            630,
+            527
+          ],
+          "concept_box": [
+            485,
+            470,
+            628,
+            506
+          ],
+          "sam_iou_with_spark": 0.72,
+          "sam_box": [
+            472,
+            469,
+            630,
+            527
+          ],
+          "snap_box": [
+            464,
+            442,
+            646,
+            525
+          ],
+          "best_box": [
+            485,
+            470,
+            628,
+            506
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "数据存储",
+          "ar": "تخزين البيانات",
+          "spark_box": [
+            486,
+            668,
+            623,
+            721
+          ],
+          "sam_refined_box": [
+            484,
+            658,
+            628,
+            718
+          ],
+          "concept_box": [
+            485,
+            657,
+            627,
+            693
+          ],
+          "sam_iou_with_spark": 0.76,
+          "sam_box": [
+            484,
+            658,
+            628,
+            718
+          ],
+          "snap_box": [
+            484,
+            658,
+            627,
+            693
+          ],
+          "best_box": [
+            485,
+            657,
+            627,
+            693
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "清洗",
+          "ar": "التنظيف",
+          "spark_box": [
+            84,
+            943,
+            169,
+            995
+          ],
+          "sam_refined_box": [
+            59,
+            932,
+            180,
+            988
+          ],
+          "concept_box": [
+            114,
+            899,
+            187,
+            934
+          ],
+          "sam_iou_with_spark": 0.52,
+          "sam_box": [
+            59,
+            932,
+            180,
+            988
+          ],
+          "snap_box": [
+            115,
+            954,
+            173,
+            979
+          ],
+          "best_box": [
+            114,
+            899,
+            187,
+            934
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "转换",
+          "ar": "التحويل",
+          "spark_box": [
+            378,
+            943,
+            462,
+            995
+          ],
+          "sam_refined_box": [
+            363,
+            933,
+            467,
+            987
+          ],
+          "concept_box": [
+            403,
+            900,
+            474,
+            935
+          ],
+          "sam_iou_with_spark": 0.59,
+          "sam_box": [
+            363,
+            933,
+            467,
+            987
+          ],
+          "snap_box": [
+            402,
+            948,
+            515,
+            978
+          ],
+          "best_box": [
+            403,
+            900,
+            474,
+            935
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "关联",
+          "ar": "الربط",
+          "spark_box": [
+            670,
+            943,
+            754,
+            994
+          ],
+          "sam_refined_box": [
+            649,
+            932,
+            759,
+            987
+          ],
+          "concept_box": [
+            684,
+            898,
+            755,
+            934
+          ],
+          "sam_iou_with_spark": 0.56,
+          "sam_box": [
+            649,
+            932,
+            759,
+            987
+          ],
+          "snap_box": [
+            618,
+            955,
+            806,
+            985
+          ],
+          "best_box": [
+            684,
+            898,
+            755,
+            934
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "加载",
+          "ar": "التحميل",
+          "spark_box": [
+            961,
+            943,
+            1044,
+            994
+          ],
+          "sam_refined_box": [
+            950,
+            935,
+            1048,
+            987
+          ],
+          "concept_box": [
+            964,
+            899,
+            1036,
+            934
+          ],
+          "sam_iou_with_spark": 0.64,
+          "sam_box": [
+            950,
+            935,
+            1048,
+            987
+          ],
+          "snap_box": [
+            909,
+            955,
+            1096,
+            1036
+          ],
+          "best_box": [
+            964,
+            899,
+            1036,
+            934
+          ],
+          "best_from": "sam_concept"
+        },
+        {
+          "src": "数据仓库",
+          "ar": "مستودع البيانات",
+          "spark_box": [
+            518,
+            1236,
+            674,
+            1291
+          ],
+          "sam_refined_box": [
+            510,
+            1230,
+            669,
+            1288
+          ],
+          "concept_box": [
+            515,
+            1231,
+            657,
+            1268
+          ],
+          "sam_iou_with_spark": 0.79,
+          "sam_box": [
+            510,
+            1230,
+            669,
+            1288
+          ],
+          "snap_box": [
+            463,
+            1232,
+            706,
+            1283
+          ],
+          "best_box": [
+            515,
+            1231,
+            657,
+            1268
+          ],
+          "best_from": "sam_concept"
+        }
+      ],
+      "sam_concept_matches": {
+        "text": 0,
+        "text label": 0,
+        "word": 9,
+        "words": 0,
+        "label": 0,
+        "letter": 0,
+        "character": 0,
+        "writing": 0,
+        "caption": 0
+      },
+      "labels_with_sam_concept_box": 9,
+      "sam_box_prompt": {
+        "calls": 1,
+        "records": 9,
+        "kept": 9,
+        "output_prefix": "<0f>0<|box;x1=496;y1=51;x2=597;y2=122;w=1150;h=1336;c=0.8203125|><|mask;x=0;y=0;c=0.8203125;data=72,102,~!!!@t#Pn7+@D{YgeSE]*Mj!NJkI:6$=4?Ru*4c*rZq8MfkCqWf**+y&3(]&k[KX+iaALFmeVw`j$u-Zd9KC5$cwZadTwLpU)Z%1MDmy/Q&u]yuW?W%CWS{+3OXIG8mocuy2g9Ai.wl:C^'tk$[SBv?.Af#ES{iG+3VkdWRSVLBej'`@`Arx9wdAx4c%U5)XHx?d"
+      },
+      "muse": {
+        "ok": true,
+        "http_status": 200,
+        "size": [
+          1392,
+          1616
+        ],
+        "prompt": "Edit this diagram: replace each text below with its Arabic translation, everywhere it appears.\nChange nothing else. Keep the layout, shapes, colours, lines, numbers, dates and acronyms exactly as they are.\nWrite the Arabic right to left, with correctly joined letters, in a plain sans-serif font sized to fit the space of the text it replaces.\n\"开始\" -> \"البداية\"\n\"抽取定义\" -> \"تعريف الاستخراج\"\n\"数据抽取\" -> \"استخراج البيانات\"\n\"数据存储\" -> \"تخزين البيانات\"\n\"清洗\" -> \"التنظيف\"\n\"转换\" -> \"التحويل\"\n\"关联\" -> \"الربط\"\n\"加载\" -> \"التحميل\"\n\"数据仓库\" -> \"مستودع البيانات\"",
+        "error": null,
+        "repeat_samples": 2,
+        "repeat_http_status": 200
+      },
+      "spark_checks": {
+        "muse": {
+          "issues": [
+            "Top label 'البداية' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Green box label 'تعريف الاستخراج' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Middle label 'استخراج البيانات' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Label 'تخزين البيانات' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Blue shape label 'التنظيف' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Blue shape label 'التحويل' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Blue shape label 'الربط' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Blue shape label 'التحميل' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive",
+            "Bottom cylinder label 'مستودع البيانات' is rendered with isolated/disconnected letters with spaces instead of proper joined Arabic cursive"
+          ],
+          "pass": false
+        },
+        "muse_repeat_1": {
+          "issues": [
+            "Top oval label 'البداية': letters rendered as isolated/disconnected forms with gaps instead of properly joined Arabic cursive",
+            "Green rectangle label 'تعريف الاستخراج': letters rendered isolated/disconnected, not joined right-to-left cursive",
+            "Predefined-process label 'استخراج البيانات': letters rendered isolated/disconnected, not joined right-to-left cursive",
+            "Rectangle label 'تخزين البيانات': letters rendered isolated/disconnected, not joined right-to-left cursive",
+            "Left blue document label 'التنظيف': letters rendered isolated/disconnected, not joined right-to-left cursive",
+            "Second blue document label 'التحويل': letters rendered isolated/disconnected, not joined right-to-left cursive",
+            "Third blue document label 'الربط': letters rendered isolated/disconnected, not joined right-to-left cursive",
+            "Right blue document label 'التحميل': letters rendered isolated/disconnected, not joined right-to-left cursive",
+            "Bottom database label 'مستودع البيانات': letters rendered isolated/disconnected, not joined right-to-left cursive"
+          ],
+          "pass": false
+        },
+        "muse_repeat_2": {
+          "issues": [
+            "Label 'البداية' (top oval, source '开始'): letters rendered in isolated/disconnected forms, not properly joined cursive Arabic as required",
+            "Label 'تعريف الاستخراج' (green rectangle, source '抽取定义'): letters rendered in isolated/disconnected forms, not properly joined as required",
+            "Label 'استخراج البيانات' (middle predefined-process box, source '数据抽取'): letters rendered in isolated/disconnected forms, not properly joined as required",
+            "Label 'تخزين البيانات' (middle rectangle, source '数据存储'): letters rendered in isolated/disconnected forms, not properly joined as required",
+            "Label 'التنظيف' (leftmost blue wavy shape, source '清洗'): letters rendered in isolated/disconnected forms, not properly joined as required",
+            "Label 'التحويل' (second blue wavy shape, source '转换'): letters rendered in isolated/disconnected forms, not properly joined as required",
+            "Label 'الربط' (third blue wavy shape, source '关联'): letters rendered in isolated/disconnected forms, not properly joined as required",
+            "Label 'التحميل' (rightmost blue wavy shape, source '加载'): letters rendered in isolated/disconnected forms, not properly joined as required",
+            "Label 'مستودع البيانات' (bottom cylinder, source '数据仓库'): letters rendered in isolated/disconnected forms, not properly joined as required"
+          ],
+          "pass": false
+        },
+        "svg": {
+          "issues": [],
+          "pass": true
+        }
+      },
+      "readback_checks": {
+        "muse": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_1": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_2": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "svg": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        }
+      },
+      "svg": {
+        "font_loaded": true,
+        "boxes_widened": {
+          "best": 3,
+          "sam_box_prompt": 4,
+          "spark": 7
+        }
+      },
+      "evidence": {
+        "source": "img/etl-source.webp",
+        "boxes": "img/etl-boxes.webp",
+        "masks": "img/etl-masks.webp",
+        "svg": "img/etl-svg.webp",
+        "svg_sam_box_prompt": "img/etl-svg-sam.webp",
+        "svg_spark_boxes": "img/etl-svg-spark.webp",
+        "muse": "img/etl-muse.webp",
+        "muse_repeats": "img/etl-muse-repeats.webp"
+      },
+      "calls": [
+        {
+          "at": 1793469445.691104,
+          "name": "spark-etl",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 8703,
+          "cost_usd": 0.00974
+        },
+        {
+          "at": 1793469447.4658382,
+          "name": "sam-etl-text",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1749,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469450.4072142,
+          "name": "sam-etl-text_label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2917,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469452.175252,
+          "name": "sam-etl-word",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1743,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469453.846254,
+          "name": "sam-etl-words",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1647,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469456.010614,
+          "name": "sam-etl-label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2145,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469253.571717,
+          "name": "sam-etl-letter",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2070,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469255.5684228,
+          "name": "sam-etl-character",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1979,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469457.7237802,
+          "name": "sam-etl-writing",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1655,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469459.141849,
+          "name": "sam-etl-caption",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1390,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469460.890718,
+          "name": "sam-etl-boxes0",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1723,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469472.949877,
+          "name": "muse-etl",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 12031,
+          "cost_usd": 0.01
+        },
+        {
+          "at": 1793470179.4710882,
+          "name": "muse-etl-repeat",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 14694,
+          "cost_usd": 0.02
+        },
+        {
+          "at": 1793470224.233776,
+          "name": "verify-etl-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 38466,
+          "cost_usd": 0.03476
+        },
+        {
+          "at": 1793470263.653388,
+          "name": "verify-etl-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 39320,
+          "cost_usd": 0.03554
+        },
+        {
+          "at": 1793470302.776695,
+          "name": "verify-etl-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 39014,
+          "cost_usd": 0.03846
+        },
+        {
+          "at": 1793470312.535795,
+          "name": "verify-etl-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 9733,
+          "cost_usd": 0.01179
+        },
+        {
+          "at": 1793470553.674807,
+          "name": "readback-etl-source",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 7295,
+          "cost_usd": 0.00746
+        },
+        {
+          "at": 1793470559.213857,
+          "name": "readback-etl-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 12773,
+          "cost_usd": 0.01283
+        },
+        {
+          "at": 1793470555.486766,
+          "name": "readback-etl-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 9043,
+          "cost_usd": 0.00898
+        },
+        {
+          "at": 1793470558.271981,
+          "name": "readback-etl-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 11831,
+          "cost_usd": 0.01123
+        },
+        {
+          "at": 1793470554.084414,
+          "name": "readback-etl-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 7706,
+          "cost_usd": 0.00894
+        }
+      ]
+    },
+    {
+      "diagram": {
+        "id": "dwh",
+        "lang": "ru",
+        "title": "Data warehouse and data marts overview (Обзор хранилища данных и витрины данных)",
+        "page": "https://commons.wikimedia.org/wiki/File:Data_Warehouse_and_Data_Mart_overview-rus.svg",
+        "file_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Data_Warehouse_and_Data_Mart_overview-rus.svg/1280px-Data_Warehouse_and_Data_Mart_overview-rus.svg.png",
+        "author": "MarsJson",
+        "license": "CC BY-SA 4.0"
+      },
+      "source_size": [
+        1280,
+        822
+      ],
+      "working_size": [
+        1280,
+        822
+      ],
+      "scale": 1,
+      "labels": [
+        {
+          "src": "Хранилище данных",
+          "ar": "مستودع البيانات",
+          "spark_box": [
+            422,
+            53,
+            890,
+            109
+          ],
+          "sam_refined_box": [
+            401,
+            52,
+            860,
+            115
+          ],
+          "sam_iou_with_spark": 0.8,
+          "sam_box": [
+            401,
+            52,
+            860,
+            115
+          ],
+          "snap_box": [
+            399,
+            16,
+            860,
+            116
+          ],
+          "best_box": [
+            422,
+            53,
+            890,
+            109
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Операционные системы",
+          "ar": "الأنظمة التشغيلية",
+          "spark_box": [
+            37,
+            192,
+            252,
+            263
+          ],
+          "sam_refined_box": [
+            66,
+            183,
+            247,
+            262
+          ],
+          "sam_iou_with_spark": 0.75,
+          "sam_box": [
+            66,
+            183,
+            247,
+            262
+          ],
+          "snap_box": [
+            67,
+            189,
+            245,
+            263
+          ],
+          "best_box": [
+            67,
+            189,
+            245,
+            263
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Маркетинг",
+          "ar": "التسويق",
+          "spark_box": [
+            83,
+            325,
+            233,
+            355
+          ],
+          "sam_refined_box": [
+            66,
+            328,
+            246,
+            356
+          ],
+          "sam_iou_with_spark": 0.74,
+          "sam_box": [
+            66,
+            328,
+            246,
+            356
+          ],
+          "snap_box": [
+            84,
+            327,
+            228,
+            345
+          ],
+          "best_box": [
+            84,
+            327,
+            228,
+            345
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Продажи",
+          "ar": "المبيعات",
+          "spark_box": [
+            124,
+            409,
+            230,
+            437
+          ],
+          "sam_refined_box": [
+            113,
+            411,
+            234,
+            441
+          ],
+          "sam_iou_with_spark": 0.72,
+          "sam_box": [
+            113,
+            411,
+            234,
+            441
+          ],
+          "snap_box": [
+            100,
+            386,
+            207,
+            402
+          ],
+          "best_box": [
+            124,
+            409,
+            230,
+            437
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Внешние данные",
+          "ar": "بيانات خارجية",
+          "spark_box": [
+            90,
+            718,
+            233,
+            769
+          ],
+          "sam_refined_box": [
+            67,
+            708,
+            247,
+            766
+          ],
+          "sam_iou_with_spark": 0.63,
+          "sam_box": [
+            67,
+            708,
+            247,
+            766
+          ],
+          "snap_box": [
+            38,
+            694,
+            285,
+            773
+          ],
+          "best_box": [
+            90,
+            718,
+            233,
+            769
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Слой интеграции",
+          "ar": "طبقة التكامل",
+          "spark_box": [
+            361,
+            195,
+            489,
+            263
+          ],
+          "sam_refined_box": [
+            364,
+            190,
+            500,
+            261
+          ],
+          "sam_iou_with_spark": 0.82,
+          "sam_box": [
+            364,
+            190,
+            500,
+            261
+          ],
+          "snap_box": [
+            346,
+            190,
+            523,
+            263
+          ],
+          "best_box": [
+            346,
+            190,
+            523,
+            263
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Хранилище данных",
+          "ar": "مستودع البيانات",
+          "spark_box": [
+            644,
+            207,
+            883,
+            235
+          ],
+          "sam_refined_box": [
+            637,
+            195,
+            861,
+            216
+          ],
+          "sam_iou_with_spark": 0.21,
+          "sam_box": [
+            644,
+            207,
+            883,
+            235
+          ],
+          "snap_box": [
+            638,
+            195,
+            858,
+            216
+          ],
+          "best_box": [
+            638,
+            195,
+            858,
+            216
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Data Vault",
+          "ar": "قبو البيانات",
+          "spark_box": [
+            721,
+            467,
+            836,
+            496
+          ],
+          "sam_refined_box": [
+            706,
+            459,
+            842,
+            501
+          ],
+          "sam_iou_with_spark": 0.58,
+          "sam_box": [
+            706,
+            459,
+            842,
+            501
+          ],
+          "snap_box": [
+            691,
+            451,
+            805,
+            469
+          ],
+          "best_box": [
+            691,
+            451,
+            805,
+            469
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Витрины данных",
+          "ar": "أسواق البيانات",
+          "spark_box": [
+            1024,
+            113,
+            1204,
+            141
+          ],
+          "sam_refined_box": [
+            998,
+            107,
+            1212,
+            147
+          ],
+          "sam_iou_with_spark": 0.59,
+          "sam_box": [
+            998,
+            107,
+            1212,
+            147
+          ],
+          "snap_box": [
+            997,
+            98,
+            1185,
+            120
+          ],
+          "best_box": [
+            997,
+            98,
+            1185,
+            120
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1015,
+            222,
+            1076,
+            239
+          ],
+          "sam_refined_box": [
+            1011,
+            221,
+            1082,
+            239
+          ],
+          "sam_iou_with_spark": 0.81,
+          "sam_box": [
+            1011,
+            221,
+            1082,
+            239
+          ],
+          "snap_box": [
+            1048,
+            240,
+            1066,
+            253
+          ],
+          "best_box": [
+            1048,
+            240,
+            1066,
+            253
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1135,
+            222,
+            1197,
+            239
+          ],
+          "sam_refined_box": [
+            1114,
+            219,
+            1199,
+            239
+          ],
+          "sam_iou_with_spark": 0.62,
+          "sam_box": [
+            1114,
+            219,
+            1199,
+            239
+          ],
+          "snap_box": [
+            1163,
+            240,
+            1197,
+            253
+          ],
+          "best_box": [
+            1163,
+            240,
+            1197,
+            253
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1015,
+            289,
+            1076,
+            307
+          ],
+          "sam_refined_box": [
+            1008,
+            286,
+            1083,
+            311
+          ],
+          "sam_iou_with_spark": 0.59,
+          "sam_box": [
+            1008,
+            286,
+            1083,
+            311
+          ],
+          "snap_box": [
+            1048,
+            305,
+            1083,
+            322
+          ],
+          "best_box": [
+            1048,
+            305,
+            1083,
+            322
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1135,
+            289,
+            1197,
+            307
+          ],
+          "sam_refined_box": [
+            1116,
+            286,
+            1198,
+            310
+          ],
+          "sam_iou_with_spark": 0.57,
+          "sam_box": [
+            1116,
+            286,
+            1198,
+            310
+          ],
+          "snap_box": [
+            1163,
+            305,
+            1197,
+            322
+          ],
+          "best_box": [
+            1163,
+            305,
+            1197,
+            322
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1015,
+            355,
+            1076,
+            372
+          ],
+          "sam_refined_box": [
+            1008,
+            352,
+            1084,
+            378
+          ],
+          "sam_iou_with_spark": 0.52,
+          "sam_box": [
+            1008,
+            352,
+            1084,
+            378
+          ],
+          "snap_box": [
+            1048,
+            341,
+            1083,
+            351
+          ],
+          "best_box": [
+            1048,
+            341,
+            1083,
+            351
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1135,
+            355,
+            1197,
+            372
+          ],
+          "sam_refined_box": [
+            1119,
+            351,
+            1207,
+            378
+          ],
+          "sam_iou_with_spark": 0.44,
+          "sam_box": [
+            1119,
+            351,
+            1207,
+            378
+          ],
+          "snap_box": [
+            1163,
+            341,
+            1197,
+            351
+          ],
+          "best_box": [
+            1163,
+            341,
+            1197,
+            351
+          ],
+          "best_from": "spark_snapped"
+        },
+        {
+          "src": "Стратегические витрины данных",
+          "ar": "أسواق البيانات الاستراتيجية",
+          "spark_box": [
+            1028,
+            432,
+            1202,
+            492
+          ],
+          "sam_refined_box": [
+            996,
+            427,
+            1212,
+            477
+          ],
+          "sam_iou_with_spark": 0.58,
+          "sam_box": [
+            996,
+            427,
+            1212,
+            477
+          ],
+          "snap_box": [
+            983,
+            415,
+            1197,
+            541
+          ],
+          "best_box": [
+            1028,
+            432,
+            1202,
+            492
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1018,
+            528,
+            1075,
+            546
+          ],
+          "sam_refined_box": [
+            1015,
+            518,
+            1082,
+            543
+          ],
+          "sam_iou_with_spark": 0.46,
+          "sam_box": [
+            1015,
+            518,
+            1082,
+            543
+          ],
+          "snap_box": [
+            999,
+            513,
+            1083,
+            539
+          ],
+          "best_box": [
+            1018,
+            528,
+            1075,
+            546
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1137,
+            528,
+            1194,
+            546
+          ],
+          "sam_refined_box": [
+            1121,
+            520,
+            1197,
+            543
+          ],
+          "sam_iou_with_spark": 0.45,
+          "sam_box": [
+            1121,
+            520,
+            1197,
+            543
+          ],
+          "snap_box": [
+            1118,
+            513,
+            1197,
+            540
+          ],
+          "best_box": [
+            1137,
+            528,
+            1194,
+            546
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1066,
+            589,
+            1125,
+            607
+          ],
+          "sam_refined_box": [
+            1068,
+            589,
+            1181,
+            607
+          ],
+          "sam_iou_with_spark": 0.5,
+          "sam_box": [
+            1068,
+            589,
+            1181,
+            607
+          ],
+          "snap_box": [
+            1047,
+            574,
+            1144,
+            605
+          ],
+          "best_box": [
+            1066,
+            589,
+            1125,
+            607
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Витрина",
+          "ar": "سوق",
+          "spark_box": [
+            1149,
+            589,
+            1208,
+            607
+          ],
+          "sam_refined_box": [
+            1137,
+            589,
+            1197,
+            608
+          ],
+          "sam_iou_with_spark": 0.65,
+          "sam_box": [
+            1137,
+            589,
+            1197,
+            608
+          ],
+          "snap_box": [
+            1130,
+            574,
+            1197,
+            607
+          ],
+          "best_box": [
+            1149,
+            589,
+            1208,
+            607
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Исследование & Добыча",
+          "ar": "استكشاف وتنقيب",
+          "spark_box": [
+            1016,
+            712,
+            1097,
+            763
+          ],
+          "sam_refined_box": [
+            982,
+            706,
+            1106,
+            769
+          ],
+          "sam_iou_with_spark": 0.53,
+          "sam_box": [
+            982,
+            706,
+            1106,
+            769
+          ],
+          "snap_box": [
+            966,
+            670,
+            1149,
+            769
+          ],
+          "best_box": [
+            1016,
+            712,
+            1097,
+            763
+          ],
+          "best_from": "spark"
+        },
+        {
+          "src": "Исследование & Добыча",
+          "ar": "استكشاف وتنقيب",
+          "spark_box": [
+            1134,
+            712,
+            1215,
+            763
+          ],
+          "sam_refined_box": [
+            1122,
+            714,
+            1212,
+            763
+          ],
+          "sam_iou_with_spark": 0.81,
+          "sam_box": [
+            1122,
+            714,
+            1212,
+            763
+          ],
+          "snap_box": [
+            1082,
+            670,
+            1267,
+            805
+          ],
+          "best_box": [
+            1134,
+            712,
+            1215,
+            763
+          ],
+          "best_from": "spark"
+        }
+      ],
+      "sam_concept_matches": {
+        "text": 0,
+        "text label": 0,
+        "word": 0,
+        "words": 0,
+        "label": 0,
+        "letter": 0,
+        "character": 0,
+        "writing": 0,
+        "caption": 0
+      },
+      "labels_with_sam_concept_box": 0,
+      "sam_box_prompt": {
+        "calls": 2,
+        "records": 22,
+        "kept": 21,
+        "output_prefix": "<0f>0<|box;x1=401;y1=52;x2=860;y2=115;w=1280;h=822;c=0.76171875|><|mask;x=0;y=0;c=0.76171875;data=64,460,~!!#wb#NEdK321@DJn4e)q4or)?%8!P?fk]yHxp0H'_u{+rDU&z&w5gVMbwzXQwJSc(EN{F56cN@Za9)E*HOv7!A+$9?bwZVa9cIc?5Sk5D_/JK*:1a?l5plGj2o(irjVdA(]R1J7kQI$.G8j2:LAj$Q]@53E7@pv-Gs/*xnOP$WKDD(UV!etk%TS7sL&66cbFU"
+      },
+      "muse": {
+        "ok": true,
+        "http_status": 200,
+        "size": [
+          1968,
+          1264
+        ],
+        "prompt": "Edit this diagram: replace each text below with its Arabic translation, everywhere it appears.\nChange nothing else. Keep the layout, shapes, colours, lines, numbers, dates and acronyms exactly as they are.\nWrite the Arabic right to left, with correctly joined letters, in a plain sans-serif font sized to fit the space of the text it replaces.\n\"Хранилище данных\" -> \"مستودع البيانات\"\n\"Операционные системы\" -> \"الأنظمة التشغيلية\"\n\"Маркетинг\" -> \"التسويق\"\n\"Продажи\" -> \"المبيعات\"\n\"Внешние данные\" -> \"بيانات خارجية\"\n\"Слой интеграции\" -> \"طبقة التكامل\"\n\"Data Vault\" -> \"قبو البيانات\"\n\"Витрины данных\" -> \"أسواق البيانات\"\n\"Витрина\" -> \"سوق\"\n\"Стратегические витрины данных\" -> \"أسواق البيانات الاستراتيجية\"\n\"Исследование & Добыча\" -> \"استكشاف وتنقيب\"",
+        "error": null,
+        "repeat_samples": 2,
+        "repeat_http_status": 200
+      },
+      "spark_checks": {
+        "muse": {
+          "issues": [
+            "Arabic shaping broken throughout image 2: all Arabic labels appear with isolated disconnected characters instead of joined cursive forms",
+            "Right-to-left order not preserved: Arabic words/letters appear in left-to-right visual order instead of right-to-left (affects top title مستودع البيانات, الأنظمة التشغيلية, التسويق, المبيعات, بيانات خارجية, طبقة التكامل, قبو البيانات, أسواق البيانات, سوق, أسواق البيانات الاستراتيجية)",
+            "Expected label 'استكشاف وتنقيب' does not appear exactly: bottom cylinders show 'استكشاف' and 'تنقيب' separated with retained Latin '&' instead of Arabic conjunction 'و'",
+            "Extra source symbol retained in bottom cylinders: Latin '&' from source 'Исследование & Добыча' is still present, so cylinder text is not exactly the expected Arabic label and contains added/non-Arabic content"
+          ],
+          "pass": false
+        },
+        "muse_repeat_1": {
+          "issues": [],
+          "pass": true
+        },
+        "muse_repeat_2": {
+          "issues": [
+            "Top title مستودع البيانات letters are isolated/disconnected, not joined as required cursive Arabic.",
+            "Middle storage header مستودع البيانات letters are isolated/disconnected, not joined.",
+            "Left header الأنظمة التشغيلية letters are isolated/disconnected, not joined.",
+            "Box label التسويق letters are isolated/disconnected, not joined.",
+            "Box label المبيعات letters are isolated/disconnected, not joined.",
+            "Bottom-left label بيانات خارجية letters are isolated/disconnected, not joined.",
+            "Middle header طبقة التكامل letters are isolated/disconnected, not joined.",
+            "Center label قبو البيانات letters are isolated/disconnected, not joined.",
+            "Top-right header أسواق البيانات letters are isolated/disconnected, not joined.",
+            "All 10 small-box labels سوق letters are isolated/disconnected, not joined.",
+            "Middle-right header أسواق البيانات الاستراتيجية letters are isolated/disconnected, not joined.",
+            "Both cylinder labels استكشاف وتنقيب letters are isolated/disconnected, not joined."
+          ],
+          "pass": false
+        },
+        "svg": {
+          "issues": [
+            "Source Cyrillic 'Маркетинг' still visible in left blue box, not removed",
+            "Source Cyrillic 'Продажи' still visible in left green box, not removed",
+            "Source Cyrillic 'Витрина' still visible in all 10 small mart boxes (6 in top right grid and 4 in strategic grid), not removed",
+            "Expected 'التسويق' and 'المبيعات' appear only as tiny secondary text under remaining Cyrillic, not as replacement in correct position/size",
+            "Expected 'الأنظمة التشغيلية' does not appear alone where 'Операционные системы' was; it is merged/overlapped with 'طبقة التكامل' in one oversized white block covering borders",
+            "Expected 'طبقة التكامل' does not appear alone where 'Слой интеграции' was; it is displaced overlapping the left header",
+            "Expected 'أسواق البيانات الاستراتيجية' is truncated to 'واق البيانات الاستراتيجية', missing initial letters, not spelled exactly as given",
+            "Expected 'استكشاف وتنقيب' for bottom cylinders is garbled/duplicated e.g. 'ستكشافلستكشيفب وتنقيب', not spelled exactly, with broken joining and overlapping backgrounds",
+            "Expected single 'سوق' per mart box is violated: multiple/duplicate 'سوق' labels per box in lower rows, adding new text",
+            "Top title 'مستودع البيانات' has stray bracket/line artifact on left and oversized white background altering original shape",
+            "Oversized white label backgrounds obscure/cover original shapes, lines and borders on left column, integration header, strategic header, and bottom areas",
+            "Right-to-left joined-letter rendering fails in bottom cylinder labels and overlapping mart labels due to duplication/overlap"
+          ],
+          "pass": false
+        }
+      },
+      "readback_checks": {
+        "muse": {
+          "pass": false,
+          "missing": {
+            "استكشاف وتنقيب": 2
+          },
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_1": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "muse_repeat_2": {
+          "pass": true,
+          "missing": {},
+          "leftover_source": [],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        },
+        "svg": {
+          "pass": false,
+          "missing": {
+            "أسواق البيانات الاستراتيجية": 1,
+            "استكشاف وتنقيب": 2
+          },
+          "leftover_source": [
+            "Витрина",
+            "Маркетинг",
+            "Продажи"
+          ],
+          "numbers": {
+            "lost": {},
+            "added": {}
+          }
+        }
+      },
+      "svg": {
+        "font_loaded": true,
+        "boxes_widened": {
+          "best": 6,
+          "sam_box_prompt": 6,
+          "spark": 6
+        }
+      },
+      "evidence": {
+        "source": "img/dwh-source.webp",
+        "boxes": "img/dwh-boxes.webp",
+        "masks": "img/dwh-masks.webp",
+        "svg": "img/dwh-svg.webp",
+        "svg_sam_box_prompt": "img/dwh-svg-sam.webp",
+        "svg_spark_boxes": "img/dwh-svg-spark.webp",
+        "muse": "img/dwh-muse.webp",
+        "muse_repeats": "img/dwh-muse-repeats.webp"
+      },
+      "calls": [
+        {
+          "at": 1793469505.218997,
+          "name": "spark-dwh",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 28458,
+          "cost_usd": 0.02937
+        },
+        {
+          "at": 1793469173.077724,
+          "name": "sam-dwh-text",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1974,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469506.959399,
+          "name": "sam-dwh-text_label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1706,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469508.729982,
+          "name": "sam-dwh-word",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1758,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469182.102587,
+          "name": "sam-dwh-words",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2003,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469174.373609,
+          "name": "sam-dwh-label",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1278,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469259.08256,
+          "name": "sam-dwh-letter",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1366,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469260.266264,
+          "name": "sam-dwh-character",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1173,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469177.413963,
+          "name": "sam-dwh-writing",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1357,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469178.937033,
+          "name": "sam-dwh-caption",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1504,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469510.895015,
+          "name": "sam-dwh-boxes0",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 2076,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469512.4734468,
+          "name": "sam-dwh-boxes1",
+          "model": "sam-3.1",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 1567,
+          "cost_usd": 0.0025
+        },
+        {
+          "at": 1793469536.435657,
+          "name": "muse-dwh",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 23939,
+          "cost_usd": 0.01
+        },
+        {
+          "at": 1793470340.80205,
+          "name": "muse-dwh-repeat",
+          "model": "muse-image-1.0",
+          "endpoint": "/images/edits",
+          "http_status": 200,
+          "latency_ms": 27194,
+          "cost_usd": 0.02
+        },
+        {
+          "at": 1793470378.497391,
+          "name": "verify-dwh-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 32368,
+          "cost_usd": 0.03553
+        },
+        {
+          "at": 1793470406.589993,
+          "name": "verify-dwh-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 27970,
+          "cost_usd": 0.03837
+        },
+        {
+          "at": 1793470436.494884,
+          "name": "verify-dwh-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 29763,
+          "cost_usd": 0.03354
+        },
+        {
+          "at": 1793470451.037009,
+          "name": "verify-dwh-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 14505,
+          "cost_usd": 0.01706
+        },
+        {
+          "at": 1793470592.843832,
+          "name": "readback-dwh-source",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 27504,
+          "cost_usd": 0.02743
+        },
+        {
+          "at": 1793470602.949193,
+          "name": "readback-dwh-muse",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 37514,
+          "cost_usd": 0.03548
+        },
+        {
+          "at": 1793470604.519966,
+          "name": "readback-dwh-muse_repeat_1",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 39077,
+          "cost_usd": 0.03753
+        },
+        {
+          "at": 1793470601.9976351,
+          "name": "readback-dwh-muse_repeat_2",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 36549,
+          "cost_usd": 0.03581
+        },
+        {
+          "at": 1793470594.185863,
+          "name": "readback-dwh-svg",
+          "model": "muse-spark-1.3",
+          "endpoint": "/responses",
+          "http_status": 200,
+          "latency_ms": 28845,
+          "cost_usd": 0.02752
+        }
+      ]
+    }
+  ]
+}
