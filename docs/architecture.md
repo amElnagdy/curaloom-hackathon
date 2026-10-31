@@ -32,7 +32,6 @@ flowchart LR
   subgraph Models["Models"]
     Meta["Meta Model API (/responses)"]
     Fixtures[("demo/fixtures (replay)")]
-    Glimmer["Local Glimmer (#29, stretch)"]
   end
 
   Pages --> Orch
@@ -42,7 +41,6 @@ flowchart LR
   Agents -. validate output .-> Contracts
   Provider --> Meta
   Provider --> Fixtures
-  Provider --> Glimmer
   Orch --> Store
   Orch --> Trace
   Provider --> Trace

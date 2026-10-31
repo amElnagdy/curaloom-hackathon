@@ -133,7 +133,8 @@ A human review then ruled that both models' answer to one disputed diacritics it
 - The licence checker reads the licence statements in a page's text. CC BY, CC BY-SA, CC0, MIT, Apache-2.0 and public domain count as open. A licence with NC or ND counts for personal study only, and a page with no licence statement is rejected.
 - The recorded run kept no Chinese source. The one Chinese page it read is under MPL-2.0, which is not on the allowlist.
 - In replay, the voice message is one bundled clip in a synthetic Arabic voice. The presenter then sends the recorded typed message, because the transcript differs from it by a few letters.
-- Diagram relabelling and a local Muse Glimmer coach are not built.
+- Diagram relabelling is not built yet.
+- There is no on-device model. A local Muse Glimmer coach was dropped (#29): Meta's API does not serve Glimmer, and a 17 GB model on each learner's machine is not realistic.
 - Messages held for quiet hours are not withdrawn when the learner comes back.
 
 ## Licence

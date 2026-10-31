@@ -24,7 +24,7 @@ How good is Arabic output from Muse Spark 1.3 and Muse Wonder 1.0 on the tasks t
   - A trace JSONL next to each, with one event per model call, carrying latency, usage and cost, and no secrets.
   - **Deviation from the issue:** files are named `results-<date>-<model>.json`, not `results-<date>.json`, so the two models do not overwrite each other. A `--only` run writes a gitignored `-partial` file instead.
   - The Spark file comes from the first version of the runner. That version applied `answer_key_error` to every category, but no Spark item had the flag set, so its scores are unaffected. That version also wrote no `judgeScore` field and no trace summaries.
-- Glimmer was not run because no local instance is available. #29 runs a subset later.
+- Glimmer was not run because no local instance is available. #29, which would have run it, was dropped.
 
 ## Result
 
