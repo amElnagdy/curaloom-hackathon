@@ -13,7 +13,7 @@ import { parseModels } from "../../server/providers/models";
 import { createProvider } from "../../server/providers/provider";
 import { createFileStore } from "../../server/store/store";
 import { createTracer, type TraceEvent } from "../../server/trace/trace";
-import { clockNow, toActivityItem } from "./activity";
+import { clockNow, stepsRunning, toActivityItem } from "./activity";
 
 const MODELS = parseModels(`
 roles:
@@ -221,5 +221,41 @@ describe("clockNow", () => {
     expect(clockNow(trace())).toEqual(sim().now());
     sim().reset();
     expect(clockNow(trace())).toEqual({ day: 0, minute: 540 });
+  });
+});
+
+describe("stepsRunning", () => {
+  it("is true from a step's start until its output, and false after", async () => {
+    const { orchestrator, store, trace } = setup();
+    let during = false;
+    const watcher: Agent<null, typeof Count> = {
+      name: "scout",
+      output: Count,
+      async run() {
+        during = stepsRunning(trace());
+        return { found: 1 };
+      },
+    };
+    await orchestrator.runStep("s_1", watcher, null);
+
+    expect(during).toBe(true);
+    expect(stepsRunning(trace())).toBe(false);
+    // A decision outside any step, such as the coach resetting its ladder, is finished work.
+    createTracer(store, "s_1").emit({
+      agent: "coach",
+      kind: "decision",
+      summary_ar: "أنهيتَ عودتك، فبدأ المدرب العدّ من جديد من اليوم ١٠",
+      summary_en: "Ladder reset for l_omar",
+    });
+    expect(stepsRunning(trace())).toBe(false);
+  });
+
+  it("is false once a step gives up after its retry", async () => {
+    const { orchestrator, trace } = setup();
+    await expect(
+      orchestrator.runStep("s_1", scout([{ found: "three" }, { found: "four" }]), null),
+    ).rejects.toThrow();
+
+    expect(stepsRunning(trace())).toBe(false);
   });
 });

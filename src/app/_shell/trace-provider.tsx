@@ -16,7 +16,7 @@ import {
 } from "react";
 import type { SimTime } from "../../server/clock/time.ts";
 import type { TraceEvent } from "../../server/trace/trace.ts";
-import { type ActivityItem, clockNow, toActivityItem } from "./activity.ts";
+import { type ActivityItem, clockNow, stepsRunning, toActivityItem } from "./activity.ts";
 
 export type TraceConnection = "connecting" | "open" | "reconnecting";
 
@@ -113,12 +113,11 @@ export function TraceProvider({ sessionId, children }: { sessionId: string; chil
 
   const value = useMemo<TraceState>(() => {
     const activity = events.map(toActivityItem).filter((item) => item !== null);
-    const last = activity.at(-1);
     return {
       sessionId,
       events,
       activity,
-      running: last !== undefined && last.tone !== "done" && last.tone !== "failed",
+      running: stepsRunning(events),
       replayed,
       totalCostUsd: events.reduce((sum, e) => sum + (e.cost_usd ?? 0), 0),
       simNow: replayed === null ? null : clockNow(events),

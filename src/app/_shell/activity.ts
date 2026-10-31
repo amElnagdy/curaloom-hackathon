@@ -79,6 +79,22 @@ export function toActivityItem(event: TraceEvent): ActivityItem | null {
   }
 }
 
+// Whether an agent is at work: a step that started and has neither its output nor its final
+// failure yet. A decision outside any step, such as the coach resetting its ladder, is done when
+// it is traced.
+export function stepsRunning(events: readonly TraceEvent[]): boolean {
+  const open = new Set<string>();
+  for (const { summary_en: en } of events) {
+    const started = /^Starting step (.+)$/.exec(en)?.[1];
+    if (started) open.add(started);
+    const ended = /^(.+) (?:output matches its contract$|attempt 2 failed; giving up)/.exec(
+      en,
+    )?.[1];
+    if (ended) open.delete(ended);
+  }
+  return open.size > 0;
+}
+
 // Where the simulated clock is: every move of the clock emits one event under the agent "clock",
 // stamped with the new time (src/server/clock/clock.ts). A session whose clock never moved is at
 // day 0.
