@@ -1,10 +1,177 @@
-/* Progress: the course path, attempts against the pass mark, and the first week. */
+/* Progress: the plan page's document look. A properties band, then sections under hairline heads:
+   the lessons against the gate, the committed weeks day by day, and the plan's versions as nodes on
+   a line like the plan's road. */
 
-.lessonLine {
-  display: block;
+.muted {
+  font-weight: 400;
+  color: var(--ink-3);
 }
-.rule {
-  margin-top: var(--s-5);
+.done {
+  color: var(--ready-ink);
+}
+.missed {
+  color: var(--attn-ink);
+}
+
+/* Properties band: four label/value pairs between hairlines. */
+.props {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(min-content, 1fr));
+  border-block: 1px solid var(--line);
+}
+.prop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: var(--s-3) var(--s-5);
+}
+.prop:first-child {
+  padding-inline-start: 0;
+}
+.prop + .prop {
+  border-inline-start: 1px solid var(--line);
+}
+.propLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.propLabel :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.propValue {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  min-height: 1.75rem;
+  font-weight: 600;
+}
+.propLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+.propLink:hover {
+  text-decoration: underline;
+}
+.propLink :global(.lucide) {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Sections */
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+.sectionHead h2 {
+  font-size: var(--text-xl);
+}
+.sectionHead > span {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+
+/* Lessons: number, title, and the best score against the gate */
+.lesson {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-2) var(--s-5);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+.num {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.num :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.lesson[data-state="passed"] .num {
+  background: var(--ready-50);
+  color: var(--ready-ink);
+}
+.lesson[data-state="open"] .num {
+  background: var(--accent);
+  color: #fff;
+}
+.lessonText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.kick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.badge {
+  padding: 0.05rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.lessonTitle {
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+a.lessonTitle:hover {
+  color: var(--accent-ink);
+}
+.lesson[data-state="locked"] .lessonTitle {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.lessonScore {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.lessonMeta {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.lessonLocked {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.lessonLocked :global(.lucide) {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 /* Best score against the pass mark */
@@ -12,9 +179,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
-  margin-bottom: var(--s-5);
-  padding-bottom: var(--s-5);
-  border-bottom: 1px solid var(--line);
 }
 .scoreHead {
   display: flex;
@@ -53,4 +217,266 @@
   margin-inline-start: -1px;
   border-radius: 1px;
   background: var(--ink);
+}
+
+/* The committed weeks: one row of seven days per week, like the plan's strip */
+.weeks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-5) var(--s-6);
+  margin-top: var(--s-4);
+}
+.weekHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-2);
+  margin-bottom: var(--s-2);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.weekHead b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--s-1);
+}
+.day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  height: 3.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--canvas);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.day :global(.lucide) {
+  width: 1.05rem;
+  height: 1.05rem;
+  stroke-width: 2.5;
+}
+/* The dot of a session due today or still to come. */
+.dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.day[data-mark="done"] {
+  border-color: var(--ready-200);
+  background: var(--ready-50);
+  color: var(--ready-ink);
+  font-weight: 600;
+}
+.day[data-mark="missed"] {
+  border-color: var(--attn-200);
+  background: var(--attn-50);
+  color: var(--attn-ink);
+  font-weight: 600;
+}
+.day[data-mark="due"] {
+  border-color: var(--accent-200);
+  background: var(--accent-50);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.day[data-mark="upcoming"] {
+  border-style: dashed;
+  border-color: var(--accent-200);
+  background: var(--surface);
+  color: var(--accent-ink);
+}
+.day[data-mark="upcoming"] .dot {
+  opacity: 0.45;
+}
+.day[data-today] {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+/* The first day of a re-plan's commitment. */
+.day[data-replan]::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  inset-inline: 25%;
+  height: 3px;
+  border-radius: 0 0 2px 2px;
+  background: var(--accent);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin-top: var(--s-4);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--canvas);
+}
+[data-mark="done"] > .swatch {
+  border-color: var(--ready-200);
+  background: var(--ready-50);
+}
+[data-mark="missed"] > .swatch {
+  border-color: var(--attn-200);
+  background: var(--attn-50);
+}
+[data-mark="today"] > .swatch {
+  border-color: var(--accent);
+  background: var(--accent-50);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+[data-mark="upcoming"] > .swatch {
+  border-style: dashed;
+  border-color: var(--accent-200);
+  background: var(--surface);
+}
+
+/* The plan's versions: a numbered node per version on a vertical line */
+.history {
+  margin-top: var(--s-5);
+}
+.node {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: var(--s-4);
+  padding-bottom: var(--s-6);
+}
+.node::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(1.375rem - 1px);
+  top: 2.75rem;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+.node:last-child {
+  padding-bottom: 0;
+}
+.node:last-child::before {
+  display: none;
+}
+.nodeNum {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.node[data-latest] .nodeNum {
+  background: var(--accent);
+  color: #fff;
+}
+.nodeBody {
+  min-width: 0;
+}
+.nodeHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  min-height: 2.75rem;
+}
+.nodeHead h3 {
+  font-size: var(--text-lg);
+}
+.nodeHead > :last-child:not(.nodeMeta) {
+  margin-inline-start: auto;
+}
+.reason {
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.node[data-latest] .reason {
+  background: var(--accent-50);
+  color: var(--accent-ink);
+}
+.nodeMeta {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.changes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: var(--s-1);
+  color: var(--ink-2);
+}
+.changes li {
+  position: relative;
+  padding-inline-start: 1.1rem;
+}
+.changes li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0.2rem;
+  top: 0.7em;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.why {
+  margin-top: var(--s-3);
+  line-height: var(--lh-read);
+}
+
+/* On a phone the band is a list: a label and its value on each row. */
+@media (max-width: 760px) {
+  .props {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prop {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding-inline: 0;
+  }
+  .prop + .prop {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+  .propValue {
+    justify-content: flex-end;
+    text-align: end;
+  }
+  .lesson {
+    grid-template-columns: 2rem minmax(0, 1fr);
+  }
+  .lessonScore,
+  .lessonLocked {
+    grid-column: 2;
+  }
+  .weeks {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

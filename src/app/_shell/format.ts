@@ -120,6 +120,19 @@ export const UPDATES: CountForms = {
   few: "تحديثات",
   many: "تحديثًا",
 };
+export const TERMS: CountForms = {
+  one: "مصطلح واحد",
+  two: "مصطلحان",
+  few: "مصطلحات",
+  many: "مصطلحًا",
+};
+export const VERSIONS: CountForms = { one: "نسخة واحدة", two: "نسختان", few: "نسخ", many: "نسخة" };
+export const CHANGES: CountForms = {
+  one: "تغيير واحد",
+  two: "تغييران",
+  few: "تغييرات",
+  many: "تغييرًا",
+};
 
 export function percent(fraction: number): string {
   return `${arabicNumber(Math.round(fraction * 100))}٪`;

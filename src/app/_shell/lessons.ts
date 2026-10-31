@@ -67,6 +67,8 @@ export type LearnerCourse = {
   sample: boolean;
   name: string;
   plan: CoursePlan;
+  // Every version of the plan, oldest first; `plan` is the last.
+  versions: CoursePlan[];
   resources: Resource[];
   lessons: Record<string, Lesson>;
   glossary: GlossaryEntry[];
@@ -87,6 +89,7 @@ export function learnerCourse(): LearnerCourse | undefined {
       sample: true,
       name: seed.profile.name,
       plan,
+      versions: seed.plans.toSorted((a, b) => a.version - b.version),
       resources: seed.resources,
       lessons,
       glossary: seed.glossary,
@@ -109,6 +112,7 @@ export function learnerCourse(): LearnerCourse | undefined {
     sample: false,
     name: learner.name,
     plan,
+    versions: saved.versions,
     resources: saved.resources,
     lessons,
     glossary: written?.glossary ?? [],
