@@ -49,7 +49,7 @@ export type ReplanResult =
 
 // The first week back takes at most 60% of the lightest week of the first version, and each of its
 // sessions at most 20 minutes.
-const LIGHTER_SHARE = 0.6;
+export const LIGHTER_SHARE = 0.6;
 const LIGHT_SESSION_MINUTES = 20;
 const REVIEW_MINUTES = 15;
 // «جلسات أقصر»: 60% of a session's time, rounded down to 5 minutes, never under the minimum.

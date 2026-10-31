@@ -1,0 +1,619 @@
+/* The learner's return on the plan page (#27, #26): a short road of numbered steps, the recap, then
+   the plan in force over the proposal, day by day, with each moved session drawn from its old day
+   to its new one, and the decision bar. */
+
+.comeback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  margin-bottom: var(--s-10);
+  /* A swap from the recap to the proposal scrolls here, clear of the sticky top bar. */
+  scroll-margin-top: calc(var(--top-h) + var(--s-4));
+}
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-6);
+}
+.head > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  flex: 1 1 26rem;
+  min-width: 0;
+}
+.title {
+  font-size: var(--text-2xl);
+}
+.lede {
+  font-size: var(--text-md);
+  color: var(--ink-2);
+}
+
+/* The ask, echoed: the learner's own reply as the coach's phone shows it. */
+.ask {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 100%;
+  padding: 0.55rem 0.9rem 0.45rem;
+  border-radius: var(--r-lg);
+  border-start-end-radius: var(--r-xs);
+  background: var(--accent-100);
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+.ask small {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* The steps, drawn as the road's numbered circles: a middle dot beside Arabic-Indic digits reads
+   as a zero (ui.tsx Sep). */
+.node {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: var(--s-4);
+  padding-bottom: var(--s-6);
+}
+.node::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(1.375rem - 1px);
+  top: 2.75rem;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+.node:last-child::before {
+  display: none;
+}
+.node[data-at="done"]::before {
+  background: var(--ready-200);
+}
+.num {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.num :global(.lucide) {
+  width: 1.125rem;
+  height: 1.125rem;
+  stroke-width: 2.5;
+}
+.node[data-at="now"] .num {
+  background: var(--accent);
+  color: #fff;
+}
+.node[data-at="done"] .num {
+  background: var(--ready-50);
+  color: var(--ready);
+}
+.nodeBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.nodeHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  min-height: 2.75rem;
+}
+.nodeHead h3 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.nodeHead h3:focus {
+  outline: none;
+}
+.node[data-at="next"] .nodeHead h3 {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.nodeMeta {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+
+/* Why this version exists, in the accent, with its icon. */
+.reason {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  padding: 0 0.7rem;
+  border-radius: var(--r-pill);
+  background: var(--accent-50);
+  color: var(--accent-ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.reason :global(.lucide) {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+
+.missedNote {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.missedNote b {
+  color: var(--attn-ink);
+}
+.recapDone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-top: calc(var(--s-3) * -1);
+  color: var(--ink-2);
+}
+.explain {
+  font-size: var(--text-md);
+  line-height: var(--lh-read);
+}
+.explain b {
+  color: var(--accent-ink);
+}
+.byline {
+  margin-top: calc(var(--s-3) * -1);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* Disclosures: a summary row that folds its body. */
+.fold > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-2);
+  min-height: 2.5rem;
+  margin-inline: calc(var(--s-2) * -1);
+  padding-inline: var(--s-2);
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+.fold > summary:hover {
+  background: var(--fill);
+}
+.summaryNote {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.chev {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--ink-3);
+  transform: rotate(90deg);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+.fold[open] > summary .chev {
+  transform: none;
+}
+.recapDone .fold > summary {
+  min-height: 2rem;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.changesFold {
+  border-top: 1px solid var(--line);
+}
+.fold.changesFold > summary {
+  min-height: 3rem;
+}
+
+/* Every change, one line per session, with a tag per change */
+.changes {
+  counter-reset: change;
+  padding-bottom: var(--s-3);
+}
+.changes li {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.changes li::before {
+  counter-increment: change;
+  content: counter(change, arabic-indic);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+  text-align: center;
+}
+.tags {
+  display: flex;
+  gap: var(--s-1);
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.45rem;
+  border-radius: var(--r-xs);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tag[data-op="review"] {
+  background: var(--attn-50);
+  color: var(--attn-ink);
+}
+.tag[data-op="extend"],
+.tag[data-op="switch"] {
+  background: var(--accent-50);
+  color: var(--accent-ink);
+}
+
+.missList li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--s-2) 0;
+  font-size: var(--text-sm);
+}
+.changes li + li,
+.missList li + li {
+  border-top: 1px solid var(--line);
+}
+.missPrompt {
+  font-weight: 600;
+  color: var(--ink);
+}
+.missMine {
+  color: var(--attn-ink);
+}
+.missRight {
+  color: var(--ready-ink);
+}
+
+/* The proposal in a few numbers */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--s-3);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+.stat b {
+  font-size: var(--text-2xl);
+  line-height: 1.2;
+}
+.stat span {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+/* What code checked, with a ready mark */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.check > :global(.lucide) {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.2rem;
+  color: var(--ready);
+}
+.check b {
+  color: var(--ink);
+}
+
+/* The decision bar: sticky like the quiz's submit bar */
+.decide {
+  position: sticky;
+  bottom: calc(var(--demo-bar-h) + var(--s-4));
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-4);
+  margin-top: calc(var(--s-5) * -1);
+  padding: var(--s-3);
+  padding-inline-start: var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+}
+.decide > p {
+  flex: 1 1 14rem;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.decideBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.replanNow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+.failed {
+  display: inline-flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  color: var(--attn-ink);
+}
+.failed :global(.lucide) {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--attn);
+}
+
+/* The timeline: a column per day, the plan in force over the proposal. It scrolls in its own box
+   on a phone, its row labels pinned. */
+.timeline {
+  overflow-x: auto;
+  padding-bottom: var(--s-1);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 6.25rem repeat(var(--days), minmax(0, 1fr));
+  align-items: end;
+  column-gap: 3px;
+  min-width: 0;
+}
+.label {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 3;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  padding-inline-end: var(--s-3);
+  background: var(--surface);
+  line-height: 1.3;
+}
+.label b {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.label small {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.week {
+  grid-column: span 7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  overflow: hidden;
+  padding: 0 0.35rem var(--s-2);
+  border-inline-start: 1px solid var(--line-strong);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.week small {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.week small b {
+  color: var(--ink);
+}
+.label[data-moves] small {
+  font-weight: 600;
+  color: var(--attn-ink);
+}
+.day {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 3.5rem;
+  padding: 3px 2px;
+  border-radius: 5px;
+  background: var(--canvas);
+}
+.day[data-out] {
+  background: repeating-linear-gradient(135deg, var(--fill-strong) 0 3px, transparent 3px 7px);
+}
+.day[data-band] {
+  background: var(--accent-50);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.bar {
+  display: block;
+  width: 100%;
+  max-width: 1.125rem;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.bar[data-state="done"],
+.legend i[data-state="done"] {
+  background: var(--ready);
+}
+.bar[data-state="missed"],
+.legend i[data-state="missed"] {
+  background: var(--attn-50);
+  outline: 1.5px dashed var(--attn);
+  outline-offset: -1.5px;
+}
+.bar[data-state="review"],
+.legend i[data-state="review"] {
+  background: var(--attn);
+}
+.bar[data-state="plan"],
+.legend i[data-state="plan"] {
+  background: var(--accent);
+}
+/* Today: a line on the day's start edge, down through the moves to the proposal. */
+.day[data-today]::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -0.35rem;
+  bottom: -0.35rem;
+  inset-inline-start: -2.5px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--ink);
+}
+.grid[data-moves] .day[data-row="0"][data-today]::after {
+  bottom: calc(-2.75rem - 0.35rem);
+}
+.moves {
+  position: relative;
+  height: 2.75rem;
+}
+.moves svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.moves path {
+  fill: none;
+  stroke: var(--ink-4);
+  stroke-width: 1.5;
+}
+.moves path[data-missed] {
+  stroke: var(--attn);
+}
+.dayNum {
+  padding-top: 0.3rem;
+  font-size: var(--text-2xs);
+  color: var(--ink-3);
+  text-align: center;
+  white-space: nowrap;
+}
+.dayNum[data-today] {
+  font-weight: 700;
+  color: var(--ink);
+}
+.bandLabel {
+  justify-self: stretch;
+  margin-top: var(--s-1);
+  padding: 0.15rem var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--accent-50);
+  color: var(--accent-ink);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.legend i {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 3px;
+}
+.legend i[data-state="out"] {
+  background: repeating-linear-gradient(135deg, var(--fill-strong) 0 2px, transparent 2px 4px);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.legend i[data-state="band"] {
+  background: var(--accent-50);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+@media (max-width: 760px) {
+  .node {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+  .num {
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--text-sm);
+  }
+  .node::before {
+    inset-inline-start: calc(1rem - 1px);
+    top: 2rem;
+  }
+  .nodeHead {
+    min-height: 2rem;
+  }
+  .grid {
+    grid-template-columns: 3.75rem repeat(var(--days), minmax(0, 1fr));
+    column-gap: 2px;
+  }
+  .grid[data-moves] {
+    min-width: 40rem;
+  }
+  .label {
+    padding-inline-end: var(--s-2);
+  }
+  .label b {
+    font-size: var(--text-xs);
+  }
+  .label small,
+  .week {
+    font-size: var(--text-2xs);
+  }
+  .dayNum {
+    font-size: 0.5625rem;
+  }
+  .stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .decide {
+    padding-inline-start: var(--s-3);
+  }
+  .decideBtns {
+    flex: 1 1 100%;
+    flex-direction: column;
+  }
+}

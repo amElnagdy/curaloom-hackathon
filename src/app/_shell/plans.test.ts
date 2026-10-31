@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CoursePlan, PlanChange } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
-import { changeLines, planDays } from "./progress.ts";
+import { changeLines, changeTally, planDays, sessionChanges } from "./plans.ts";
 
 type Row = [id: string, day: number, lesson: string, minutes: number, kind?: "study" | "review"];
 
@@ -245,5 +245,74 @@ describe("changeLines", () => {
       "انتقلت ٣ جلسات إلى مصدر آخر",
       "حُذفت جلستان",
     ]);
+  });
+});
+
+describe("sessionChanges", () => {
+  it("gives the review, then one line per session of the version before with a tag per change, then the longer module", () => {
+    const changes = sessionChanges(v1, v2);
+
+    expect(changes.slice(0, 3)).toEqual([
+      {
+        text: "جلسة مراجعة جديدة للدرس الأول في اليوم ١٠، ١٥ دقيقة",
+        tags: ["review"],
+      },
+      {
+        text: "جلسة الدرس الثاني في اليوم ٢ صارت في اليوم ١٢، و١٥ دقيقة بدل ٢٥",
+        tags: ["move", "shorten"],
+      },
+      {
+        text: "جلسة الدرس الثاني في اليوم ٣ صارت في اليوم ١٤، و١٠ دقائق بدل ٢٠",
+        tags: ["move", "shorten"],
+      },
+    ]);
+    expect(changes.at(-1)).toEqual({
+      text: "صارت الوحدة الأولى ٣ أسابيع بدل أسبوع واحد",
+      tags: ["extend"],
+    });
+    expect(changes).toHaveLength(13);
+    expect(changes.flatMap((c) => c.tags)).toHaveLength(v2.diff.length);
+  });
+
+  it("names a change alone, a dropped session and a switched source", () => {
+    const changes = sessionChanges(v1, {
+      ...v2,
+      diff: [
+        { op: "shorten", session: "s3", from: 25, to: 15 },
+        { op: "switch", session: "s4", from: ["r1"], to: ["r2"] },
+        { op: "move", session: "s5", from: 4, to: 16 },
+        { op: "switch", session: "s5", from: ["r1"], to: ["r2"] },
+        { op: "drop", session: "s2" },
+      ],
+    });
+
+    expect(changes).toEqual([
+      { text: "جلسة الدرس الأول في اليوم ١ حُذفت", tags: ["drop"] },
+      { text: "جلسة الدرس الثاني في اليوم ٢ صارت ١٥ دقيقة بدل ٢٥", tags: ["shorten"] },
+      { text: "جلسة الدرس الثاني في اليوم ٣ صارت من مصدر آخر", tags: ["switch"] },
+      {
+        text: "جلسة الدرس الثالث في اليوم ٤ صارت في اليوم ١٦، ومن مصدر آخر",
+        tags: ["move", "switch"],
+      },
+    ]);
+  });
+});
+
+describe("changeTally", () => {
+  it("counts a version's changes by kind", () => {
+    expect(changeTally(v2.diff)).toBe("٢٤ تغييرًا: مراجعة واحدة، و١١ نقلًا، و١١ تقصيرًا، وتمديد وحدة");
+  });
+
+  it("counts a few changes, dropped sessions and switched sources", () => {
+    expect(
+      changeTally([
+        { op: "move", session: "s3", from: 2, to: 12 },
+        { op: "move", session: "s4", from: 3, to: 12 },
+        { op: "switch", session: "s3", from: ["r1"], to: ["r2"] },
+        { op: "drop", session: "s6" },
+        { op: "drop", session: "s7" },
+        { op: "drop", session: "s8" },
+      ]),
+    ).toBe("٦ تغييرات: نقلان، وتبديل مصدر جلسة، وحذف ٣ جلسات");
   });
 });

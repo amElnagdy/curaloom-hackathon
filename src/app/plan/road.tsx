@@ -5,7 +5,8 @@
 // build failed. Road draws the modules in order; a module in the committed
 // weeks lists its sessions and their sources, and the learner can move a session to another day of
 // its module or make it shorter. The editor checks a change with the plan's own rules before it is sent, and the server
-// checks it again.
+// checks it again. A re-planned version (#26) commits from a later day: its sessions before that
+// day, and its reviews, are not edited.
 
 import { CalendarClock, Check, Hourglass, RotateCcw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +25,7 @@ import {
 import { Callout } from "../_shell/blocks.tsx";
 import { type Session, sessionsOf, simDay } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, ordinalF, WEEKS } from "../_shell/format.ts";
+import { startDay } from "../_shell/plans.ts";
 import { BidiText, buttonClass, cx, LangBadge, StatusPill } from "../_shell/ui.tsx";
 import { useBuild } from "../_shell/use-build.ts";
 import styles from "./plan.module.css";
@@ -143,8 +145,12 @@ export function Road({
 }) {
   const [open, setOpen] = useState<{ id: string; op: Op } | null>(null);
   const sessions = sessionsOf(plan);
-  // Days 0 to committedDays - 1 are the committed weeks.
+  // Days 0 to committedDays - 1 are the committed weeks; the version commits from day `from` on.
   const committedDays = plan.committed.weeks * 7;
+  const from = startDay(plan);
+  // The first version commits to two weeks; a re-planned one to the days up to its last.
+  const firstWeeks = plan.committed.weeks === 2 && from === 0;
+  const lastDay = simDay(committedDays - 1);
   const lesson = (s: Session) => plan.committed.lessons.find((l) => l.id === s.lesson_id);
 
   return (
@@ -169,15 +175,24 @@ export function Road({
                 </StatusPill>
               </div>
               {!committed && (
-                <p className={styles.later}>نخطّط لها معك بعد الأسبوعين، على ما تعلّمته فيهما.</p>
+                <p className={styles.later}>
+                  {firstWeeks
+                    ? "نخطّط لها معك بعد الأسبوعين، على ما تعلّمته فيهما."
+                    : `نخطّط لها معك بعد ${lastDay}، على ما تعلّمته قبلها.`}
+                </p>
               )}
               {committed && own.length === 0 && (
-                <p className={styles.later}>لا جلسات لهذه الوحدة في أسبوعيك الأولين.</p>
+                <p className={styles.later}>
+                  {firstWeeks
+                    ? "لا جلسات لهذه الوحدة في أسبوعيك الأولين."
+                    : `لا جلسات لهذه الوحدة حتى ${lastDay}.`}
+                </p>
               )}
               {committed && own.length > 0 && (
                 <ul className={styles.agenda}>
                   {own.map((s) => {
                     const editing = open?.id === s.id ? open.op : undefined;
+                    const review = s.kind === "review";
                     return (
                       <li
                         key={s.id}
@@ -200,6 +215,7 @@ export function Road({
                             </span>
                           )}
                           <small>
+                            {review && <span className={styles.reviewTag}>مراجعة</span>}
                             الجلسة {ordinalF(sessions.indexOf(s))}
                             {s.resource_ids.map((id) => {
                               const source = sources[id];
@@ -218,7 +234,7 @@ export function Road({
                           </small>
                         </div>
                         <span className={styles.rowMinutes}>{countOf(s.minutes, MINUTES)}</span>
-                        {editable && (
+                        {editable && !review && s.day >= from && (
                           <span className={styles.rowActions}>
                             <button
                               type="button"
@@ -253,7 +269,10 @@ export function Road({
                             limits={limits}
                             session={s}
                             op={editing}
-                            days={{ from: days.from, to: Math.min(days.to, committedDays) }}
+                            days={{
+                              from: Math.max(days.from, from),
+                              to: Math.min(days.to, committedDays),
+                            }}
                             onClose={() => setOpen(null)}
                           />
                         )}

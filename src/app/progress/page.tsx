@@ -42,8 +42,6 @@ import {
   WEEKS,
 } from "../_shell/format.ts";
 import { type CourseLesson, currentLesson, learnerCourse } from "../_shell/lessons.ts";
-import { BidiText, buttonClass, DirIcon, Meta, Sep, StatusPill } from "../_shell/ui.tsx";
-import styles from "./progress.module.css";
 import {
   changeLines,
   type DayMark,
@@ -51,7 +49,9 @@ import {
   planDays,
   REASON_TEXT,
   startDay,
-} from "./progress.ts";
+} from "../_shell/plans.ts";
+import { BidiText, buttonClass, DirIcon, Meta, Sep, StatusPill } from "../_shell/ui.tsx";
+import styles from "./progress.module.css";
 import { RefreshOnProgress } from "./refresh.tsx";
 
 export const metadata: Metadata = { title: "التقدّم" };

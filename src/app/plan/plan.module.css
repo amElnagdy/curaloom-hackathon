@@ -195,8 +195,11 @@
   color: var(--ink-3);
 }
 
-/* Why the plan has this shape */
+/* Why the plan has this shape, and why a re-planned version changed it */
 .why {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
   margin-top: var(--s-6);
   font-size: var(--text-md);
   line-height: var(--lh-read);
@@ -205,8 +208,8 @@
 /* The committed weeks: one row of seven days per week, a bar per day as long as its sessions */
 .strip {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-6);
+  grid-template-columns: repeat(var(--weeks, 2), minmax(0, 1fr));
+  gap: var(--s-6) var(--s-4);
   margin-top: var(--s-4);
 }
 .weekHead {
@@ -252,6 +255,48 @@
   width: 100%;
   border-radius: var(--r-xs);
   background: var(--accent);
+}
+/* A re-planned version's marks: the days before it dimmed, its lighter first week banded, today
+   named, and a review in amber, there because the recap fell below the gate. */
+.day i[data-kind="review"] {
+  background: var(--attn);
+}
+.day[data-past] {
+  opacity: 0.45;
+}
+.day[data-band] {
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.day[data-today]::before {
+  content: "اليوم" / "";
+  position: absolute;
+  top: 0.2rem;
+  inset-inline: 0;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--accent-ink);
+  text-align: center;
+}
+.bandNote {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.bandKey {
+  width: 1.5rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.reviewKey {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 3px;
+  background: var(--attn);
 }
 
 /* The road: a numbered node per module on a vertical line */
@@ -392,6 +437,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* A review session, there because the recap fell below the gate (#27) */
+.reviewTag {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.45rem;
+  border-radius: var(--r-xs);
+  background: var(--attn-50);
+  color: var(--attn-ink);
+  font-size: var(--text-2xs);
+  font-weight: 600;
 }
 .rowMinutes {
   font-size: var(--text-sm);

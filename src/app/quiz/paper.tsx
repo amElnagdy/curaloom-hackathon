@@ -3,7 +3,8 @@
 // The quiz's client side (#20). QuizWriter asks the examiner for the lesson's quiz while there is
 // none, or for a new one once the learner asks after an attempt below the gate; the page's pill,
 // lede and body read from it whether it is writing. QuizPaper is the quiz to take: every item on
-// one page, a sticky bar to submit, then the grading status until the graded page arrives.
+// one page, a sticky bar to submit, then the grading status until the graded page arrives. The
+// plan page gives it the comeback's recap (#27), with its own address and texts.
 
 import { Info, RotateCcw, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -168,8 +169,15 @@ export function NewQuizButton() {
   );
 }
 
-// On the graded page, moves focus to the result when the learner's submit led here.
-export function FocusOnArrival({ quizId }: { quizId: string }) {
+// On the graded page, moves focus to the result when the learner's submit led here. The plan page
+// moves it to the proposal its recap led to.
+export function FocusOnArrival({
+  quizId,
+  headingId = RESULT_ID,
+}: {
+  quizId: string;
+  headingId?: string;
+}) {
   useEffect(() => {
     let stored: string | null = null;
     try {
@@ -179,10 +187,10 @@ export function FocusOnArrival({ quizId }: { quizId: string }) {
     const arrived = gradedQuiz === quizId || stored === quizId;
     if (gradedQuiz === quizId) gradedQuiz = null;
     if (!arrived) return;
-    const heading = document.getElementById(RESULT_ID);
+    const heading = document.getElementById(headingId);
     heading?.focus({ preventScroll: true });
     heading?.closest("section")?.scrollIntoView({ block: "start" });
-  }, [quizId]);
+  }, [quizId, headingId]);
   return null;
 }
 
@@ -232,17 +240,28 @@ function readingShorts(count: number): string {
   return "يقرأ الممتحن إجاباتك القصيرة";
 }
 
+// What the paper says while it grades, in place of a lesson quiz's texts.
+export type GradingText = { title: string; step: string; detail: string };
+
 export function QuizPaper({
   quiz,
   sessionId,
   lessonId,
   note,
+  submitUrl,
+  intro,
+  grading,
 }: {
   quiz: KeylessQuiz;
   sessionId: string;
   lessonId: string;
   // Over a new quiz after an attempt below the gate.
   note?: string;
+  // Where the answers go, when not to the lesson's attempts.
+  submitUrl?: string;
+  // In place of the note on how the quiz is graded.
+  intro?: string;
+  grading?: GradingText;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -294,13 +313,13 @@ export function QuizPaper({
     abort.current = controller;
     setPhase("grading");
     setError(null);
-    setSaid("سُلّمت إجاباتك، ويصححها الممتحن الآن.");
+    setSaid(grading ? `سُلّمت إجاباتك. ${grading.step}.` : "سُلّمت إجاباتك، ويصححها الممتحن الآن.");
     const body = JSON.stringify({
       quiz_id: quiz.id,
       answers: quiz.items.map((item) => ({ item_id: item.id, response: answers[item.id] ?? "" })),
     });
     while (!controller.signal.aborted) {
-      const res = await fetch(`${quizUrl(sessionId, lessonId)}/attempts`, {
+      const res = await fetch(submitUrl ?? `${quizUrl(sessionId, lessonId)}/attempts`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body,
@@ -358,16 +377,16 @@ export function QuizPaper({
       {phase !== "answering" && (
         <section className={styles.result} aria-labelledby="quiz-status-title">
           <h2 className={styles.resultTitle} id="quiz-status-title" tabIndex={-1} ref={statusRef}>
-            {phase === "grading" ? "نصحح إجاباتك" : "لم يكتمل التصحيح"}
+            {phase === "grading" ? (grading?.title ?? "نصحح إجاباتك") : "لم يكتمل التصحيح"}
           </h2>
           {phase === "grading" ? (
             <div className={cx(styles.step, styles.busy)}>
               <span className={styles.stepMark} aria-hidden />
               <div className={styles.stepText}>
-                <b>{readingShorts(shorts)}</b>
+                <b>{grading?.step ?? readingShorts(shorts)}</b>
                 <p>
-                  يقارن كل إجابة بمعيار مكتوب، وتظهر نتيجتك هنا حين يكتمل التصحيح. قد يستغرق ذلك بضع
-                  ثوانٍ.
+                  {grading?.detail ??
+                    "يقارن كل إجابة بمعيار مكتوب، وتظهر نتيجتك هنا حين يكتمل التصحيح. قد يستغرق ذلك بضع ثوانٍ."}
                 </p>
               </div>
             </div>
@@ -402,8 +421,8 @@ export function QuizPaper({
         )}
         {phase === "answering" && (
           <Callout icon={Info}>
-            لكل سؤال درجة واحدة، ونتيجتك متوسط درجاتك. أسئلة الاختيار يصححها الكود بمفتاحها،
-            والإجابات القصيرة يقرؤها الممتحن ويصححها وفق معيار مكتوب.
+            {intro ??
+              "لكل سؤال درجة واحدة، ونتيجتك متوسط درجاتك. أسئلة الاختيار يصححها الكود بمفتاحها، والإجابات القصيرة يقرؤها الممتحن ويصححها وفق معيار مكتوب."}
           </Callout>
         )}
         <ol className={styles.items}>
