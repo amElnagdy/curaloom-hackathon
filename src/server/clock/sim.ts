@@ -6,7 +6,7 @@
 import type { CheckinReply, CoachEvent, Consent } from "../../../contracts/index.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config, type NotifierAdapterName } from "../../config.ts";
-import { type CoachDeps, createCoach, NO_PLAN } from "../coach/coach.ts";
+import { type CoachDeps, createCoach } from "../coach/coach.ts";
 import { createAdapter } from "../notifier/adapters.ts";
 import { type ConsentChoice, createNotifier, type ReplyResult } from "../notifier/notifier.ts";
 import type { Store } from "../store/store.ts";
@@ -30,12 +30,11 @@ export type SimOptions = {
   adapter?: NotifierAdapterName;
 };
 
-// A learner with no quiz, no lesson and no plan yet: the ladder counts from day 0, no button opens a
-// lesson, a shrink changes nothing and each message is its template.
+// A learner with no quiz and no lesson yet: the ladder counts from day 0, no button opens a lesson
+// and each message is its template.
 const NO_STUDY: CoachDeps = {
   steps: null,
   study: () => ({ attempt_days: [], lesson: null }),
-  replan: async () => NO_PLAN,
 };
 
 export function createSim({

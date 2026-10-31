@@ -18,9 +18,9 @@ import {
 } from "../../orchestrator/orchestrator.ts";
 import { contentHash, type Store } from "../../store/store.ts";
 import type { Tracer } from "../../trace/trace.ts";
+import { type ReplanRequest, replan, replanBrief, replanSummary, templateNote } from "./replan.ts";
 import {
   applyEdit,
-  type EditResult,
   type Limits,
   type PlanEdit,
   planViolations,
@@ -116,6 +116,7 @@ function planFromDraft(draft: PlanDraft): CoursePlan {
         minutes,
         lesson_id: lesson.id,
         resource_ids: [...new Set(lesson.resource_ids.map((id) => id.trim()))],
+        kind: "study" as const,
       })),
     )
     .toSorted((a, b) => a.day - b.day)
@@ -136,6 +137,8 @@ function planFromDraft(draft: PlanDraft): CoursePlan {
     rationale_ar: draft.rationale_ar.trim(),
     version: 1,
     reason: "initial",
+    diff: [],
+    explanation_ar: null,
   };
 }
 
@@ -173,16 +176,19 @@ const architect: Agent<ArchitectBrief, typeof CoursePlan> = {
 
 const PLAN_DOC = "plan";
 
-// The session's plan: the profile it was built for (a content hash), every version, oldest first,
-// the resources the scout found for it and the limits each version must fit.
+// The session's plan: the profile it was built for (a content hash), every version the learner
+// has, oldest first, the last one active, the resources the scout found for it, the limits each
+// version must fit, and the re-planner's proposed next version, waiting for the learner's answer.
 export type SavedPlan = {
   for_profile: string;
   versions: CoursePlan[];
   resources: Resource[];
   limits: Limits;
+  pending: CoursePlan | null;
 };
 
-// An edit before there is a plan to edit.
+// An edit before there is a plan to edit or while a proposal waits, or an answer to a proposal
+// that is not waiting.
 export class PlanConflict extends Error {}
 
 export class PlanEditRejected extends Error {
@@ -194,8 +200,10 @@ export class PlanEditRejected extends Error {
   }
 }
 
+// A plan saved before proposals existed has no `pending`.
 export function savedPlan(store: Store, sessionId: string): SavedPlan | undefined {
-  return store.readDoc<SavedPlan>(sessionId, PLAN_DOC);
+  const saved = store.readDoc<SavedPlan>(sessionId, PLAN_DOC);
+  return saved && { ...saved, pending: saved.pending ?? null };
 }
 
 // The session's plan if it was built for this profile. A plan built for another one, the seed's
@@ -207,24 +215,6 @@ export function planFor(
 ): SavedPlan | undefined {
   const saved = savedPlan(store, sessionId);
   return saved?.for_profile === contentHash(profile) ? saved : undefined;
-}
-
-// The learner's latest plan changed by `change`, saved as the next version when the change keeps
-// every rule, with the version it changed. Undefined while the learner has no plan.
-export function reviseLatest(
-  store: Store,
-  sessionId: string,
-  profile: LearnerProfile,
-  change: (latest: CoursePlan, limits: Limits) => EditResult,
-): { latest: CoursePlan; result: EditResult; saved: SavedPlan } | undefined {
-  const saved = planFor(store, sessionId, profile);
-  const latest = saved?.versions.at(-1);
-  if (!saved || !latest) return undefined;
-  const result = change(latest, saved.limits);
-  if (!result.ok) return { latest, result, saved };
-  const next = { ...saved, versions: [...saved.versions, result.plan] };
-  store.writeDoc(sessionId, PLAN_DOC, next);
-  return { latest, result, saved: next };
 }
 
 export type PlannerDeps = {
@@ -253,6 +243,16 @@ export function createPlanner({
   // An edit's verdict is finished work, so the activity feed does not show the architect working.
   const report = (summary_ar: string, summary_en: string) =>
     tracer.emit({ agent: "architect", kind: "output", summary_ar, summary_en });
+  // The learner's plan with the proposal `version` waiting, the version after the active one.
+  const waiting = (version: number) => {
+    const saved = planFor(store, sessionId, profile());
+    const active = saved?.versions.at(-1);
+    const proposal = saved?.pending;
+    if (!saved || !active || proposal?.version !== version || version !== active.version + 1) {
+      throw new PlanConflict(`No proposed version ${version} is waiting for the learner`);
+    }
+    return { saved, active, proposal };
+  };
 
   return {
     // The learner's plan, built on the first call for their profile. A new profile gets a new
@@ -269,16 +269,22 @@ export function createPlanner({
         versions: [plan],
         resources,
         limits: limitsOf(brief),
+        pending: null,
       });
     },
 
     // Throws PlanEditRejected, with the broken rules, for an edit the plan cannot take.
     edit(edit: PlanEdit): SavedPlan {
-      const revised = reviseLatest(store, sessionId, profile(), (latest, limits) =>
-        applyEdit(latest, edit, limits),
-      );
-      if (!revised) throw new PlanConflict("There is no plan for this learner to edit yet");
-      const { latest, result, saved } = revised;
+      const saved = planFor(store, sessionId, profile());
+      const latest = saved?.versions.at(-1);
+      if (!saved || !latest)
+        throw new PlanConflict("There is no plan for this learner to edit yet");
+      if (saved.pending) {
+        throw new PlanConflict(
+          `Version ${saved.pending.version} is proposed; it takes an accept or a reject before an edit`,
+        );
+      }
+      const result = applyEdit(latest, edit, saved.limits);
       const what = describeEdit(latest, edit);
       if (!result.ok) {
         report(
@@ -287,11 +293,34 @@ export function createPlanner({
         );
         throw new PlanEditRejected(result.violations);
       }
+      const edited = save({ ...saved, versions: [...saved.versions, result.plan] });
       report(
         `عدّلتَ خطتك: ${what.ar}`,
         `Learner edit: ${what.en}; plan version ${result.plan.version}`,
       );
-      return saved;
+      return edited;
+    },
+
+    // The learner's answers to the proposal waiting for them. Each throws PlanConflict unless
+    // `version` is the one waiting.
+    accept(version: number): SavedPlan {
+      const { saved, proposal } = waiting(version);
+      const accepted = save({ ...saved, versions: [...saved.versions, proposal], pending: null });
+      report(
+        `اعتمدتَ النسخة ${version.toLocaleString("ar-EG")} من خطتك`,
+        `Learner accepted plan version ${version} (${proposal.reason})`,
+      );
+      return accepted;
+    },
+
+    reject(version: number): SavedPlan {
+      const { saved, active } = waiting(version);
+      const kept = save({ ...saved, pending: null });
+      report(
+        "أبقيتَ خطتك كما هي",
+        `Learner kept plan version ${active.version}; rejected version ${version}`,
+      );
+      return kept;
     },
 
     // Back to no plan: the pages fall back to the seed's, and the next build reads the saved step.
@@ -302,6 +331,76 @@ export function createPlanner({
 }
 
 export type Planner = ReturnType<typeof createPlanner>;
+
+// What the re-planner proposed for the learner's return: the version waiting for their answer and
+// its lighter week against the cap, or why it proposed nothing.
+export type Replanned =
+  | { ok: true; version: number; lighter: { minutes: number; cap: number } }
+  | { ok: false; why: Violation };
+
+export type ProposeDeps = {
+  store: Store;
+  sessionId: string;
+  tracer: Tracer;
+  profile: LearnerProfile;
+};
+
+// The learner's return (#27) as the plan's proposed next version, waiting in `pending` for them to
+// accept or reject it. A later return recomputes it from the active version and replaces it, or
+// drops it when that return needs no change. The explanation is code's template.
+export async function proposeReplan(
+  { store, sessionId, tracer, profile }: ProposeDeps,
+  request: ReplanRequest,
+  passed: ReadonlySet<string>,
+): Promise<Replanned> {
+  const emit = (kind: "decision" | "output", summary_ar: string, summary_en: string) =>
+    tracer.emit({ agent: "replanner", kind, summary_ar, summary_en });
+  const saved = planFor(store, sessionId, profile);
+  const original = saved?.versions[0];
+  const active = saved?.versions.at(-1);
+  if (!saved || !original || !active) {
+    const why = { en: "the learner has no plan of their own yet", ar: "ليست لك خطة بعد" };
+    emit("decision", `لم يقترح مُعيد التخطيط نسخة جديدة: ${why.ar}`, `replan: ${why.en}`);
+    return { ok: false, why };
+  }
+  const version = active.version + 1;
+  const result = replan(active, original, saved.limits, {
+    today: request.today,
+    passed,
+    reason: request.reason,
+    review_lesson: request.recap?.review_lesson ?? null,
+    switch_to: null,
+  });
+  if (!result.ok) {
+    if (saved.pending) store.writeDoc(sessionId, PLAN_DOC, { ...saved, pending: null });
+    const why = {
+      en: result.why.map((v) => v.en).join("; "),
+      ar: result.why.map((v) => v.ar).join("، "),
+    };
+    emit(
+      "decision",
+      `لم يقترح مُعيد التخطيط نسخة جديدة: ${why.ar}`,
+      `replan: no v${version} (${request.reason}): ${why.en}`,
+    );
+    return { ok: false, why };
+  }
+  const brief = replanBrief(active, result.plan, original, request, passed);
+  const summary = replanSummary(result.plan, brief);
+  emit("decision", summary.ar, `replan: ${summary.en}`);
+  const proposal: CoursePlan = { ...result.plan, explanation_ar: templateNote(brief) };
+  emit(
+    "decision",
+    "كُتب شرح الخطة المقترحة بنصه الجاهز دون استدعاء نموذج",
+    `replan v${version}: explanation from the template, no model call`,
+  );
+  store.writeDoc(sessionId, PLAN_DOC, { ...saved, pending: proposal } satisfies SavedPlan);
+  emit(
+    "output",
+    `اقترح مُعيد التخطيط النسخة ${version.toLocaleString("ar-EG")} من خطتك`,
+    `Proposed plan version ${version} (${request.reason})`,
+  );
+  return { ok: true, version, lighter: { minutes: brief.lighter.minutes, cap: brief.lighter.cap } };
+}
 
 function describeEdit(plan: CoursePlan, edit: PlanEdit): { ar: string; en: string } {
   const session = plan.committed.sessions.find((s) => s.id === edit.session_id);

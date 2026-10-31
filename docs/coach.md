@@ -42,8 +42,7 @@ stateDiagram-v2
   replan_offered_d5 --> checkin_d10: day 10 / check-in with three choices
   checkin_d10 --> weekly: day 17 / weekly message
   weekly --> weekly: every 7 days / weekly message
-  checkin_d10 --> checkin_d10: answer shrink / plan v(n+1) with shorter sessions
-  checkin_d10 --> checkin_d10: answer switch / recorded for the re-planner
+  checkin_d10 --> checkin_d10: answer shrink or switch / recorded for the re-planner
   checkin_d10 --> paused: answer pause / no messages for pause_days
   weekly --> weekly: answer shrink or switch to the check-in
   weekly --> paused: answer pause to the check-in
@@ -74,8 +73,7 @@ The check-in shows three buttons on the phone once it is delivered. A tap posts 
 A taken answer shows on the phone as the learner's reply. The coach acts on it, saves it in the `coach` document and sends an acknowledgement through the notifier, so quiet hours hold the acknowledgement too.
 
 - `pause` stops the coach's messages from the answer until 09:00 of the day `pause_days` later (7 by default, 1 to 30). A rung inside the pause never fires. The pause belongs to the anchor it was chosen at, so a quiz ends it.
-- `shrink` saves the learner's plan as its next version with the same id. Each session of a lesson not passed yet takes 60% of its minutes, rounded down to 5 minutes and never under the minimum (`shrinkPlan()`). The seed's Omar has no plan of his own, so his plan stays as it is and the acknowledgement says so.
-- `switch` is recorded for the re-planner (#26). The plan stays as it is.
+- `shrink` and `switch` are recorded, with the anchor they belong to, for the re-planner (#26). Neither changes the plan: the re-plan comes with the learner's comeback (#27). The acknowledgement says only that the choice is recorded, and carries no button.
 
 An answer is not activity, so the weekly messages go on after a shrink or a switch.
 
@@ -94,5 +92,4 @@ Spark words each message. `coachWriter` runs as an orchestrator step with the ke
 
 ## Not built yet
 
-- #26 replaces the shrink rule and the recorded switch with the re-planner, through `CoachDeps.replan`. The day-5 offer can then carry a button to accept the new plan.
-- #27 answers a comeback with a recap. The coach traces the comeback today. Messages held for quiet hours are not withdrawn when the learner comes back.
+- #26 and #27 turn a recorded shrink or switch into a proposed plan version when the learner comes back: a recap first, then the re-plan, which the learner accepts or rejects. The coach traces the comeback today. Messages held for quiet hours are not withdrawn when the learner comes back.

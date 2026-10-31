@@ -115,15 +115,45 @@
           { "id": "L2", "title_ar": "الإحصاء الوصفي: المتوسط والوسيط والتشتت", "module": 1 }
         ],
         "sessions": [
-          { "id": "s1", "day": 0, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
-          { "id": "s2", "day": 3, "minutes": 45, "lesson_id": "L1", "resource_ids": ["r1"] },
-          { "id": "s3", "day": 8, "minutes": 45, "lesson_id": "L2", "resource_ids": ["r2"] },
-          { "id": "s4", "day": 10, "minutes": 45, "lesson_id": "L2", "resource_ids": ["r2"] }
+          {
+            "id": "s1",
+            "day": 0,
+            "minutes": 45,
+            "lesson_id": "L1",
+            "resource_ids": ["r1"],
+            "kind": "study"
+          },
+          {
+            "id": "s2",
+            "day": 3,
+            "minutes": 45,
+            "lesson_id": "L1",
+            "resource_ids": ["r1"],
+            "kind": "study"
+          },
+          {
+            "id": "s3",
+            "day": 8,
+            "minutes": 45,
+            "lesson_id": "L2",
+            "resource_ids": ["r2"],
+            "kind": "study"
+          },
+          {
+            "id": "s4",
+            "day": 10,
+            "minutes": 45,
+            "lesson_id": "L2",
+            "resource_ids": ["r2"],
+            "kind": "study"
+          }
         ]
       },
       "rationale_ar": "خطة تجريبية للبذرة: جلستان قصيرتان في كل أسبوع من الأسبوعين الأولين، لأنك تركت دورات طويلة من قبل.",
       "version": 1,
-      "reason": "initial"
+      "reason": "initial",
+      "diff": [],
+      "explanation_ar": null
     }
   ],
   "lessons": [

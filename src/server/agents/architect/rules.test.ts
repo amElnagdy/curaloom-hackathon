@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CoursePlan } from "../../../../contracts/index.ts";
-import { applyEdit, type Limits, planViolations, shrinkPlan } from "./rules.ts";
+import { applyEdit, type Limits, planViolations } from "./rules.ts";
 
 // Week 1 is the first module's, week 2 the second's; the third module comes after the two weeks.
 const PLAN: CoursePlan = {
@@ -18,14 +18,23 @@ const PLAN: CoursePlan = {
       { id: "L2", title_ar: "التلخيص بالمجموع", module: 1 },
     ],
     sessions: [
-      { id: "s1", day: 1, minutes: 40, lesson_id: "L1", resource_ids: ["r_a"] },
-      { id: "s2", day: 4, minutes: 40, lesson_id: "L1", resource_ids: ["r_a", "r_b"] },
-      { id: "s3", day: 8, minutes: 40, lesson_id: "L2", resource_ids: ["r_b"] },
+      { id: "s1", day: 1, minutes: 40, lesson_id: "L1", resource_ids: ["r_a"], kind: "study" },
+      {
+        id: "s2",
+        day: 4,
+        minutes: 40,
+        lesson_id: "L1",
+        resource_ids: ["r_a", "r_b"],
+        kind: "study",
+      },
+      { id: "s3", day: 8, minutes: 40, lesson_id: "L2", resource_ids: ["r_b"], kind: "study" },
     ],
   },
   rationale_ar: "جلسات قصيرة لأن وقتك ضيق.",
   version: 1,
   reason: "initial",
+  diff: [],
+  explanation_ar: null,
 };
 const LIMITS: Limits = { budget_minutes: 100, resource_ids: ["r_a", "r_b"] };
 
@@ -39,6 +48,19 @@ const withSession = (id: string, change: Partial<Session>): CoursePlan => ({
     sessions: PLAN.committed.sessions.map((s) => (s.id === id ? { ...s, ...change } : s)),
   },
 });
+// A review of L1, after L1's module.
+const REVIEW: Session = {
+  id: "s4",
+  day: 9,
+  minutes: 15,
+  lesson_id: "L1",
+  resource_ids: ["r_a", "r_b"],
+  kind: "review",
+};
+const withReview: CoursePlan = {
+  ...PLAN,
+  committed: { ...PLAN.committed, sessions: [...PLAN.committed.sessions, REVIEW] },
+};
 const withLessons = (lessons: Lesson[]): CoursePlan => ({
   ...PLAN,
   committed: { ...PLAN.committed, lessons },
@@ -99,6 +121,11 @@ describe("planViolations", () => {
 
     expect(violation?.ar).toMatch(/\p{Script=Arabic}/u);
   });
+
+  // A re-plan (#26) can put a review of a passed lesson after its module's weeks.
+  it("lets a review session fall outside its lesson's module", () => {
+    expect(planViolations(withReview, LIMITS)).toEqual([]);
+  });
 });
 
 describe("applyEdit", () => {
@@ -107,7 +134,13 @@ describe("applyEdit", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.plan).toMatchObject({ id: "plan_1", version: 2, reason: "learner_edit" });
+    expect(result.plan).toMatchObject({
+      id: "plan_1",
+      version: 2,
+      reason: "learner_edit",
+      diff: [{ op: "move", session: "s1", from: 1, to: 3 }],
+      explanation_ar: null,
+    });
     expect(result.plan.committed.sessions).toEqual([
       { ...PLAN.committed.sessions[0], day: 3 },
       PLAN.committed.sessions[1],
@@ -120,6 +153,42 @@ describe("applyEdit", () => {
     const result = applyEdit(PLAN, { op: "shorten", session_id: "s3", minutes: 25 }, LIMITS);
 
     expect(result.ok && result.plan.committed.sessions[2]).toMatchObject({ id: "s3", minutes: 25 });
+    expect(result.ok && result.plan.diff).toEqual([
+      { op: "shorten", session: "s3", from: 40, to: 25 },
+    ]);
+  });
+
+  it("gives an edit of a re-planned version its own change, not the re-plan's", () => {
+    const replanned: CoursePlan = {
+      ...PLAN,
+      version: 2,
+      reason: "shrink",
+      diff: [{ op: "shorten", session: "s1", from: 60, to: 40 }],
+      explanation_ar: "جلسات أقصر بطلبك.",
+    };
+
+    const result = applyEdit(replanned, { op: "move", session_id: "s2", day: 5 }, LIMITS);
+
+    expect(result.ok && result.plan).toMatchObject({
+      version: 3,
+      reason: "learner_edit",
+      diff: [{ op: "move", session: "s2", from: 4, to: 5 }],
+      explanation_ar: null,
+    });
+  });
+
+  it("refuses an edit to a review session", () => {
+    const result = applyEdit(withReview, { op: "move", session_id: "s4", day: 10 }, LIMITS);
+
+    expect(result).toEqual({
+      ok: false,
+      violations: [
+        {
+          en: expect.stringMatching(/s4 is a review/),
+          ar: expect.stringMatching(/\p{Script=Arabic}/u),
+        },
+      ],
+    });
   });
 
   it("refuses a move out of the weeks of the session's module", () => {
@@ -139,8 +208,8 @@ describe("applyEdit", () => {
         ...PLAN.committed,
         lessons: [{ id: "L1", title_ar: "درس", module: 0 }],
         sessions: [
-          { id: "s1", day: 1, minutes: 60, lesson_id: "L1", resource_ids: ["r_a"] },
-          { id: "s2", day: 8, minutes: 60, lesson_id: "L1", resource_ids: ["r_a"] },
+          { id: "s1", day: 1, minutes: 60, lesson_id: "L1", resource_ids: ["r_a"], kind: "study" },
+          { id: "s2", day: 8, minutes: 60, lesson_id: "L1", resource_ids: ["r_a"], kind: "study" },
         ],
       },
     };
@@ -166,52 +235,5 @@ describe("applyEdit", () => {
     expect(result.ok || result.violations.map((v) => v.en)).toEqual([
       expect.stringMatching(/no session s9/),
     ]);
-  });
-});
-
-describe("shrinkPlan", () => {
-  const NONE_PASSED = new Set<string>();
-
-  // s3 is the session of L2.
-  it.each([
-    [45, 25],
-    [30, 15],
-    [20, 10],
-    [15, 10],
-    [10, 10],
-  ])("cuts a %i-minute session of a lesson not passed to %i minutes", (before, after) => {
-    const result = shrinkPlan(withSession("s3", { minutes: before }), LIMITS, NONE_PASSED);
-
-    expect(result.ok && result.plan.committed.sessions[2]).toMatchObject({
-      id: "s3",
-      minutes: after,
-    });
-  });
-
-  it("keeps the sessions of lessons already passed", () => {
-    const result = shrinkPlan(PLAN, LIMITS, new Set(["L1"]));
-
-    expect(result.ok && result.plan.committed.sessions.map((s) => s.minutes)).toEqual([40, 40, 20]);
-  });
-
-  it("makes the next version of the same plan, which keeps every rule", () => {
-    const result = shrinkPlan(PLAN, LIMITS, NONE_PASSED);
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.plan).toMatchObject({ id: "plan_1", version: 2, reason: "shrink" });
-    expect(result.plan.committed.sessions.map((s) => s.minutes)).toEqual([20, 20, 20]);
-    expect(planViolations(result.plan, LIMITS)).toEqual([]);
-  });
-
-  it("refuses when no session gets shorter", () => {
-    const result = shrinkPlan(withSession("s3", { minutes: 10 }), LIMITS, new Set(["L1"]));
-
-    expect(result).toEqual({
-      ok: false,
-      violations: [
-        { en: expect.stringMatching(/shorter/), ar: expect.stringMatching(/\p{Script=Arabic}/u) },
-      ],
-    });
   });
 });

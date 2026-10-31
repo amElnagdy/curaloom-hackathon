@@ -18,10 +18,14 @@ import {
   limitsOf,
   PlanConflict,
   PlanEditRejected,
+  type Planner,
   planFor,
+  proposeReplan,
   runArchitect,
+  type SavedPlan,
   savedPlan,
 } from "./architect.ts";
+import type { ReplanRequest } from "./replan.ts";
 import { planViolations, weekMinutes } from "./rules.ts";
 
 const seed = loadOmarSeed("Pivot tables in spreadsheets");
@@ -185,16 +189,25 @@ describe("architect", () => {
           { id: "L3", title_ar: "المتوسط والوسيط", module: 1 },
         ],
         sessions: [
-          { id: "s1", day: 1, minutes: 40, lesson_id: "L1", resource_ids: ["r1"] },
-          { id: "s2", day: 4, minutes: 40, lesson_id: "L1", resource_ids: ["r1"] },
-          { id: "s3", day: 5, minutes: 40, lesson_id: "L2", resource_ids: ["r1", "r3"] },
-          { id: "s4", day: 8, minutes: 40, lesson_id: "L3", resource_ids: ["r2"] },
-          { id: "s5", day: 11, minutes: 40, lesson_id: "L3", resource_ids: ["r2"] },
+          { id: "s1", day: 1, minutes: 40, lesson_id: "L1", resource_ids: ["r1"], kind: "study" },
+          { id: "s2", day: 4, minutes: 40, lesson_id: "L1", resource_ids: ["r1"], kind: "study" },
+          {
+            id: "s3",
+            day: 5,
+            minutes: 40,
+            lesson_id: "L2",
+            resource_ids: ["r1", "r3"],
+            kind: "study",
+          },
+          { id: "s4", day: 8, minutes: 40, lesson_id: "L3", resource_ids: ["r2"], kind: "study" },
+          { id: "s5", day: 11, minutes: 40, lesson_id: "L3", resource_ids: ["r2"], kind: "study" },
         ],
       },
       rationale_ar: "جلسات قصيرة لأنك تركت دورات طويلة من قبل.",
       version: 1,
       reason: "initial",
+      diff: [],
+      explanation_ar: null,
     });
   });
 
@@ -257,10 +270,11 @@ function plannerSetup() {
   const fake = fakeProvider([DRAFT]);
   let searches = 0;
   let learner = profile;
+  const tracer = createTracer(store, "s1");
   const planner = createPlanner({
     orchestrator: createOrchestrator({ store, makeProvider: () => fake.provider }),
     store,
-    tracer: createTracer(store, "s1"),
+    tracer,
     sessionId: "s1",
     profile: () => learner,
     findResources: async () => {
@@ -279,6 +293,12 @@ function plannerSetup() {
     calls: fake.calls,
     searches: () => searches,
     events: () => store.readTrace<TraceEvent>("s1").filter((e) => e.agent === "architect"),
+    trace: () => store.readTrace<TraceEvent>("s1"),
+    // The coach passing on the learner's return (#27), with the lessons they passed.
+    propose: (request: ReplanRequest, passed: string[]) =>
+      proposeReplan({ store, sessionId: "s1", tracer, profile: learner }, request, new Set(passed)),
+    // A plan document written before proposals existed.
+    writeOld: (plan: Omit<SavedPlan, "pending">) => store.writeDoc("s1", "plan", plan),
   };
 }
 
@@ -397,6 +417,166 @@ describe("planner", () => {
       expect.stringMatching(/refused.*s3.*60/),
     ]);
     expect(told.map((e) => e.kind)).toEqual(["output", "output"]);
+  });
+});
+
+// Back on day 10 with L1 passed, asking for shorter sessions, the recap below the gate on L1.
+const SHRINK: ReplanRequest = {
+  reason: "shrink",
+  today: 10,
+  away_days: 10,
+  recap: { below_gate: true, review_lesson: "L1" },
+};
+
+describe("proposals", () => {
+  // DRAFT's weeks have 120 and 80 minutes, so the lighter week's cap is 48: the review of L1 (15)
+  // and L2's shortened session (20) fit in it, and L3 waits for day 17.
+  it("proposes the next version with the same id, and leaves the versions as they are", async () => {
+    const { planner, saved, propose } = plannerSetup();
+    const built = await planner.build();
+
+    const proposed = await propose(SHRINK, ["L1"]);
+
+    expect(proposed).toEqual({ ok: true, version: 2, lighter: { minutes: 35, cap: 48 } });
+    expect(saved()?.versions).toEqual(built.versions);
+    expect(saved()?.pending).toMatchObject({
+      id: built.versions[0]?.id,
+      version: 2,
+      reason: "shrink",
+      committed: { start: "day10" },
+      explanation_ar: expect.stringMatching(/\p{Script=Arabic}/u),
+    });
+    expect(saved()?.pending?.diff[0]).toEqual({
+      op: "review",
+      session: "s6",
+      lesson: "L1",
+      day: 10,
+      minutes: 15,
+    });
+  });
+
+  it("proposes the same version again for the same return", async () => {
+    const { planner, saved, propose } = plannerSetup();
+    await planner.build();
+    await propose(SHRINK, ["L1"]);
+    const first = saved();
+
+    await propose(SHRINK, ["L1"]);
+
+    expect(saved()).toEqual(first);
+  });
+
+  it("drops an earlier proposal when a later return needs no change", async () => {
+    const { planner, saved, propose } = plannerSetup();
+    await planner.build();
+    await propose(SHRINK, ["L1"]);
+
+    const proposed = await propose({ ...SHRINK, reason: "comeback" }, ["L1", "L2", "L3"]);
+
+    expect(proposed).toEqual({
+      ok: false,
+      why: { en: expect.any(String), ar: expect.any(String) },
+    });
+    expect(saved()?.pending).toBeNull();
+  });
+
+  it("makes the proposal the plan's next version when the learner accepts it", async () => {
+    const { planner, saved, propose } = plannerSetup();
+    const built = await planner.build();
+    await propose(SHRINK, ["L1"]);
+    const proposal = saved()?.pending;
+
+    const accepted = planner.accept(2);
+
+    expect(accepted.versions).toEqual([...built.versions, proposal]);
+    expect(accepted.pending).toBeNull();
+    expect(saved()).toEqual(accepted);
+  });
+
+  it("keeps the plan as it is when the learner rejects the proposal", async () => {
+    const { planner, saved, propose } = plannerSetup();
+    const built = await planner.build();
+    await propose(SHRINK, ["L1"]);
+
+    const rejected = planner.reject(2);
+
+    expect(rejected).toEqual({ ...built, pending: null });
+    expect(saved()).toEqual(rejected);
+  });
+
+  it.each([
+    ["an accept of another version", (p: Planner) => p.accept(3)],
+    ["a reject of another version", (p: Planner) => p.reject(1)],
+    [
+      "an edit while the proposal waits",
+      (p: Planner) => p.edit({ op: "shorten", session_id: "s1", minutes: 20 }),
+    ],
+  ])("refuses %s, and changes nothing", async (_, act) => {
+    const { planner, saved, propose } = plannerSetup();
+    await planner.build();
+    await propose(SHRINK, ["L1"]);
+    const before = saved();
+
+    expect(refusal(() => act(planner))).toBeInstanceOf(PlanConflict);
+    expect(saved()).toEqual(before);
+  });
+
+  it("refuses an accept or a reject with no proposal waiting", async () => {
+    const { planner } = plannerSetup();
+    await planner.build();
+
+    expect(refusal(() => planner.accept(2))).toBeInstanceOf(PlanConflict);
+    expect(refusal(() => planner.reject(2))).toBeInstanceOf(PlanConflict);
+  });
+
+  it("reads a plan saved before proposals existed as having none waiting", async () => {
+    const { planner, saved, writeOld } = plannerSetup();
+    const { pending: _, ...old } = await planner.build();
+    writeOld(old);
+
+    expect(saved()?.pending).toBeNull();
+    expect(planner.edit({ op: "shorten", session_id: "s1", minutes: 20 }).versions).toHaveLength(2);
+  });
+
+  it("traces the proposal and each answer to it, with the explanation from the template", async () => {
+    const { planner, propose, trace } = plannerSetup();
+    await planner.build();
+    const before = trace().length;
+
+    await propose(SHRINK, ["L1"]);
+    planner.reject(2);
+    await propose(SHRINK, ["L1"]);
+    planner.accept(2);
+
+    expect(
+      trace()
+        .slice(before)
+        .map((e) => [e.agent, e.kind, e.summary_en]),
+    ).toEqual([
+      [
+        "replanner",
+        "decision",
+        "replan: v2 (shrink): lighter week 35/48 (60% of 80), 2 missed, 3 moved, 3 shortened, review L1 day 10, module 0 1->2 weeks",
+      ],
+      ["replanner", "decision", "replan v2: explanation from the template, no model call"],
+      ["replanner", "output", "Proposed plan version 2 (shrink)"],
+      ["architect", "output", "Learner kept plan version 1; rejected version 2"],
+      ["replanner", "decision", expect.stringMatching(/^replan: v2 \(shrink\)/)],
+      ["replanner", "decision", "replan v2: explanation from the template, no model call"],
+      ["replanner", "output", "Proposed plan version 2 (shrink)"],
+      ["architect", "output", "Learner accepted plan version 2 (shrink)"],
+    ]);
+    expect(
+      trace()
+        .slice(before)
+        .map((e) => e.summary_ar),
+    ).toEqual(
+      expect.arrayContaining([
+        "اقترح مُعيد التخطيط النسخة ٢ من خطتك",
+        "أبقيتَ خطتك كما هي",
+        "اعتمدتَ النسخة ٢ من خطتك",
+      ]),
+    );
   });
 });
 

@@ -195,13 +195,59 @@ export const PlanDraft = Obj({
   }),
 });
 
-// Versioned: a re-plan or a learner's edit is a new CoursePlan with version n+1, never an edit of
-// the old one.
+// Why a plan version exists: the architect's first plan, a learner's edit, or a re-plan (#26) after
+// days away, a check-in's answer or a comeback.
+export const REPLAN_REASONS = ["inactivity_d5", "shrink", "switch", "comeback"] as const;
+export const PLAN_REASONS = ["initial", "learner_edit", ...REPLAN_REASONS] as const;
+
+// One change from a plan version to the next (#26). A move's days count from day 0 of the course,
+// a shorten's minutes are the session's, an extend's weeks are the module's. A review is a session
+// the version adds; a drop is one it removes.
+export const PlanChange = Type.Union([
+  Obj({
+    op: Type.Literal("move"),
+    session: Type.String(),
+    from: Type.Integer(),
+    to: Type.Integer(),
+  }),
+  Obj({
+    op: Type.Literal("shorten"),
+    session: Type.String(),
+    from: Type.Integer(),
+    to: Type.Integer(),
+  }),
+  Obj({
+    op: Type.Literal("review"),
+    session: Type.String(),
+    lesson: Type.String(),
+    day: Type.Integer(),
+    minutes: Type.Integer(),
+  }),
+  Obj({ op: Type.Literal("drop"), session: Type.String() }),
+  Obj({
+    op: Type.Literal("switch"),
+    session: Type.String(),
+    from: Type.Array(Type.String()),
+    to: Type.Array(Type.String()),
+  }),
+  Obj({
+    op: Type.Literal("extend"),
+    module: Type.Integer(),
+    from: Type.Integer(),
+    to: Type.Integer(),
+  }),
+]);
+
+// Versioned: a re-plan or a learner's edit is a new CoursePlan with version n+1 and the same id,
+// never an edit of the old one.
 export const CoursePlan = Obj({
   id: Type.String(),
   road: Type.Array(Obj({ module: Type.String(), weeks: Type.Number() })),
   committed: Obj({
-    start: Type.String({ description: "simulated day, e.g. day0" }),
+    start: Type.String({
+      description:
+        "the simulated day this version's commitment starts, e.g. day0; days count from day0",
+    }),
     weeks: Type.Integer(),
     lessons: Type.Array(
       Obj({
@@ -217,12 +263,21 @@ export const CoursePlan = Obj({
         minutes: Type.Integer(),
         lesson_id: Type.String(),
         resource_ids: Type.Array(Type.String()),
+        kind: StringEnum(["study", "review"], {
+          description: "a review goes over a lesson the learner already passed",
+        }),
       }),
     ),
   }),
   rationale_ar: Type.String({ description: "why this plan suits the learner, shown to them" }),
   version: Type.Integer(),
-  reason: Type.String(),
+  reason: StringEnum(PLAN_REASONS),
+  diff: Type.Array(PlanChange, {
+    description: "the changes from the version before; empty for v1",
+  }),
+  explanation_ar: Nullable(
+    Type.String({ description: "why a re-plan changed the plan, shown to the learner" }),
+  ),
 });
 
 export const Lesson = Obj({
@@ -419,6 +474,7 @@ export const CONTRACTS = {
   Rejection,
   ScoutResult,
   PlanDraft,
+  PlanChange,
   CoursePlan,
   Lesson,
   GlossaryEntry,
@@ -466,6 +522,9 @@ export type Candidates = Static<typeof Candidates>;
 export type Rejection = Static<typeof Rejection>;
 export type ScoutResult = Static<typeof ScoutResult>;
 export type PlanDraft = Static<typeof PlanDraft>;
+export type PlanReason = (typeof PLAN_REASONS)[number];
+export type ReplanReason = (typeof REPLAN_REASONS)[number];
+export type PlanChange = Static<typeof PlanChange>;
 export type CoursePlan = Static<typeof CoursePlan>;
 export type Lesson = Static<typeof Lesson>;
 export type GlossaryEntry = Static<typeof GlossaryEntry>;

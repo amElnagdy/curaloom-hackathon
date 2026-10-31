@@ -6,7 +6,6 @@ import type { CheckinReply, CoursePlan, QuizAttempt } from "../../../contracts/i
 import { loadOmarSeed } from "../../../demo/seed";
 import { loadConfig } from "../../config";
 import type { SavedPlan } from "../agents/architect/architect";
-import { planViolations } from "../agents/architect/rules";
 import { createSim } from "../clock/sim";
 import { readInbox } from "../notifier/adapters";
 import { isStopWord } from "../notifier/notifier";
@@ -22,7 +21,6 @@ import {
   draftViolations,
   fillTemplate,
   MAX_DRAFT,
-  NO_PLAN,
   type Study,
 } from "./coach";
 import { sessionSim } from "./session";
@@ -358,7 +356,7 @@ describe("activity", () => {
         store,
         sessionId: "s_1",
         seed,
-        coach: { steps: null, study: () => study, replan: async () => NO_PLAN },
+        coach: { steps: null, study: () => study },
       });
     await sim().set(3);
     await sim().advance({ minutes: 60 });
@@ -384,7 +382,7 @@ describe("activity", () => {
         store,
         sessionId: "s_1",
         seed,
-        coach: { steps: null, study: () => study, replan: async () => NO_PLAN },
+        coach: { steps: null, study: () => study },
       });
     await sim().set(10);
     await sim().advance({ minutes: 180 });
@@ -405,7 +403,7 @@ describe("activity", () => {
       store,
       sessionId: "s_1",
       seed,
-      coach: { steps: null, study: () => study, replan: async () => NO_PLAN },
+      coach: { steps: null, study: () => study },
     });
 
     await sim.set(17);
@@ -425,8 +423,6 @@ const reply = (choice: CheckinReply["choice"], pause_days = 7): CheckinReply => 
   choice,
   pause_days,
 });
-const OPEN_PLAN = { label_ar: "افتح خطتي", action: "open_plan" };
-
 // The check-in reaches the seed's Omar at 12:00 on day 10, when his quiet hours end.
 async function checkedIn() {
   const t = setup();
@@ -436,7 +432,7 @@ async function checkedIn() {
 }
 
 // A learner the interview saved, with consent and no quiet hours, on the seed's plan as their own,
-// who passed L1 on day 0: L1's sessions stay 45 minutes, and L2's are the ones to shrink.
+// who passed L1 on day 0.
 const sara = { ...seed.profile, id: "l_sara", name: "سارة" };
 const PLAN = seed.plans[0] as CoursePlan;
 function giveOwnPlan(store: Store) {
@@ -446,6 +442,7 @@ function giveOwnPlan(store: Store) {
     versions: [PLAN],
     resources: seed.resources,
     limits: { budget_minutes: 300, resource_ids: seed.resources.map((r) => r.id) },
+    pending: null,
   } satisfies SavedPlan);
   const passedL1: QuizAttempt = { ...(seed.attempts[0] as QuizAttempt), score: 1, passed: true };
   store.writeDoc("s_1", "quizzes", {
@@ -475,7 +472,7 @@ describe("answers to the day-10 check-in", () => {
     const state20 = sim().ladder().state;
     const day24 = await sim().set(24);
 
-    expect(answer).toEqual({ choice: "pause", paused_until: "day 20 09:00", plan_version: null });
+    expect(answer).toEqual({ choice: "pause", paused_until: "day 20 09:00" });
     expect(phone().slice(-2)).toMatchObject([
       { direction: "in", text: "استراحة أسبوع", sim_ts: "day 10 12:00" },
       {
@@ -521,75 +518,51 @@ describe("answers to the day-10 check-in", () => {
     expect(phone().at(-1)).toMatchObject({ id: `ack_${CHECKIN}`, sim_ts: "day 11 12:00" });
   });
 
-  it("shrinks the sessions of the lessons the learner has not passed, as the plan's next version", async () => {
-    const { store, sim, phone } = await checkedInWithOwnPlan();
+  // The re-plan comes with the learner's comeback (#27), so an answer saves no plan version.
+  it.each([
+    ["shrink", "حسنًا، سجّلتُ أنك تريد جلسات أقصر."],
+    ["switch", "حسنًا، سجّلتُ أنك تريد مصدرًا آخر."],
+  ] as const)(
+    "records a %s for the re-planner and leaves the plan as it is",
+    async (choice, ack) => {
+      const { store, sim, phone, trace } = await checkedInWithOwnPlan();
 
-    const answer = await sim().answer(reply("shrink"));
-    const answered = phone().slice(-2);
-    const state = sim().ladder().state;
-    const day17 = await sim().set(17);
+      const answer = await sim().answer(reply(choice));
+      const answered = phone().slice(-2);
+      const state = sim().ladder().state;
+      const day17 = await sim().set(17);
 
-    const [before, after] = savedVersions(store);
-    expect(answer).toEqual({ choice: "shrink", paused_until: null, plan_version: 2 });
-    expect(after).toMatchObject({ id: PLAN.id, version: 2, reason: "shrink" });
-    expect(after?.committed.sessions.map((s) => [s.lesson_id, s.minutes])).toEqual([
-      ["L1", 45],
-      ["L1", 45],
-      ["L2", 25],
-      ["L2", 25],
-    ]);
-    expect(before).toEqual(PLAN);
-    const limits = store.readDoc<SavedPlan>("s_1", "plan")?.limits;
-    expect(after && limits && planViolations(after, limits)).toEqual([]);
-    expect(answered).toMatchObject([
-      { direction: "in", text: "جلسات أقصر" },
-      {
-        id: `ack_${CHECKIN}`,
-        text: "خفّفنا خطتك: جلسات أقصر والهدف نفسه. تجد النسخة الجديدة في خطتك.",
-        cta: OPEN_PLAN,
-      },
-    ]);
-    expect(state).toBe("checkin_d10");
-    expect(day17.events.map((e) => e.id)).toEqual(["weekly_a0_d17"]);
-  });
+      expect(answer).toEqual({ choice, paused_until: null });
+      expect(savedVersions(store)).toEqual([PLAN]);
+      expect(sim().checkinReplies()).toEqual([
+        { ...reply(choice), sim_ts: "day 10 09:00", anchor: 0 },
+      ]);
+      expect(answered).toMatchObject([
+        { direction: "in", text: CHOICE_LABEL[choice] },
+        { id: `ack_${CHECKIN}`, text: ack, cta: null },
+      ]);
+      expect(
+        trace()
+          .filter((e) => e.agent === "coach")
+          .map((e) => e.summary_en),
+      ).toEqual([`${CHECKIN} answered by l_sara: ${choice} recorded`]);
+      expect(state).toBe("checkin_d10");
+      expect(day17.events.map((e) => e.id)).toEqual(["weekly_a0_d17"]);
+    },
+  );
 
-  it("tells the seed's Omar, who has no plan of his own, that it shrinks his sessions once he has one", async () => {
+  it("records a shrink from the seed's Omar, who has no plan of his own, and makes none", async () => {
     const { store, sim, phone } = await checkedIn();
 
     const answer = await sim().answer(reply("shrink"));
 
-    expect(answer).toEqual({ choice: "shrink", paused_until: null, plan_version: null });
+    expect(answer).toEqual({ choice: "shrink", paused_until: null });
     expect(store.readDoc("s_1", "plan")).toBeUndefined();
     expect(phone().at(-1)).toMatchObject({
       id: `ack_${CHECKIN}`,
-      text: "سنجعل جلساتك أقصر حين تجهز خطتك.",
+      text: "حسنًا، سجّلتُ أنك تريد جلسات أقصر.",
       cta: null,
     });
-  });
-
-  it("records a switch for the re-planner and leaves the plan as it is", async () => {
-    const { store, sim, phone, trace } = await checkedInWithOwnPlan();
-
-    const answer = await sim().answer(reply("switch"));
-
-    expect(answer).toEqual({ choice: "switch", paused_until: null, plan_version: null });
-    expect(savedVersions(store)).toEqual([PLAN]);
-    expect(sim().checkinReplies()).toEqual([
-      { ...reply("switch"), sim_ts: "day 10 09:00", anchor: 0, plan_version: null },
-    ]);
-    expect(phone().at(-1)).toMatchObject({
-      text: "سنقترح عليك مصدرًا آخر للدرس نفسه.",
-      cta: OPEN_PLAN,
-    });
-    expect(
-      trace()
-        .filter((e) => e.agent === "coach")
-        .map((e) => e.summary_en),
-    ).toEqual([
-      expect.stringMatching(
-        /l_sara.*switch recorded; the re-planner \(#26\) picks another resource/,
-      ),
-    ]);
   });
 
   it("traces each answer by the learner's id, with no message text", async () => {

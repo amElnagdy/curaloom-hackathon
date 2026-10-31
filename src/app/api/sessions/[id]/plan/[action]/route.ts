@@ -11,11 +11,11 @@ import { createFileCache, createFileStore } from "../../../../../../server/store
 import { createPageFetcher } from "../../../../../../server/tools/fetch-page.ts";
 import { createTracer } from "../../../../../../server/trace/trace.ts";
 
-// POST /api/sessions/:id/plan/{build,edit,reset} — the learner's plan (#18): build runs the scout
-// and the architect for the intake's profile (the seed's until the intake is done, a plan the page
-// never shows), edit takes
-// {op: "move", session_id, day} or {op: "shorten", session_id, minutes}, reset forgets the plan.
-// Each answers {plan}.
+// POST /api/sessions/:id/plan/{build,edit,accept,reject,reset} — the learner's plan (#18): build
+// runs the scout and the architect for the intake's profile (the seed's until the intake is done, a
+// plan the page never shows), edit takes
+// {op: "move", session_id, day} or {op: "shorten", session_id, minutes}, accept and reject take the
+// {version} the re-planner proposed (#26), reset forgets the plan. Each answers {plan}.
 export async function POST(
   request: Request,
   ctx: RouteContext<"/api/sessions/[id]/plan/[action]">,

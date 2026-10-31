@@ -38,6 +38,7 @@ describe("contracts", () => {
         "Consent",
         "CoursePlan",
         "PlanDraft",
+        "PlanChange",
         "GlossaryEntry",
         "LearnerProfile",
         "Lesson",

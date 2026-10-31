@@ -1,9 +1,8 @@
 // The rules every version of a course plan keeps (#18). The architect checks the model's draft
-// against them, and a learner's edit or the coach's shrink (#25) is checked the same way before it
-// becomes a new version. Each broken rule is told in English, for the model's retry, and in Arabic,
-// for the learner.
+// against them, and a learner's edit is checked the same way before it becomes a new version. Each
+// broken rule is told in English, for the model's retry, and in Arabic, for the learner.
 
-import type { CoursePlan } from "../../../../contracts/index.ts";
+import type { CoursePlan, PlanChange, PlanReason } from "../../../../contracts/index.ts";
 
 type Session = CoursePlan["committed"]["sessions"][number];
 
@@ -79,10 +78,11 @@ const RULES: Rule[] = [
         en: `session ${s.id} is on day ${s.day}, outside the committed days 0 to ${lastDay(plan)}`,
         ar: "هذا اليوم خارج أسبوعيك الأولين",
       })),
-  // A session in the committed weeks falls in its module's weeks, so the road and the calendar agree.
+  // A study session in the committed weeks falls in its module's weeks, so the road and the calendar
+  // agree. A review goes over a passed lesson, so a re-plan (#26) may put it in a later module's.
   (plan) =>
     plan.committed.sessions
-      .filter((s) => inWindow(plan, s))
+      .filter((s) => s.kind === "study" && inWindow(plan, s))
       .flatMap((s) => {
         const lesson = plan.committed.lessons.find((l) => l.id === s.lesson_id);
         const days = lesson && moduleDays(plan, lesson.module);
@@ -146,6 +146,12 @@ export function applyEdit(plan: CoursePlan, edit: PlanEdit, limits: Limits): Edi
       ar: "هذه الجلسة ليست في خطتك",
     });
   }
+  if (session.kind === "review") {
+    return refuse({
+      en: `session ${session.id} is a review, which the re-planner placed`,
+      ar: "جلسة المراجعة لا تُعدَّل",
+    });
+  }
   if (edit.op === "shorten" && edit.minutes >= session.minutes) {
     return refuse({
       en: `session ${session.id}: ${edit.minutes} minutes is not shorter than ${session.minutes}`,
@@ -153,52 +159,35 @@ export function applyEdit(plan: CoursePlan, edit: PlanEdit, limits: Limits): Edi
     });
   }
   const change = edit.op === "move" ? { day: edit.day } : { minutes: edit.minutes };
+  const diff: PlanChange =
+    edit.op === "move"
+      ? { op: "move", session: session.id, from: session.day, to: edit.day }
+      : { op: "shorten", session: session.id, from: session.minutes, to: edit.minutes };
   return nextVersion(
     plan,
     plan.committed.sessions.map((s) => (s.id === session.id ? { ...s, ...change } : s)),
     "learner_edit",
     limits,
+    [diff],
   );
 }
 
-// The coach's «جلسات أقصر» (#25): each session of a lesson the learner has not passed takes 60% of
-// its time, rounded down to 5 minutes and never under a session's minimum.
-export function shrinkPlan(
-  plan: CoursePlan,
-  limits: Limits,
-  passed: ReadonlySet<string>,
-): EditResult {
-  const shorter = (minutes: number) =>
-    Math.max(SESSION_MINUTES.min, Math.floor((minutes * 0.6) / 5) * 5);
-  const sessions = plan.committed.sessions.map((s) =>
-    passed.has(s.lesson_id) ? s : { ...s, minutes: shorter(s.minutes) },
-  );
-  if (sessions.every((s, i) => s.minutes === plan.committed.sessions[i]?.minutes)) {
-    return {
-      ok: false,
-      violations: [
-        {
-          en: "no session of a lesson not passed yet can get shorter",
-          ar: "جلسات دروسك الباقية في أقصر مدة لها",
-        },
-      ],
-    };
-  }
-  return nextVersion(plan, sessions, "shrink", limits);
-}
-
-// A changed plan keeps its id, so its quizzes stay with every version.
+// A changed plan keeps its id, so its quizzes stay with every version. It carries its own diff from
+// the version before, never that version's, and no explanation: only a re-plan writes one.
 function nextVersion(
   plan: CoursePlan,
   sessions: Session[],
-  reason: string,
+  reason: PlanReason,
   limits: Limits,
+  diff: PlanChange[],
 ): EditResult {
   const next: CoursePlan = {
     ...plan,
     committed: { ...plan.committed, sessions },
     version: plan.version + 1,
     reason,
+    diff,
+    explanation_ar: null,
   };
   const violations = planViolations(next, limits);
   return violations.length ? { ok: false, violations } : { ok: true, plan: next };

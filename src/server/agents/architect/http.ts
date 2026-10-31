@@ -1,5 +1,6 @@
-// HTTP view of the plan (#18): POST /api/sessions/:id/plan/{build,edit,reset}. Each answers {plan},
-// the session's saved plan with every version (null after a reset).
+// HTTP view of the plan (#18): POST /api/sessions/:id/plan/{build,edit,accept,reject,reset}. Accept
+// and reject answer the re-planner's proposal (#26) by its {version}. Each answers {plan}, the
+// session's saved plan with every version (null after a reset).
 
 import Type from "typebox";
 import { BadRequest, jsonBody, parse, stillBuilding } from "../../clock/http.ts";
@@ -20,12 +21,19 @@ const Edit = Type.Union([
   ),
 ]);
 
+const Version = Type.Object(
+  { version: Type.Integer({ minimum: 1 }) },
+  { additionalProperties: false },
+);
+
 const ACTIONS: Record<string, (planner: Planner, body: unknown) => Promise<SavedPlan | null>> = {
   build: (planner, body) => {
     parse(Empty, body);
     return planner.build();
   },
   edit: async (planner, body) => planner.edit(parse(Edit, body)),
+  accept: async (planner, body) => planner.accept(parse(Version, body).version),
+  reject: async (planner, body) => planner.reject(parse(Version, body).version),
   reset: async (planner, body) => {
     parse(Empty, body);
     planner.reset();

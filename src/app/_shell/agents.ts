@@ -11,6 +11,7 @@ export const AGENTS: Readonly<Record<string, AgentInfo>> = {
   lesson_builder: { name: "صانع الدروس", job: "يكتب دروسًا عربية بجانب نصها الأصلي" },
   examiner: { name: "الممتحن", job: "يكتب اختبارات تجتازها عند ٨٠٪" },
   coach: { name: "المدرب", job: "يتابعك ضمن الحدود التي اخترتها" },
+  replanner: { name: "مُعيد التخطيط", job: "يعدّل خطتك حين تعود بعد غياب" },
   dummy: { name: "وكيل تجريبي", job: "يجرّب خطوات النظام دون أن يستدعي نموذجًا" },
   // Not agents: the clock module and the notifier trace their decisions under these names.
   clock: { name: "الساعة المحاكاة", job: "تقدّم الوقت في العرض التجريبي" },

@@ -514,9 +514,10 @@ describe("intake, replaying Omar's recorded interview", () => {
   }, 600_000);
 
   // The coach page's path after the intake: he passed lesson 1 on day 0 and studies no more. His
-  // consent is the consent screen's default with messages on.
-  it("chases him in Spark's words to the day-10 check-in, where «جلسات أقصر» gives plan v2", async () => {
-    const { store, orchestrator, saved, first } = await passedFirst();
+  // consent is the consent screen's default with messages on. His «جلسات أقصر» waits for his
+  // comeback (#27), so the plan stays v1.
+  it("chases him in Spark's words to the day-10 check-in, where «جلسات أقصر» is recorded", async () => {
+    const { store, orchestrator, saved } = await passedFirst();
     const sim = () => sessionSim(store, "s1", loadOmarSeed(RECORDED_TOPIC), orchestrator).sim;
     sim().setConsent({
       messages: true,
@@ -547,21 +548,13 @@ describe("intake, replaying Omar's recorded interview", () => {
       .filter((e) => e.agent === "coach" && /template/.test(e.summary_en));
     expect(fallbacks).toEqual([]);
 
-    expect(answer).toEqual({ choice: "shrink", paused_until: null, plan_version: 2 });
-    const [before, after] = store.readDoc<SavedPlan>("s1", "plan")?.versions ?? [];
-    if (!before || !after) throw new Error("no second plan version");
-    expect(after).toMatchObject({ id: before.id, version: 2, reason: "shrink" });
-    expect(planViolations(after, saved.limits)).toEqual([]);
-    const sessions = before.committed.sessions.map((s, i) => [
-      s.lesson_id,
-      s.minutes,
-      after.committed.sessions[i]?.minutes,
-    ]);
-    for (const [lesson, was, now] of sessions) {
-      if (lesson === first) expect(now).toBe(was);
-      else expect(now).toBeLessThanOrEqual(Math.max(10, 0.6 * Number(was)));
-    }
-    expect(sessions.some(([, was, now]) => Number(now) < Number(was))).toBe(true);
+    expect(answer).toEqual({ choice: "shrink", paused_until: null });
+    expect(
+      sim()
+        .checkinReplies()
+        .map((r) => [r.choice, r.anchor]),
+    ).toEqual([["shrink", 0]]);
+    expect(store.readDoc<SavedPlan>("s1", "plan")?.versions).toEqual(saved.versions);
   }, 600_000);
 });
 

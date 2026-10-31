@@ -108,7 +108,7 @@ describe("sim and inbox routes", () => {
     expect(await res.json()).toEqual({
       opted_out: false,
       confirmed: false,
-      answer: { choice: "pause", paused_until: "day 17 09:00", plan_version: null },
+      answer: { choice: "pause", paused_until: "day 17 09:00" },
     });
   });
 

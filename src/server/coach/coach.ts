@@ -40,13 +40,8 @@ import {
 } from "./ladder.ts";
 
 export const COACH_DOC = "coach";
-// An answer as the coach keeps it: when it came, the anchor it belongs to, and the plan version a
-// shrink saved.
-export type CheckinAnswer = CheckinReply & {
-  sim_ts: string;
-  anchor: number;
-  plan_version: number | null;
-};
+// An answer as the coach keeps it: when it came and the anchor it belongs to.
+export type CheckinAnswer = CheckinReply & { sim_ts: string; anchor: number };
 type CoachDoc = { anchor: number | null; replies: CheckinAnswer[] };
 
 export const CHOICE_LABEL: Record<CheckinChoice, string> = {
@@ -61,32 +56,16 @@ export type Study = {
   attempt_days: number[];
   lesson: { id: string; title_ar: string; best_percent: number | null } | null;
 };
-// What the re-planner did with the learner's request: the version it saved and the minutes of the
-// committed weeks before and after, or why it changed nothing, with the sentence the coach sends
-// back in Arabic.
-export type Replanned =
-  | { ok: true; version: number; minutes: { before: number; after: number } }
-  | { ok: false; why: { en: string; ar: string } };
-export const NO_PLAN: Replanned = {
-  ok: false,
-  why: { en: "the learner has no plan of their own yet", ar: "سنجعل جلساتك أقصر حين تجهز خطتك." },
-};
 export type CoachDeps = {
   // Runs the coach writer; null sends every message as its template.
   steps: Pick<ReturnType<typeof createOrchestrator>, "runStep"> | null;
   study(): Study;
-  // #26's re-planner widens the reasons.
-  replan(reason: "shrink"): Promise<Replanned>;
 };
 
 // An answer to a message that is not a check-in the learner has and can still answer.
 export class CheckinConflict extends Error {}
 // `paused_until` as "day 17 09:00".
-export type AnswerResult = {
-  choice: CheckinChoice;
-  paused_until: string | null;
-  plan_version: number | null;
-};
+export type AnswerResult = { choice: CheckinChoice; paused_until: string | null };
 
 type Lesson = Study["lesson"];
 // `purpose` tells the coach writer what the message is for, and `score` whether it hears the best
@@ -264,10 +243,9 @@ export type CoachOptions = CoachDeps & {
   learner: { id: string; name: string };
 };
 
-// What an answer does: the pause or plan version it made, the acknowledgement and the trace's reason.
+// What an answer does: the pause it made, the acknowledgement and the trace's reason.
 type Outcome = {
   paused_until: SimTime | null;
-  plan_version: number | null;
   ack: { text_ar: string; cta: Cta | null };
   why: { ar: string; en: string };
 };
@@ -280,7 +258,6 @@ export function createCoach({
   learner,
   steps,
   study,
-  replan,
 }: CoachOptions) {
   const doc = (): CoachDoc => ({
     anchor: null,
@@ -370,17 +347,17 @@ export function createCoach({
     );
   };
 
-  const outcomeOf = async (
+  // Shrink and switch wait for the learner's comeback, whose re-plan (#26, #27) reads them.
+  const outcomeOf = (
     { choice, pause_days }: CheckinReply,
     anchor: number,
     at: SimTime,
-  ): Promise<Outcome> => {
+  ): Outcome => {
     switch (choice) {
       case "pause": {
         const { until } = pauseFor(anchor, at, pause_days);
         return {
           paused_until: until,
-          plan_version: null,
           ack: {
             text_ar: `حسنًا، لا رسائل مني حتى اليوم ${until.day.toLocaleString("ar-EG")}. خطتك ومكانك محفوظان.`,
             cta: null,
@@ -391,42 +368,17 @@ export function createCoach({
           },
         };
       }
-      case "shrink": {
-        const replanned = await replan("shrink");
-        if (!replanned.ok) {
-          return {
-            paused_until: null,
-            plan_version: null,
-            ack: { text_ar: replanned.why.ar, cta: null },
-            why: {
-              ar: `اختار ${learner.id} جلسات أقصر، ولم تتغير خطته`,
-              en: `shrink; plan unchanged: ${replanned.why.en}`,
-            },
-          };
-        }
-        const { version, minutes } = replanned;
+      case "shrink":
         return {
           paused_until: null,
-          plan_version: version,
-          ack: {
-            text_ar: "خفّفنا خطتك: جلسات أقصر والهدف نفسه. تجد النسخة الجديدة في خطتك.",
-            cta: OPEN_PLAN,
-          },
-          why: {
-            ar: `اختار ${learner.id} جلسات أقصر، فصارت جلسات أسبوعيه الأولين ${minutes.after} دقيقة بدل ${minutes.before} في النسخة ${version} من خطته`,
-            en: `shrink; plan version ${version}, ${minutes.before} -> ${minutes.after} minutes over the committed weeks`,
-          },
+          ack: { text_ar: "حسنًا، سجّلتُ أنك تريد جلسات أقصر.", cta: null },
+          why: { ar: `اختار ${learner.id} جلسات أقصر، فسُجّل طلبه`, en: "shrink recorded" },
         };
-      }
       case "switch":
         return {
           paused_until: null,
-          plan_version: null,
-          ack: { text_ar: "سنقترح عليك مصدرًا آخر للدرس نفسه.", cta: OPEN_PLAN },
-          why: {
-            ar: `اختار ${learner.id} مصدرًا آخر، فسُجّل طلبه ليختار المخطط مصدرًا بديلًا`,
-            en: "switch recorded; the re-planner (#26) picks another resource",
-          },
+          ack: { text_ar: "حسنًا، سجّلتُ أنك تريد مصدرًا آخر.", cta: null },
+          why: { ar: `اختار ${learner.id} مصدرًا آخر، فسُجّل طلبه`, en: "switch recorded" },
         };
     }
   };
@@ -461,14 +413,11 @@ export function createCoach({
 
       notifier.receive(CHOICE_LABEL[choice], at);
       const anchor = anchorOf(study().attempt_days);
-      const outcome = await outcomeOf(reply, anchor, at);
+      const outcome = outcomeOf(reply, anchor, at);
       const saved = doc();
       store.writeDoc(sessionId, COACH_DOC, {
         ...saved,
-        replies: [
-          ...saved.replies,
-          { ...reply, sim_ts: formatSimTime(at), anchor, plan_version: outcome.plan_version },
-        ],
+        replies: [...saved.replies, { ...reply, sim_ts: formatSimTime(at), anchor }],
       } satisfies CoachDoc);
       tracer.emit({
         agent: "coach",
@@ -489,7 +438,6 @@ export function createCoach({
       return {
         choice,
         paused_until: outcome.paused_until && formatSimTime(outcome.paused_until),
-        plan_version: outcome.plan_version,
       };
     },
 

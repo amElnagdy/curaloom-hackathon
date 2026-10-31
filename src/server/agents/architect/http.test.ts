@@ -10,6 +10,7 @@ const SAVED: SavedPlan = {
   versions: seed.plans,
   resources: seed.resources,
   limits: { budget_minutes: 300, resource_ids: ["r1"] },
+  pending: null,
 };
 const BROKEN = { en: "session s1 is on day 9, outside its module's days 0 to 6", ar: "خارج" };
 
@@ -29,6 +30,8 @@ function stubPlanner(fail?: Error, wait?: Promise<void>) {
       return SAVED;
     },
     edit: (edit) => act(edit),
+    accept: (version) => act({ accept: version }),
+    reject: (version) => act({ reject: version }),
     reset: () => calls.push("reset"),
   };
   return { planner, calls };
@@ -68,6 +71,27 @@ describe("plan routes", () => {
     ]);
   });
 
+  it("pass an accept or a reject of a proposed version on and answer the saved plan", async () => {
+    const { planner, calls } = stubPlanner();
+
+    const accept = await post(planner, "accept", { version: 2 });
+    const reject = await post(planner, "reject", { version: 3 });
+
+    expect([accept.status, reject.status]).toEqual([200, 200]);
+    expect(await accept.json()).toEqual({ plan: SAVED });
+    expect(calls).toEqual([{ accept: 2 }, { reject: 3 }]);
+  });
+
+  it("answer 409 to an accept or a reject with no such proposal waiting", async () => {
+    const { planner } = stubPlanner(new PlanConflict("no proposal v3"));
+
+    for (const action of ["accept", "reject"]) {
+      const res = await post(planner, action, { version: 3 });
+      expect(res.status).toBe(409);
+      expect(await res.json()).toEqual({ error: "no proposal v3" });
+    }
+  });
+
   it("answer 400 for a body that does not fit the action, and 404 for an unknown action", async () => {
     const { planner, calls } = stubPlanner();
 
@@ -79,6 +103,10 @@ describe("plan routes", () => {
       ["edit", { op: "move", day: 2 }],
       ["edit", "not json"],
       ["build", { force: true }],
+      ["accept", {}],
+      ["accept", { version: "2" }],
+      ["accept", { version: 1.5 }],
+      ["reject", { version: 2, why: "too long" }],
     ] as const) {
       expect((await post(planner, action, body)).status).toBe(400);
     }
