@@ -74,7 +74,7 @@ The check-in shows three buttons on the phone once it is delivered. A tap posts 
 A taken answer shows on the phone as the learner's reply. The coach acts on it, saves it in the `coach` document and sends an acknowledgement through the notifier, so quiet hours hold the acknowledgement too.
 
 - `pause` stops the coach's messages from the answer until 09:00 of the day `pause_days` later (7 by default, 1 to 30). A rung inside the pause never fires. The pause belongs to the anchor it was chosen at, so a quiz ends it.
-- `shrink` and `switch` are recorded, with the anchor they belong to, for the re-planner (#26). Neither changes the plan. For a learner with a plan of their own, the answer starts their comeback (#27), and the acknowledgement asks them to open their plan for a short recap, with an «افتح خطتي» button. The seed's Omar has no plan of his own, so his acknowledgement says only that the choice is recorded, and carries no button.
+- `shrink` and `switch` are recorded, with the anchor they belong to, for the re-planner (#26). Neither changes the plan. For a learner with a plan of their own, the answer starts their comeback (#27), and the acknowledgement asks them to open their plan for a short recap, with an «افتح خطتي» button. The seed's Omar has no plan of his own, so their acknowledgement says only that the choice is recorded, and carries no button.
 
 An answer to the check-in of an earlier anchor answers 409.
 
@@ -107,5 +107,4 @@ Spark words each message. `coachWriter` runs as an orchestrator step with the ke
 
 ## Not built yet
 
-- The screens for the comeback: the card on the plan page, the recap and the proposal panel. The API above is built.
 - Messages held for quiet hours are not withdrawn when the learner comes back.

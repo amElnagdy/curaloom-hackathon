@@ -466,7 +466,7 @@ export function createCoach({
             cta: null,
           },
           why: {
-            ar: `اختار ${learner.id} استراحة، فلا رسائل من المدرب حتى ${arabicSimTime(until)}`,
+            ar: `اخترتَ استراحة، فلا رسائل من المدرب حتى ${arabicSimTime(until)}`,
             en: `pause; no coach messages until ${formatSimTime(until)}`,
           },
         };
@@ -475,13 +475,13 @@ export function createCoach({
         return {
           paused_until: null,
           ack: askedOf(choice),
-          why: { ar: `اختار ${learner.id} جلسات أقصر، فسُجّل طلبه`, en: "shrink recorded" },
+          why: { ar: "اخترتَ جلسات أقصر، فسُجّل طلبك", en: "shrink recorded" },
         };
       case "switch":
         return {
           paused_until: null,
           ack: askedOf(choice),
-          why: { ar: `اختار ${learner.id} مصدرًا آخر، فسُجّل طلبه`, en: "switch recorded" },
+          why: { ar: "اخترتَ مصدرًا آخر، فسُجّل طلبك", en: "switch recorded" },
         };
     }
   };
@@ -510,7 +510,7 @@ export function createCoach({
       agent: "coach",
       kind: "decision",
       at,
-      summary_ar: `عاد ${learner.id} بعد غيابه منذ اليوم ${arabicDay(anchor)}، فتبدأ عودته بمراجعة قصيرة ثم خطة مقترحة`,
+      summary_ar: `عدتَ بعد غيابك منذ اليوم ${arabicDay(anchor)}، فتبدأ عودتك بمراجعة قصيرة ثم خطة مقترحة`,
       summary_en: `comeback_detected: ${learner.id} back after ${comeback.away_days} days (via ${via})`,
     });
     return comeback;
@@ -606,7 +606,7 @@ export function createCoach({
         agent: "coach",
         kind: "decision",
         at,
-        summary_ar: `أنهى ${learner.id} عودته، فبدأ المدرب العدّ من جديد من اليوم ${arabicDay(at.day)}`,
+        summary_ar: `أنهيتَ عودتك، فبدأ المدرب العدّ من جديد من اليوم ${arabicDay(at.day)}`,
         summary_en: `active: ladder reset on day ${at.day}`,
       });
       return { comeback: comebackAt(at), replanned };
