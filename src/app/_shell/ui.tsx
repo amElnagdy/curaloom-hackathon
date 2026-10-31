@@ -3,16 +3,19 @@
 
 import {
   Check,
+  ClipboardPaste,
   Clock,
-  FlaskConical,
+  History,
   type LucideIcon,
   type LucideProps,
   Pause,
+  Radio,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import type { Resource } from "../../../contracts/index.ts";
+import type { ProviderProfile } from "../../config.ts";
 import { hhmm, type SimTime } from "../../server/clock/time.ts";
 import { simDay } from "./course.ts";
 import { clockTime, splitRuns } from "./format.ts";
@@ -237,13 +240,50 @@ export function RowGroup({ label, children }: { label: string; children: ReactNo
   );
 }
 
-// Marks the shown learner and content as sample data.
-export function SampleBadge() {
+const MODE: Record<ProviderProfile, { label: string; code: string; about: string }> = {
+  replay: {
+    label: "ردود مسجّلة",
+    code: "REPLAY",
+    about: "ردود النماذج هنا مسجّلة من تشغيل حقيقي سابق، وتُعرض كما سُجّلت بلا اتصال بالنماذج.",
+  },
+  record: {
+    label: "يسجّل الآن",
+    code: "RECORD",
+    about: "يستدعي النماذج الآن ويحفظ ردودها لتُعرض لاحقًا.",
+  },
+  live: {
+    label: "مباشر",
+    code: "LIVE",
+    about: "كل رد يكتبه النموذج الآن.",
+  },
+};
+
+// Says how the models answer on this server (#30): a viewer always knows whether a reply was written
+// now or recorded earlier. The learner is a sample persona in every mode.
+export function ModeBadge({ profile }: { profile: ProviderProfile }) {
+  const mode = MODE[profile];
   return (
-    <span className={styles.sample} title="المتعلم والمحتوى للعرض فقط، ولم يُحدَّد موضوع الدورة بعد">
-      <FlaskConical aria-hidden />
-      <span className={styles.sampleLabel}>بيانات تجريبية</span>
+    <span
+      className={cx(styles.mode, profile === "live" && styles.modeLive)}
+      title={`${mode.about} المتعلم شخصية تجريبية.`}
+    >
+      {profile === "live" ? <Radio aria-hidden /> : <History aria-hidden />}
+      <span className={styles.modeLabel}>{mode.label}</span>
+      <bdi className={styles.modeCode} dir="ltr" lang="en">
+        {mode.code}
+      </bdi>
     </span>
+  );
+}
+
+// Replay only (#30): puts the text the recorded run was made with into a field, since a replayed
+// reply answers a request only when its text matches word for word. Its label says so.
+export function RecordedFill({ label, onFill }: { label: string; onFill(): void }) {
+  return (
+    <button type="button" className={styles.recordedFill} onClick={onFill}>
+      <ClipboardPaste aria-hidden />
+      {label}
+    </button>
   );
 }
 

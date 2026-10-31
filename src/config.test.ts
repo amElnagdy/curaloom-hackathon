@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadConfig } from "./config";
+import { configEnv, loadConfig } from "./config";
 
 describe("loadConfig", () => {
   it("uses safe defaults when the environment is empty", () => {
@@ -13,6 +13,7 @@ describe("loadConfig", () => {
       notifierAdapter: "simulated",
       devTools: true,
       dataDir: join(process.cwd(), "data"),
+      replayLatency: 0,
     });
   });
 
@@ -26,6 +27,7 @@ describe("loadConfig", () => {
       NOTIFIER_ADAPTER: "email",
       NODE_ENV: "production",
       DATA_DIR: "/tmp/curaloom-data",
+      REPLAY_LATENCY: "0.25",
     });
 
     expect(config).toEqual({
@@ -37,6 +39,7 @@ describe("loadConfig", () => {
       notifierAdapter: "email",
       devTools: false,
       dataDir: "/tmp/curaloom-data",
+      replayLatency: 0.25,
     });
   });
 
@@ -61,6 +64,32 @@ describe("loadConfig", () => {
     expect(loadConfig({ MODEL_API_KEY: "", APP_NAME: " " })).toMatchObject({
       appName: "CuraLoom",
       modelApiKey: undefined,
+    });
+  });
+
+  it("rejects a replay pace that is not a number of zero or more", () => {
+    for (const bad of ["-1", "fast", "NaN", "Infinity"]) {
+      expect(() => loadConfig({ REPLAY_LATENCY: bad })).toThrow(/REPLAY_LATENCY/);
+    }
+  });
+});
+
+describe("configEnv", () => {
+  it("writes the environment that loads back as the given settings", () => {
+    const settings = {
+      demoTopic: "SQL basics",
+      providerProfile: "replay",
+      replayLatency: 0.3,
+      dataDir: join(process.cwd(), ".preview-data"),
+    } as const;
+
+    expect(loadConfig(configEnv(settings))).toMatchObject(settings);
+  });
+
+  it("writes only the settings it is given", () => {
+    expect(loadConfig(configEnv({ providerProfile: "record" }))).toEqual({
+      ...loadConfig({}),
+      providerProfile: "record",
     });
   });
 });

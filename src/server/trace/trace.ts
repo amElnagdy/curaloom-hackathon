@@ -24,6 +24,8 @@ export type TraceEvent = {
   total_cost_usd?: number;
   latency_ms?: number;
   payload_ref?: string;
+  // The hash of a request replay has no recording for (#30): the shell shows it as an alert.
+  missing_recording?: string;
 };
 
 export type TraceInput = Omit<
@@ -106,13 +108,16 @@ export function createTracer(
         kind: e.ok ? "model_call" : "error",
         summary_ar: e.ok
           ? e.summary_ar
-          : `فشل استدعاء النموذج (محاولة ${e.attempt}): ${e.summary_ar}`,
+          : e.missing_recording
+            ? `لا تسجيل لهذا الطلب (${e.missing_recording}): ${e.summary_ar}`
+            : `فشل استدعاء النموذج (محاولة ${e.attempt}): ${e.summary_ar}`,
         summary_en: e.ok
           ? e.summary_en
           : `Model call failed (attempt ${e.attempt}): ${e.summary_en}: ${e.error}`,
         model: e.model,
         cost_usd: e.cost_usd,
         latency_ms: e.latency_ms,
+        ...(e.missing_recording && { missing_recording: e.missing_recording }),
       }),
   };
 }

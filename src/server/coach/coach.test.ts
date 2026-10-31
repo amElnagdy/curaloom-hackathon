@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { CheckinReply, CoursePlan, Quiz } from "../../../contracts/index.ts";
+import { RECORDED_TOPIC } from "../../../demo/script.ts";
 import { loadOmarSeed } from "../../../demo/seed";
 import { loadConfig } from "../../config";
 import { type Replanned, type SavedPlan, savedPlan } from "../agents/architect/architect";
@@ -29,8 +30,7 @@ import {
 } from "./coach";
 import { sessionSim } from "./session";
 
-const TOPIC = "Excel pivot tables for data analysis";
-const seed = loadOmarSeed(TOPIC);
+const seed = loadOmarSeed(RECORDED_TOPIC);
 
 // `steps` writes the coach's messages; none sends the templates.
 function setup(steps: (store: Store) => CoachDeps["steps"] = () => null) {
@@ -264,7 +264,7 @@ describe("the coach's wording", () => {
     await sim().advance({ minutes: 180 });
 
     expect(model.calls.map((c) => c.role)).toEqual(["coach", "coach", "coach"]);
-    const told = [seed.profile.name, seed.profile.id, TOPIC];
+    const told = [seed.profile.name, seed.profile.id, RECORDED_TOPIC];
     expect(model.calls.flatMap((c) => told.filter((t) => c.prompt.includes(t)))).toEqual([]);
     expect(phone().map((m) => m.text)).toEqual(Array(3).fill("عمر، خطوة صغيرة اليوم تكفي."));
   });

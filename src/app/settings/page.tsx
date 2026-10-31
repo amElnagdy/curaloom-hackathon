@@ -170,7 +170,7 @@ export default async function SettingsPage() {
           <SettingRow
             label="موضوع العرض"
             labelId="app-topic"
-            help="لم يُحدَّد موضوع الدورة بعد. كل المحتوى الحالي بيانات تجريبية."
+            help="لم يُحدَّد موضوع الدورة بعد، فالمحتوى الحالي مكتوب على موضوع مؤقت."
           >
             <Tech>{config.demoTopic}</Tech>
           </SettingRow>

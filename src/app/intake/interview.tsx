@@ -35,6 +35,7 @@ import {
   cx,
   DirIcon,
   LangBadge,
+  RecordedFill,
   Sep,
   type Status,
   StatusPill,
@@ -119,9 +120,12 @@ function heardValue(field: Field, heard: Heard): ReactNode {
 export function Interview({
   sessionId,
   initial,
+  recorded,
 }: {
   sessionId: string;
   initial: IntakeView | null;
+  // Replay only: the recorded run's messages, which the composer offers one at a time (#30).
+  recorded?: readonly string[];
 }) {
   const [view, setView] = useState(initial);
   const [draft, setDraft] = useState("");
@@ -221,6 +225,9 @@ export function Interview({
   );
   const pill = STATUS[status];
   const dialect = view?.dialect;
+  const sent = turns.filter((t) => t.role === "learner").length;
+  const nextRecorded = status === "interview" && !busy ? recorded?.[sent] : undefined;
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
 
   // The quick check is taller than the thread, so it opens at its top, under the move to it. The
   // closing reply lands below a thread the reader has scrolled, so the thread jumps to it.
@@ -317,12 +324,24 @@ export function Interview({
           </div>
 
           <form className={styles.composer} onSubmit={send}>
+            {nextRecorded !== undefined && recorded && draft !== nextRecorded && (
+              <div className={styles.recorded}>
+                <RecordedFill
+                  label={`املأ الرسالة المسجّلة (${arabicNumber(sent + 1)} من ${arabicNumber(recorded.length)})`}
+                  onFill={() => {
+                    setDraft(nextRecorded);
+                    fieldRef.current?.focus();
+                  }}
+                />
+              </div>
+            )}
             {error && (
               <p className={styles.error} role="alert">
                 {error}
               </p>
             )}
             <textarea
+              ref={fieldRef}
               className={styles.field}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

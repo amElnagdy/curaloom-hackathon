@@ -375,7 +375,7 @@ a.itemTitle:hover {
 }
 
 /* ===================================================================== top bar chips */
-.sample {
+.mode {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -389,19 +389,31 @@ a.itemTitle:hover {
   font-weight: 600;
   white-space: nowrap;
 }
-.sample :global(.lucide) {
+.mode :global(.lucide) {
   width: 0.875rem;
   height: 0.875rem;
 }
+.modeLive {
+  border-color: var(--ready-200);
+  background: var(--ready-50);
+  color: var(--ready-ink);
+}
+.modeCode {
+  font-family: var(--font-latin), sans-serif;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
 /* Phone width: the badge keeps its icon; the label stays for screen readers. */
 @media (max-width: 760px) {
-  .sample {
+  .mode {
     position: relative;
     justify-content: center;
     width: 1.75rem;
     padding: 0;
   }
-  .sampleLabel {
+  .modeLabel,
+  .modeCode {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -409,6 +421,32 @@ a.itemTitle:hover {
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
+}
+
+/* Replay only: fills a field with the recorded run's text (#30). */
+.recordedFill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.75rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.recordedFill:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.recordedFill :global(.lucide) {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
 }
 
 .clock {

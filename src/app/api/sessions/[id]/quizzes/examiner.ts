@@ -18,6 +18,7 @@ export function examinerFor(sessionId: string) {
         models: loadModels(),
         profile: config.providerProfile,
         apiKey: config.modelApiKey,
+        replayLatency: config.replayLatency,
         onTrace,
       }),
   });

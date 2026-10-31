@@ -30,3 +30,29 @@ it("continues ids and the total from a trace written by an earlier process", () 
 
   expect(resumed).toMatchObject({ id: "evt_0002", total_cost_usd: 1.25 });
 });
+
+it("traces a request replay has no recording for as an error that names its hash, for the UI to show", () => {
+  const store = createFileStore(mkdtempSync(join(tmpdir(), "trace-")));
+  const tracer = createTracer(store, "s_1", clock);
+
+  const traced = tracer.fromProvider({
+    kind: "model_call",
+    agent: "intake",
+    summary_ar: "يقرأ رسالتك",
+    summary_en: "Reading the message",
+    role: "agent_default",
+    model: "muse-spark-1.3",
+    profile: "replay",
+    attempt: 1,
+    ok: false,
+    latency_ms: 0,
+    cost_usd: 0,
+    total_cost_usd: 0,
+    error: "No recorded response for request 0123456789abcdef",
+    missing_recording: "0123456789abcdef",
+  });
+
+  expect(traced).toMatchObject({ kind: "error", missing_recording: "0123456789abcdef" });
+  expect(traced.summary_ar).toContain("0123456789abcdef");
+  expect(traced.summary_en).toContain("0123456789abcdef");
+});

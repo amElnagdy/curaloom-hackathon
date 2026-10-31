@@ -8,6 +8,7 @@ import {
   REPLAN_REASONS,
   type Resource,
 } from "../../../../contracts/index.ts";
+import { RECORDED_TOPIC } from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { contentHash, createFileStore } from "../../store/store.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
@@ -503,7 +504,7 @@ describe("noteViolations", () => {
 describe("proposeReplan, on the recorded plan", () => {
   it("saves the demo's v2 as the proposal and traces it with the plan's numbers", async () => {
     const store = createFileStore(mkdtempSync(join(tmpdir(), "replan-")));
-    const learner = loadOmarSeed("Excel pivot tables for data analysis").profile;
+    const learner = loadOmarSeed(RECORDED_TOPIC).profile;
     store.writeDoc("s1", "plan", {
       for_profile: contentHash(learner),
       versions: [RECORDED],

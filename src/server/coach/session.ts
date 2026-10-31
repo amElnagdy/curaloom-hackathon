@@ -147,6 +147,7 @@ export const coachSteps = (store: Store) =>
         models: loadModels(),
         profile: config.providerProfile,
         apiKey: config.modelApiKey,
+        replayLatency: config.replayLatency,
         onTrace,
         timeoutMs: 30_000,
       }),

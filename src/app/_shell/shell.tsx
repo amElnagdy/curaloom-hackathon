@@ -4,12 +4,13 @@
 // At phone width the rail and the trace tab move into the top bar's two ends (#35).
 
 import type { ReactNode } from "react";
+import type { ProviderProfile } from "../../config.ts";
 import { LiveSimClockPill } from "./activity-feed.tsx";
 import { DemoBar, type DemoMark } from "./demo-bar.tsx";
 import { Rail } from "./rail.tsx";
 import styles from "./shell.module.css";
 import { TopBar } from "./top-bar.tsx";
-import { TraceDrawer } from "./trace-drawer.tsx";
+import { MissingRecordingAlert, TraceDrawer } from "./trace-drawer.tsx";
 
 export function Shell({
   appName,
@@ -23,7 +24,7 @@ export function Shell({
 }: {
   appName: string;
   learnerName: string;
-  providerProfile: string;
+  providerProfile: ProviderProfile;
   simClock: boolean;
   devTools: boolean;
   sessionId: string;
@@ -40,12 +41,18 @@ export function Shell({
       <div className={styles.frame}>
         <Rail appName={appName} learnerName={learnerName} />
         <div className={styles.column}>
-          <TopBar clock={clock} />
+          <TopBar clock={clock} profile={providerProfile} />
+          <MissingRecordingAlert />
           <main id="main" tabIndex={-1} className={styles.main}>
             {children}
           </main>
           {simClock && (
-            <DemoBar sessionId={sessionId} learnerName={learnerName} marks={demoMarks} />
+            <DemoBar
+              sessionId={sessionId}
+              learnerName={learnerName}
+              marks={demoMarks}
+              profile={providerProfile}
+            />
           )}
         </div>
       </div>

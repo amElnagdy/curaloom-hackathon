@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { parseModels } from "./models";
-import { createProvider, type ProviderOptions, type ProviderTraceEvent } from "./provider";
+import {
+  createProvider,
+  MissingRecording,
+  type ProviderOptions,
+  type ProviderTraceEvent,
+} from "./provider";
 
 // Real (redacted) Meta responses recorded by spike #7.
 const SPIKE = JSON.parse(
@@ -459,11 +464,70 @@ describe("record and replay", () => {
     await expect(live.p.structured(call)).resolves.toMatchObject({ model: "muse-spark-1.3" });
   });
 
-  it("fails clearly when replay has no recording for a request", async () => {
+  it("waits the recorded latency times the replay pace, and reports the recorded latency", async () => {
     const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
-    const replayer = createProvider({ models: MODELS, profile: "replay", fixturesDir });
+    await provider([{ status: 200, body: spike("json_schema", "/responses") }], {
+      profile: "record",
+      fixturesDir,
+    }).p.structured(call);
+    const path = join(fixturesDir, readdirSync(fixturesDir)[0] ?? "");
+    writeFileSync(
+      path,
+      JSON.stringify({ ...JSON.parse(readFileSync(path, "utf8")), latency_ms: 8000 }),
+    );
+    const waits = (pace?: number) => {
+      const slept: number[] = [];
+      const p = createProvider({
+        models: MODELS,
+        profile: "replay",
+        fixturesDir,
+        replayLatency: pace,
+        sleep: async (ms) => {
+          slept.push(ms);
+        },
+      });
+      return { p, slept };
+    };
+    const paced = waits(0.25);
+    const instant = waits();
 
-    await expect(replayer.structured(call)).rejects.toThrow(/no recorded response.*record/i);
+    const replayed = await paced.p.structured(call);
+    await instant.p.structured(call);
+
+    expect(paced.slept).toEqual([2000]);
+    expect(replayed.latency_ms).toBe(8000);
+    expect(instant.slept).toEqual([]);
+  });
+
+  it("fails at once when replay has no recording, naming the request's hash in the error, the trace and the server log", async () => {
+    const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
+    const slept: number[] = [];
+    const events: ProviderTraceEvent[] = [];
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const replayer = createProvider({
+      models: MODELS,
+      profile: "replay",
+      fixturesDir,
+      replayLatency: 1,
+      onTrace: (e) => events.push(e),
+      sleep: async (ms) => {
+        slept.push(ms);
+      },
+    });
+
+    const error = await replayer.structured(call).catch((e: unknown) => e);
+    const logged = log.mock.calls.map((args) => args.join(" "));
+    log.mockRestore();
+
+    expect(error).toBeInstanceOf(MissingRecording);
+    const { hash } = error as MissingRecording;
+    expect(hash).toMatch(/^[0-9a-f]{16}$/);
+    expect((error as Error).message).toMatch(
+      new RegExp(`no recorded response.*${hash}.*record`, "i"),
+    );
+    expect(slept).toEqual([]);
+    expect(events).toMatchObject([{ ok: false, attempt: 1, missing_recording: hash }]);
+    expect(logged).toEqual([expect.stringContaining(hash)]);
   });
 
   it("needs a key outside replay", async () => {

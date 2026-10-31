@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Resource, type ScoutQueries, SOURCE_LANGS } from "../../../../contracts/index.ts";
+import { RECORDED_TOPIC } from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
@@ -438,10 +439,8 @@ describe("scout, when fewer than 5 resources pass", () => {
   });
 });
 
-// The topic of the run recorded in demo/fixtures. It is a sample: the demo topic is not decided.
-// Re-record with `PROVIDER_PROFILE=record pnpm scout` and this topic set in the shell.
-const RECORDED_TOPIC = "Excel pivot tables for data analysis";
-
+// The run recorded in demo/fixtures is on RECORDED_TOPIC. Re-record with
+// `PROVIDER_PROFILE=record pnpm scout` and that topic set in the shell (docs/demo.md).
 describe("scout, replaying the recorded run", () => {
   it("reproduces it offline: cited, licence-checked resources in several languages", async () => {
     const dir = mkdtempSync(join(tmpdir(), "scout-replay-"));

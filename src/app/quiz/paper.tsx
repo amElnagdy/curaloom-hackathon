@@ -22,7 +22,7 @@ import {
 import type { KeylessQuiz } from "../../server/agents/examiner/rules.ts";
 import { Callout } from "../_shell/blocks.tsx";
 import { arabicNumber } from "../_shell/format.ts";
-import { BidiText, buttonClass, cx, Meta, StatusPill } from "../_shell/ui.tsx";
+import { BidiText, buttonClass, cx, Meta, RecordedFill, StatusPill } from "../_shell/ui.tsx";
 import { useBuild } from "../_shell/use-build.ts";
 import styles from "./quiz.module.css";
 
@@ -251,6 +251,7 @@ export function QuizPaper({
   submitUrl,
   intro,
   grading,
+  recorded,
 }: {
   quiz: KeylessQuiz;
   sessionId: string;
@@ -262,6 +263,8 @@ export function QuizPaper({
   // In place of the note on how the quiz is graded.
   intro?: string;
   grading?: GradingText;
+  // Replay only: the recorded run's short answers, in the order of the short items (#30).
+  recorded?: readonly string[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -288,7 +291,8 @@ export function QuizPaper({
   const answered = (id: string) => Boolean(answers[id]?.trim());
   const left = quiz.items.filter((item) => !answered(item.id));
   const count = quiz.items.length - left.length;
-  const shorts = quiz.items.filter((item) => item.type === "short").length;
+  const shortItems = quiz.items.filter((item) => item.type === "short");
+  const shorts = shortItems.length;
   const locked = phase !== "answering";
 
   const answer = (id: string, value: string) => {
@@ -481,6 +485,7 @@ export function QuizPaper({
                 </li>
               );
             }
+            const recordedText = recorded?.[shortItems.indexOf(item)];
             return (
               <li key={item.id}>
                 <div className={card} id={`q-${item.id}`}>
@@ -512,6 +517,16 @@ export function QuizPaper({
                       <p className={styles.hint} id={`hint-${item.id}`}>
                         اكتب بكلماتك، بالفصحى أو بلهجتك.
                       </p>
+                      {recordedText !== undefined &&
+                        !locked &&
+                        answers[item.id] !== recordedText && (
+                          <div className={styles.recorded}>
+                            <RecordedFill
+                              label="املأ الإجابة المسجّلة"
+                              onFill={() => answer(item.id, recordedText)}
+                            />
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>

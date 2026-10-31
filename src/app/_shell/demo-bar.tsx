@@ -9,11 +9,12 @@
 import { ChevronDown, FlaskConical, Plus, RotateCcw } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 import type { CoachEvent } from "../../../contracts/index.ts";
+import type { ProviderProfile } from "../../config.ts";
 import { compareSimTime, type SimTime, startOfDay } from "../../server/clock/time.ts";
 import { COACH_TITLE, simDay, simTimeText } from "./course.ts";
 import styles from "./demo-bar.module.css";
 import { arabicNumber } from "./format.ts";
-import { buttonClass, cx } from "./ui.tsx";
+import { buttonClass, cx, ModeBadge } from "./ui.tsx";
 import { useSimClock } from "./use-sim-clock.ts";
 
 export type DemoMark = { day: number; type: CoachEvent["type"] };
@@ -53,10 +54,13 @@ export function DemoBar({
   sessionId,
   learnerName,
   marks,
+  profile,
 }: {
   sessionId: string;
   learnerName: string;
   marks: DemoMark[];
+  // Whether the models answer live or from recordings, shown open or collapsed (#30).
+  profile: ProviderProfile;
 }) {
   const { now, busy, move } = useSimClock(sessionId);
   const [collapsed, setCollapsed] = useState<boolean | null>(null);
@@ -96,6 +100,7 @@ export function DemoBar({
           {simDay(now.day)}
         </>
       )}
+      <ModeBadge profile={profile} />
     </button>
   );
   if (collapsed) {
@@ -119,6 +124,7 @@ export function DemoBar({
             <FlaskConical aria-hidden />
             أيام {learnerName} بلا دراسة
           </h2>
+          <ModeBadge profile={profile} />
           {now && (
             <span className={styles.now} role="timer">
               {simTimeText(now)}

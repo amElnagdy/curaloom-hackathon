@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Lesson, Quiz } from "../../../../contracts/index.ts";
+import { RECORDED_TOPIC } from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
 import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
@@ -26,7 +27,7 @@ import { attemptOf, quizViolations } from "./rules.ts";
 const recording = process.env.RECORD_FIXTURES === "1";
 if (recording) process.loadEnvFile(".env");
 
-const seed = loadOmarSeed("Excel pivot tables for data analysis");
+const seed = loadOmarSeed(RECORDED_TOPIC);
 const LESSON = seed.lessons[0] as Lesson;
 const COURSE: Course = {
   plan_id: "plan_seed",

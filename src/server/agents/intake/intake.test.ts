@@ -11,6 +11,7 @@ import {
   type Lesson,
   type Quiz,
 } from "../../../../contracts/index.ts";
+import { INTAKE_MESSAGES, RECORDED_TOPIC, SHORT_ANSWERS } from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
 import { comebackResponse, consentResponse, inboxResponse, simResponse } from "../../clock/http.ts";
@@ -39,7 +40,6 @@ import { runScout, scoutBrief } from "../scout/scout.ts";
 import { DONT_KNOW } from "./diagnostic.ts";
 import { createIntake, IntakeConflict, savedProfile } from "./intake.ts";
 
-const TOPIC = "Excel pivot tables for data analysis";
 const LEARNER = { id: "l_omar", name: "عمر" };
 
 type Heard = IntakeReply["heard"];
@@ -133,7 +133,14 @@ function setup(heard: Heard[] = [EVERYTHING], script: Omit<Script, "heard"> = {}
   const fake = fakeProvider({ heard, ...script });
   const orchestrator = createOrchestrator({ store, makeProvider: () => fake.provider });
   const intake = (sessionId = "s1") =>
-    createIntake({ orchestrator, store, cache, sessionId, learner: LEARNER, topic: TOPIC });
+    createIntake({
+      orchestrator,
+      store,
+      cache,
+      sessionId,
+      learner: LEARNER,
+      topic: RECORDED_TOPIC,
+    });
   return { intake, fake, store };
 }
 
@@ -256,7 +263,7 @@ describe("intake", () => {
       locale: "ar",
       dialect: "gulf",
       goal: "محلل بيانات مبتدئ",
-      topic: TOPIC,
+      topic: RECORDED_TOPIC,
       hours_per_week: 5,
       background: ["accounting", "excel"],
       source_langs_ok: ["en", "ru", "zh", "fr"],
@@ -343,19 +350,11 @@ describe("intake", () => {
   });
 });
 
-// The recorded conversation's topic, the same sample topic as the scout's recording: the demo topic
-// is not decided. RECORD_FIXTURES is a test-only switch, as in contracts/smoke.test.ts: re-record
+// The recorded run's topic and Omar's words come from demo/script.ts, which the replayed pages offer
+// the presenter. RECORD_FIXTURES is a test-only switch, as in contracts/smoke.test.ts: re-record
 // with `pnpm fixtures:record`.
-const RECORDED_TOPIC = "Excel pivot tables for data analysis";
 const recording = process.env.RECORD_FIXTURES === "1";
 if (recording) process.loadEnvFile(".env");
-
-// Omar, in Gulf dialect. He answers what a first interview asks, whatever the model's wording.
-const OMAR = [
-  "هلا والله. أنا محاسب بشركة في الرياض من خمس سنين، وأبي أتحول لمحلل بيانات.",
-  "أشتغل على الإكسل كل يوم، بس عمري ما سويت تحليل بيانات صدق. وقتي ضيق، تقريبًا خمس ساعات بالأسبوع.",
-  "عادي عندي أي لغة دامها توصلني بالعربي. سجلت بكورسات كورسيرا قبل وما كملتها، كانت طويلة وأملّ بسرعة. وبعد لا تطرشون لي رسايل الصبح.",
-];
 
 // Omar's recorded interview, up to the profile it saves.
 async function interview() {
@@ -383,7 +382,7 @@ async function interview() {
   });
 
   let view = intake.start();
-  for (const text of OMAR) {
+  for (const text of INTAKE_MESSAGES) {
     if (view.status !== "interview") break;
     view = await intake.message(text);
   }
@@ -568,13 +567,17 @@ describe("intake, replaying Omar's recorded interview", () => {
 });
 
 // The demo's path through the HTTP API (#26, #27), as the coach and plan pages post it: Omar, who
-// passed lesson 1 on day 0 and has lesson 2 written, gets the day-10 check-in and taps `choice`,
-// «جلسات أقصر» or «مصدر آخر»; the plan page sees him back and he answers the recap, `right` of five
-// right.
-async function cameBack(right: number, choice: "shrink" | "switch" = "shrink") {
+// passed lesson 1 on day 0 and has lesson 2 written (unless `secondWritten` is false), gets the
+// day-10 check-in and taps `choice`, «جلسات أقصر» or «مصدر آخر»; the plan page sees him back and he
+// answers the recap, `right` of five right.
+async function cameBack(
+  right: number,
+  choice: "shrink" | "switch" = "shrink",
+  { secondWritten = true } = {},
+) {
   const course = await passedFirst();
   const { store, orchestrator, builder, second } = course;
-  await builder.build(second);
+  if (secondWritten) await builder.build(second);
   const seed = loadOmarSeed(RECORDED_TOPIC);
   const deps = { sim: (id: string) => sessionSim(store, id, seed, orchestrator).sim };
   const post = (body: unknown) =>
@@ -815,28 +818,67 @@ describe("the demo's comeback, replaying the recorded course through the HTTP AP
       new Set([SPARK_PICK]),
     );
   }, 600_000);
+
+  // The lesson page asks for the quiz of lesson 2 as written again from Spark's pick.
+  it("writes the quiz for lesson 2 as written again from Spark's pick", async () => {
+    const { store, planner, post, ok, builder, examiner, second } = await cameBack(3, "switch");
+    await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+    const lesson = (await builder.build(second)).lessons[second] as Lesson;
+
+    const quiz = (await examiner.quiz(second)).quizzes[0] as Quiz;
+
+    expect(quiz.lesson_id).toBe(second);
+    expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
+    expect(modelsOf(store, "examiner").at(-1)).toBe("muse-spark-1.3");
+  }, 600_000);
+
+  // The plan page writes lesson 2 while the comeback is open, under v1. Should the learner accept v2
+  // before that write lands, the lesson page writes lesson 2 under v2's shorter sessions instead.
+  it("writes lesson 2 and its quiz under the accepted «جلسات أقصر» v2 when lesson 2 was not written yet", async () => {
+    const { store, planner, post, ok, builder, examiner, second } = await cameBack(3, "shrink", {
+      secondWritten: false,
+    });
+    await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+
+    const lesson = (await builder.build(second)).lessons[second] as Lesson;
+    const quiz = (await examiner.quiz(second)).quizzes[0] as Quiz;
+
+    expect(lesson.sections.length).toBeGreaterThanOrEqual(3);
+    expect(quiz.lesson_id).toBe(second);
+    expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
+    expect(new Set(modelsOf(store, "lesson_builder"))).toEqual(new Set(["muse-spark-1.3"]));
+  }, 600_000);
+
+  // A presenter who gets four of the recap's five right lands on the 5-of-5 recording: the brief
+  // gives Spark the recap's band, never its score.
+  it("explains v2 from the recorded note after a recap of 4 out of 5, at the gate", async () => {
+    const { store, finished } = await cameBack(4);
+
+    const v2 = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile)?.pending;
+
+    expect(finished.comeback.last.recap).toMatchObject({ below_gate: false, review_lesson: null });
+    expect(
+      explainedBySpark(store, v2 as CoursePlan, {
+        reason: "shrink",
+        today: 10,
+        away_days: 10,
+        recap: { below_gate: false, review_lesson: null },
+      }),
+    ).toEqual({ models: ["muse-spark-1.3"], fallbacks: [], violations: [] });
+  }, 600_000);
 });
 
 // The resource Spark picked for lesson 2 in the recorded switch: the English step-by-step
 // «Microsoft Office/Create a Pivot Table», over the French encyclopedia article code ranks first.
 const SPARK_PICK = "r_8f7bbb8e";
 
-// Omar's short answers, in Gulf dialect, to the first quiz's short items in order: the first earns
-// full credit by its rubric, the second only half (it filters but never summarises by branch).
-const OMAR_FIRST = [
-  "أسوي ورقة لكل شهر في نفس المصنف، وأحط أعمدة التاريخ والبيان والمدين والدائن والرصيد. خانة الرصيد أكتب فيها معادلة تاخذ الرصيد اللي فوقها وتزيد المدين وتنقص الدائن، فلو غيرت أي مبلغ يتعدل الرصيد بروحه.",
-  "أفلتر على كل فرع بروحه وأشوف مبيعاته شهر شهر، وبعدين أرسل الجدول للمدير.",
-];
-
-// His short answers to the retry's short items, each earning full credit by its rubric.
-const OMAR_RETRY = [
-  "أسوي مصنف واحد للسنة فيه ثلاث أوراق: ورقة العملاء فيها التاريخ والعميل والمبلغ والمحصل، وورقة الموردين بنفس الأعمدة تقريبا، وورقة الملخص الشهري. خلايا الملخص ما أكتبها بيدي، أحط فيها معادلات تجمع من ورقة العملاء وورقة الموردين، فأي تعديل هناك يتحدث هنا على طول. وبعدين أسوي رسم بياني من الملخص وأعرضه على الإدارة.",
-  "أقول له لا تخاف، الفلتر ما يمسح شي، بس يخبي الصفوف اللي ما تبيها مؤقتا، ولو شلت الفلتر ترجع كلها. مثلا في جدول مدفوعات الموردين أفلتر على مورد واحد وأراجع دفعاته. والجدول المحوري بدل ما أجمع بيدي يطلع لي إجمالي المدفوع لكل مورد في كل شهر في جدول صغير، وهذا اللي تبيه الإدارة.",
-];
+// Omar's short answers to lesson 1's first quiz (full credit, then half) and to its retry (full
+// credit twice).
+const [OMAR_FIRST, OMAR_RETRY] = SHORT_ANSWERS.L1;
 
 // His answers to a quiz: each multiple-choice key, except a wrong option on `miss`, and the given
 // short answers in order.
-function answersTo(quiz: Quiz, shorts: string[], miss?: string) {
+function answersTo(quiz: Quiz, shorts: readonly string[], miss?: string) {
   const left = [...shorts];
   return quiz.items.map((item) => ({
     item_id: item.id,

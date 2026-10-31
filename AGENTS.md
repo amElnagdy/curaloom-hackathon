@@ -11,7 +11,7 @@ pnpm dev
 
 CI (`.github/workflows/ci.yml`) runs the same checks plus `pnpm build`, with no secrets.
 
-To see the UI while the user's `pnpm dev` runs (Next allows one dev server per checkout), run `pnpm preview`. It builds and serves on port 3107, replays the recorded responses on their sample topic, and keeps its own data in `.preview-data/`, emptied on each start.
+To see the UI while the user's `pnpm dev` runs (Next allows one dev server per checkout), run `pnpm preview`. It builds and serves on port 3107, replays the recorded responses on their sample topic, and keeps its own data in `.preview-data/`, emptied on each start. `docs/demo.md` covers the demo's other servers, its reset and re-recording.
 
 ## Conventions
 

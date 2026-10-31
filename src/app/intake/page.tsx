@@ -3,7 +3,9 @@
 
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { INTAKE_MESSAGES } from "../../../demo/script.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
+import { config } from "../../config.ts";
 import { intakeView } from "../../server/agents/intake/intake.ts";
 import { createFileStore } from "../../server/store/store.ts";
 import { Page } from "../_shell/blocks.tsx";
@@ -17,7 +19,11 @@ export default async function IntakePage() {
 
   return (
     <Page>
-      <Interview sessionId={DEMO_SESSION_ID} initial={view} />
+      <Interview
+        sessionId={DEMO_SESSION_ID}
+        initial={view}
+        recorded={config.providerProfile === "replay" ? INTAKE_MESSAGES : undefined}
+      />
     </Page>
   );
 }

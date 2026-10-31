@@ -24,7 +24,9 @@ import Link from "next/link";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import type { GlossaryEntry, Lesson, Quiz, QuizAttempt } from "../../../../contracts/index.ts";
+import { recordedShortAnswers } from "../../../../demo/script.ts";
 import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
+import { config } from "../../../config.ts";
 import { PASS_THRESHOLD, quizView } from "../../../server/agents/examiner/examiner.ts";
 import { type QuizView, withoutKeys } from "../../../server/agents/examiner/rules.ts";
 import { termMarks } from "../../../server/agents/lesson/rules.ts";
@@ -506,6 +508,11 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[lessonId]">
             quiz={withoutKeys(shown.quiz)}
             sessionId={DEMO_SESSION_ID}
             lessonId={lesson.id}
+            recorded={
+              config.providerProfile === "replay"
+                ? recordedShortAnswers(lesson.id, view.quizzes.length - 1)
+                : undefined
+            }
             note={
               tries > 0
                 ? `اختبار جديد بأسئلة أخرى من الدرس نفسه، وهذه محاولتك ${ordinalF(tries)}. أفضل نتيجة لك حتى الآن ${percent(best)}، والنجاح عند ${percent(gate)}.`

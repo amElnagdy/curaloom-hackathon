@@ -56,6 +56,8 @@ export type ProviderTraceEvent = TraceContext & {
   cost_usd: number;
   total_cost_usd: number;
   error?: string;
+  // The hash of a request that replay has no recording for.
+  missing_recording?: string;
 };
 
 type CallBase = { role: string; trace: TraceContext };
@@ -85,6 +87,8 @@ export type ProviderOptions = {
   fetch?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   timeoutMs?: number;
+  // Replay waits each recording's latency times this (config.replayLatency). Default 0.
+  replayLatency?: number;
 };
 
 export const FIXTURES_DIR = join(process.cwd(), "demo/fixtures/responses");
@@ -95,6 +99,19 @@ type WireResponse = { status: number; body: unknown; latency_ms: number; retryAf
 // complete reply from one cut off.
 type Sending = { timeoutMs: number; normalize: (body: unknown) => Normalized };
 type Fixture = { request: unknown; body: unknown; latency_ms: number };
+
+// Replay was asked for a request it has no recording of. Not retried: the same request has no
+// recording on a retry either.
+export class MissingRecording extends Error {
+  hash: string;
+
+  constructor(path: string, hash: string, name: string) {
+    super(
+      `No recorded response for request ${hash} (${path}, ${name}); record it with PROVIDER_PROFILE=record (docs/demo.md)`,
+    );
+    this.hash = hash;
+  }
+}
 
 class HttpError extends Error {
   retryable: boolean;
@@ -107,7 +124,7 @@ class HttpError extends Error {
   }
 }
 
-function fixtureKey(req: WireRequest): { material: unknown; name: string } {
+function fixtureKey(req: WireRequest): { material: unknown; hash: string; name: string } {
   const material = req.form
     ? {
         path: req.path,
@@ -117,7 +134,11 @@ function fixtureKey(req: WireRequest): { material: unknown; name: string } {
     : { path: req.path, json: req.json };
   const hash = createHash("sha256").update(JSON.stringify(material)).digest("hex").slice(0, 16);
   const model = String((req.json ?? req.form?.request)?.model ?? "unknown");
-  return { material, name: `${req.path.replace(/\W+/g, "_").slice(1)}-${model}-${hash}.json` };
+  return {
+    material,
+    hash,
+    name: `${req.path.replace(/\W+/g, "_").slice(1)}-${model}-${hash}.json`,
+  };
 }
 
 export function createProvider(options: ProviderOptions): Provider {
@@ -125,6 +146,7 @@ export function createProvider(options: ProviderOptions): Provider {
   const fixturesDir = options.fixturesDir ?? FIXTURES_DIR;
   const doFetch = options.fetch ?? fetch;
   const sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+  const replayLatency = options.replayLatency ?? 0;
   // A capped role gets 20 ms per output token it may write, so a long reply is not cut short.
   const timeoutFor = (role: RoleConfig) =>
     options.timeoutMs ?? Math.max(120_000, (role.max_output_tokens ?? 0) * 20);
@@ -174,7 +196,7 @@ export function createProvider(options: ProviderOptions): Provider {
   }
 
   async function send(req: WireRequest, { timeoutMs, normalize }: Sending): Promise<WireResponse> {
-    const { material, name } = fixtureKey(req);
+    const { material, hash, name } = fixtureKey(req);
     const path = join(fixturesDir, name);
     // Live leaves the recordings alone.
     const saved =
@@ -187,10 +209,11 @@ export function createProvider(options: ProviderOptions): Provider {
     const reuse = saved && !normalize(saved.body).incomplete;
     if (profile === "replay" || (profile === "record" && reuse)) {
       if (!saved) {
-        throw new Error(
-          `No recorded response for ${req.path} (${name}); run once with PROVIDER_PROFILE=record`,
-        );
+        const missing = new MissingRecording(req.path, hash, name);
+        console.error(`[replay] ${missing.message}`);
+        throw missing;
       }
+      if (profile === "replay" && replayLatency > 0) await sleep(saved.latency_ms * replayLatency);
       return { status: 200, body: saved.body, latency_ms: saved.latency_ms };
     }
     const res = await sendLive(req, timeoutMs);
@@ -206,10 +229,10 @@ export function createProvider(options: ProviderOptions): Provider {
   async function sendWithRetry(
     req: WireRequest,
     sending: Sending,
-    onFailure: (attempt: number, error: string, latencyMs: number) => void,
+    onFailure: (attempt: number, error: Error, latencyMs: number) => void,
   ) {
     for (let attempt = 1; ; attempt++) {
-      let error: HttpError;
+      let error: HttpError | MissingRecording;
       // performance.now() measures a duration, not the time of day, so ADR-004's clock rule
       // does not apply.
       const started = performance.now();
@@ -223,10 +246,13 @@ export function createProvider(options: ProviderOptions): Provider {
           res.retryAfterMs,
         );
       } catch (e) {
-        error = new HttpError(e instanceof Error ? e.message : String(e), profile !== "replay");
+        error =
+          e instanceof MissingRecording
+            ? e
+            : new HttpError(e instanceof Error ? e.message : String(e), profile !== "replay");
       }
-      onFailure(attempt, error.message, Math.round(performance.now() - started));
-      if (!error.retryable || attempt === MAX_ATTEMPTS) throw error;
+      onFailure(attempt, error, Math.round(performance.now() - started));
+      if (!(error instanceof HttpError && error.retryable) || attempt === MAX_ATTEMPTS) throw error;
       const backoff = 500 * 2 ** (attempt - 1) + Math.random() * 250;
       await sleep(Math.max(backoff, error.retryAfterMs ?? 0));
     }
@@ -241,7 +267,7 @@ export function createProvider(options: ProviderOptions): Provider {
     const role = models.roles[base.role];
     if (!role) throw new Error(`Unknown model role "${base.role}"; add it to config/models.yaml`);
     type Outcome = Pick<ProviderTraceEvent, "attempt" | "ok" | "latency_ms" | "cost_usd"> &
-      Partial<Pick<ProviderTraceEvent, "usage" | "error">>;
+      Partial<Pick<ProviderTraceEvent, "usage" | "error" | "missing_recording">>;
     const trace = (outcome: Outcome) =>
       options.onTrace?.({
         kind: "model_call",
@@ -256,7 +282,15 @@ export function createProvider(options: ProviderOptions): Provider {
     const { res, attempt } = await sendWithRetry(
       build(role),
       { timeoutMs: timeoutFor(role), normalize },
-      (attempt, error, latency_ms) => trace({ attempt, ok: false, latency_ms, cost_usd: 0, error }),
+      (attempt, error, latency_ms) =>
+        trace({
+          attempt,
+          ok: false,
+          latency_ms,
+          cost_usd: 0,
+          error: error.message,
+          ...(error instanceof MissingRecording && { missing_recording: error.hash }),
+        }),
     );
     const normalized = normalize(res.body);
     const cost = costUsd(models, role.model, normalized.usage);

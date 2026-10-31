@@ -8,6 +8,7 @@ import {
   type PlanDraft,
   type ReplanNote,
 } from "../../../../contracts/index.ts";
+import { RECORDED_TOPIC } from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
@@ -741,9 +742,8 @@ describe("a switch", () => {
   });
 });
 
-// The scout's recorded topic: the plan is recorded on its recorded resources. RECORD_FIXTURES is a
+// The plan is recorded on the scout's recorded resources, for RECORDED_TOPIC. RECORD_FIXTURES is a
 // test-only switch, as in contracts/smoke.test.ts: re-record with `pnpm fixtures:record`.
-const RECORDED_TOPIC = "Excel pivot tables for data analysis";
 const recording = process.env.RECORD_FIXTURES === "1";
 if (recording) process.loadEnvFile(".env");
 

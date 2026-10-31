@@ -114,6 +114,9 @@
   padding: var(--s-3) var(--s-4);
   border-top: 1px solid var(--line);
 }
+.recorded {
+  flex-basis: 100%;
+}
 .error {
   flex-basis: 100%;
   font-size: var(--text-sm);

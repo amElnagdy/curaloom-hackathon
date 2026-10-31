@@ -24,6 +24,7 @@ export async function POST(
         models: loadModels(),
         profile: config.providerProfile,
         apiKey: config.modelApiKey,
+        replayLatency: config.replayLatency,
         onTrace,
       }),
   });
