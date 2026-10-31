@@ -5,8 +5,7 @@
 // gate keeps shut names the quiz that opens it; an open one not written yet is asked of the lesson
 // builder on first open. With the lesson shown, its foot asks the examiner for the lesson's first
 // quiz (#20), which is written while the learner reads; a new quiz after an attempt below the gate
-// is asked for on the quiz page. Meanwhile the diagrams agent looks for a diagram on the lesson's
-// pages (#28), which the page then shows under the section it illustrates, its labels in Arabic.
+// is asked for on the quiz page.
 
 import {
   ArrowRight,
@@ -37,6 +36,7 @@ import type {
 import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
 import { config } from "../../../config.ts";
 import { lessonDiagramsBrief, savedDiagrams } from "../../../server/agents/diagrams/diagrams.ts";
+import { forbidsChanges } from "../../../server/agents/diagrams/wiki.ts";
 import { quizView } from "../../../server/agents/examiner/examiner.ts";
 import type { QuizView } from "../../../server/agents/examiner/rules.ts";
 import { sourceMarks, type TermMark, termMarks } from "../../../server/agents/lesson/rules.ts";
@@ -105,8 +105,6 @@ type Shown =
       glossary: GlossaryEntry[];
       sources: QuotedSource[];
       quiz: LessonQuiz;
-      // The learner's lesson's diagrams, or "making" until the diagrams agent has made them; the
-      // seed's example has none.
       diagrams: Diagram[] | "making";
     };
 
@@ -182,7 +180,6 @@ function LessonSection({
   glossary: GlossaryEntry[];
   source: QuotedSource | undefined;
   sample: boolean;
-  // The diagrams that illustrate the section, under both columns.
   children?: ReactNode;
 }) {
   const byId = new Map(glossary.map((e) => [e.id, e]));
@@ -245,8 +242,11 @@ function LessonSection({
 }
 
 const PUBLIC_DOMAIN = "LicenseRef-PublicDomain";
+const SHARE_ALIKE = /-SA(-|$)/;
+// A diagram is shown as wide as fills this height, up to this width, in rem.
+const FIGURE_HEIGHT = 24;
+const FIGURE_MAX_WIDTH = 54;
 
-// The legend's rows: each source label once, beside its Arabic, in two tables when there are many.
 function legendTables(labels: Diagram["labels"]): Diagram["labels"][] {
   const rows = labels.filter(
     (l, i) => labels.findIndex((k) => k.src === l.src && k.ar === l.ar) === i,
@@ -255,18 +255,14 @@ function legendTables(labels: Diagram["labels"]): Diagram["labels"][] {
   return [rows.slice(0, half), rows.slice(half)].filter((t) => t.length);
 }
 
-// A diagram from the lesson's sources (#28). Relabelled by Muse Image, it opens in Arabic, and the
-// learner can switch to the source; otherwise it shows the source beside a legend of its labels in
-// Arabic. Its credit names the author, the licence code read from the file page, and that page.
 function DiagramFigure({ diagram, lessonId }: { diagram: Diagram; lessonId: string }) {
   const { caption_ar, source, output, licence, author, file } = diagram;
   const url = (ref: string) =>
     `/api/sessions/${encodeURIComponent(DEMO_SESSION_ID)}/diagrams/${encodeURIComponent(lessonId)}/${ref}`;
   const titleId = `${diagram.image_id}-title`;
-  // A tall diagram is kept to about 24rem high; a wide one fills the card.
-  const fit = Math.min(54, (24 * source.width) / source.height);
+  const fit = Math.min(FIGURE_MAX_WIDTH, (FIGURE_HEIGHT * source.width) / source.height);
   const frame = { "--ratio": `${source.width} / ${source.height}`, "--fit": `${fit}rem` };
-  const shareAlike = /-SA(-|$)/.test(licence.spdx);
+  const shareAlike = SHARE_ALIKE.test(licence.spdx);
   return (
     <figure className={styles.figure} aria-labelledby={titleId}>
       <div className={styles.figHead}>
@@ -288,7 +284,8 @@ function DiagramFigure({ diagram, lessonId }: { diagram: Diagram; lessonId: stri
           </fieldset>
         )}
       </div>
-      <div className={styles.well}>
+      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: on a phone it scrolls sideways, and the keyboard must reach it */}
+      <section className={styles.well} tabIndex={0} aria-label="الرسم">
         <div className={styles.frame} style={frame as CSSProperties}>
           {output && (
             <Image
@@ -307,11 +304,11 @@ function DiagramFigure({ diagram, lessonId }: { diagram: Diagram; lessonId: stri
             unoptimized
           />
         </div>
-      </div>
+      </section>
       {!output && (
         <div className={styles.legendWrap}>
           {legendTables(diagram.labels).map((rows) => (
-            <table key={rows[0]?.src} className={styles.legend}>
+            <table key={`${rows[0]?.src}:${rows[0]?.ar}`} className={styles.legend}>
               <thead>
                 <tr>
                   <th scope="col">في الأصل</th>
@@ -342,7 +339,9 @@ function DiagramFigure({ diagram, lessonId }: { diagram: Diagram; lessonId: stri
               ? "تُرجمت تسميات هذا الرسم إلى العربية، وبقي الباقي كما هو."
               : licence.adapt
                 ? "بقي هذا الرسم كما في مصدره، وهذه ترجمة تسمياته."
-                : "ترخيص هذا الرسم لا يسمح بتعديله، فبقي كما في مصدره، وهذه ترجمة تسمياته."}
+                : forbidsChanges(licence.spdx)
+                  ? "ترخيص هذا الرسم لا يسمح بتعديله، فبقي كما في مصدره، وهذه ترجمة تسمياته."
+                  : "لا يُعدَّل رسم بهذا الترخيص، فبقي كما في مصدره، وهذه ترجمة تسمياته."}
             {output && shareAlike && (
               <>
                 {" "}
@@ -377,8 +376,6 @@ function DiagramFigure({ diagram, lessonId }: { diagram: Diagram; lessonId: stri
     </figure>
   );
 }
-
-const SHARE_ALIKE = /-SA(-|$)/;
 
 // The ShareAlike licence the Arabic carries, when one can hold every quoted source: the sources
 // under it, and the rest open and not ShareAlike. A source under it that is limited to personal
@@ -656,6 +653,12 @@ function LessonView({ shown }: { shown: Extract<Shown, { kind: "lesson" }> }) {
           {diagrams === "making" && (
             <DiagramsBuilding sessionId={DEMO_SESSION_ID} lessonId={lesson.id} />
           )}
+          {/* Stays in place when the diagram arrives, so a screen reader hears it arrive. */}
+          <p className="sr-only" role="status">
+            {diagrams === "making"
+              ? ""
+              : diagrams.map((d) => `رسم الدرس جاهز: ${d.caption_ar}`).join("، ")}
+          </p>
 
           <LessonFoot lessonId={lesson.id} quiz={quiz} />
         </article>

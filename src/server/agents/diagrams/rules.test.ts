@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { glossaryProblems, imageSize, rankFigures, relabelProblems } from "./rules.ts";
+import { glossaryProblems, imageHeader, rankFigures, relabelProblems } from "./rules.ts";
 
 const label = (src: string, ar: string) => ({ src, ar, box: [0, 0, 10, 10] });
 
-// Spark's transcript of the Pivottable-Pivoted diagram, and of a sample that relabels it well.
 const SOURCE = [
   "Sum of Units",
   "Ship Date",
@@ -67,7 +66,9 @@ describe("the relabel check", () => {
   it("matches a label as whole words in one text block, not inside a longer one", () => {
     const labels = [label("Total", "المجموع")];
 
-    expect(relabelProblems(labels, ["Total", "Totals"], ["المجموع", "Totals"])).toEqual([]);
+    expect(relabelProblems(labels, ["Total", "Totals"], ["المجموع", "Totals"])).toEqual([
+      'the source text "Totals" is still there',
+    ]);
     expect(relabelProblems(labels, ["Total"], ["المجموعة"])).toEqual([
       'the Arabic label "المجموع" appears 0 of 1 times',
     ]);
@@ -79,6 +80,26 @@ describe("the relabel check", () => {
     expect(
       relabelProblems(labels, ["Q1 sales", "VisiCalc"], ["مبيعات الربع 1", "VisiCalc"]),
     ).toEqual([]);
+  });
+
+  it("counts each word of a block for one label, so a short label is not found in a longer one", () => {
+    const labels = [label("Total", "المجموع"), label("Grand Total", "المجموع الكلي")];
+
+    expect(
+      relabelProblems(labels, ["Total", "Grand Total", "66"], ["المجموع الكلي", "66"]),
+    ).toEqual(['the Arabic label "المجموع" appears 0 of 1 times']);
+  });
+
+  it("finds a text the reading missed still in the image, and a text the source does not have", () => {
+    const labels = [label("Sum of Units", "مجموع الوحدات")];
+    const source = ["Sum of Units", "Region", "ETL", "66"];
+
+    expect(
+      relabelProblems(labels, source, ["مجموع الوحدات", "Region", "ETL", "Regoin Totl", "66"]),
+    ).toEqual([
+      'the source text "Region" is still there',
+      'the text "Regoin Totl" is not in the source',
+    ]);
   });
 
   it("counts a label that appears in several cells once per cell", () => {
@@ -143,14 +164,14 @@ describe("the figures to try", () => {
   });
 });
 
-describe("an image's size", () => {
+describe("an image's header", () => {
   const bytes = (...parts: (string | number[])[]) =>
     Uint8Array.from(
       parts.flatMap((p) => (typeof p === "string" ? [...p].map((c) => c.charCodeAt(0)) : p)),
     );
   const pad = (n: number) => Array(n).fill(0);
 
-  it("reads PNG, GIF, JPEG and the three WebP headers", () => {
+  it("reads the type and size of PNG, GIF, JPEG and the three WebP headers", () => {
     const png = bytes([0x89], "PNG", pad(8), "IHDR", [0, 0, 2, 0x2e, 0, 0, 0, 0x89], pad(10));
     const gif = bytes("GIF89a", [0x30, 0x02, 0x80, 0x01], pad(24));
     const jpeg = bytes(
@@ -161,21 +182,18 @@ describe("an image's size", () => {
     const webp = (chunk: string, body: number[]) =>
       bytes("RIFF", pad(4), "WEBP", chunk, body, pad(10));
 
-    expect(imageSize(png)).toEqual({ width: 558, height: 137 });
-    expect(imageSize(gif)).toEqual({ width: 560, height: 384 });
-    expect(imageSize(jpeg)).toEqual({ width: 560, height: 384 });
-    expect(imageSize(webp("VP8X", [...pad(8), 0x6f, 0x0b, 0, 0xcf, 0x02, 0]))).toEqual({
+    const webp560 = { mime: "image/webp", width: 560, height: 384 };
+
+    expect(imageHeader(png)).toEqual({ mime: "image/png", width: 558, height: 137 });
+    expect(imageHeader(gif)).toEqual({ mime: "image/gif", width: 560, height: 384 });
+    expect(imageHeader(jpeg)).toEqual({ mime: "image/jpeg", width: 560, height: 384 });
+    expect(imageHeader(webp("VP8X", [...pad(8), 0x6f, 0x0b, 0, 0xcf, 0x02, 0]))).toEqual({
+      mime: "image/webp",
       width: 2928,
       height: 720,
     });
-    expect(imageSize(webp("VP8 ", [...pad(10), 0x30, 0x02, 0x80, 0x01]))).toEqual({
-      width: 560,
-      height: 384,
-    });
-    expect(imageSize(webp("VP8L", [...pad(4), 0x2f, 0x2f, 0xc2, 0x5f, 0x00]))).toEqual({
-      width: 560,
-      height: 384,
-    });
-    expect(imageSize(bytes("<svg>", pad(40)))).toBeNull();
+    expect(imageHeader(webp("VP8 ", [...pad(10), 0x30, 0x02, 0x80, 0x01]))).toEqual(webp560);
+    expect(imageHeader(webp("VP8L", [...pad(4), 0x2f, 0x2f, 0xc2, 0x5f, 0x00]))).toEqual(webp560);
+    expect(imageHeader(bytes("<svg>", pad(40)))).toBeNull();
   });
 });

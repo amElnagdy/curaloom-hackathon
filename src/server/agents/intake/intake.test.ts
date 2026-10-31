@@ -448,8 +448,6 @@ describe("intake, replaying Omar's recorded interview", () => {
     expect(new Set(modelsOf(store, "examiner"))).toEqual(new Set(["muse-spark-1.3"]));
   }, 600_000);
 
-  // Both recorded samples of the VisiCalc screenshot failed the check, so the recording shows the
-  // legend. The first left a stray ".75" beside the tax label; Spark read the second's "C1" as "C!".
   it("shows lesson 1's VisiCalc screenshot with an Arabic legend once both relabelled samples fail", async () => {
     const course = await quizzed();
 
@@ -950,7 +948,6 @@ async function quizzed() {
   return { store, orchestrator, pages, saved, builder, examiner, first, second, lesson, lessonIds };
 }
 
-// The diagrams route's builder on Omar's course.
 function diagramsOf({
   store,
   orchestrator,
@@ -968,8 +965,6 @@ function diagramsOf({
   });
 }
 
-// The lesson's one diagram, `title` from Wikimedia Commons, its labels read in the lesson's glossary
-// terms and sent to Muse Image, with every call it took in the trace.
 function expectDiagram(
   { store }: { store: Store },
   lessonId: string,

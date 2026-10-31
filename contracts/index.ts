@@ -468,9 +468,6 @@ export const ReplanNote = Obj({
   ),
 });
 
-// A lesson's diagrams (#28). Spark reads and translates a diagram's labels (DiagramLabels) and lists
-// the text of an image for the check in code (ImageTexts); code builds each Diagram. The image bytes
-// stay in session blobs, which a Diagram names by ref.
 export const DiagramLabels = Obj({
   caption_ar: Type.String({
     description: "a short Arabic caption that says what the diagram shows, for a learner",
@@ -508,8 +505,6 @@ export const Diagram = Obj({
   image_id: Type.String(),
   caption_ar: Type.String(),
   resource_id: Type.String(),
-  // The lesson section it illustrates: the first that quotes the heading it sits under on its page,
-  // else the first that quotes its page, else the lesson's first.
   section: Type.Integer(),
   file: Obj({
     title: Type.String(),
@@ -521,7 +516,6 @@ export const Diagram = Obj({
     spdx: Type.String(),
     name: Type.String({ description: "as the file page states it, e.g. CC BY-SA 2.5" }),
     url: Nullable(Type.String()),
-    // CC0, public domain, CC BY and CC BY-SA allow relabelling; other licences show it unchanged.
     adapt: Type.Boolean(),
   }),
   labels: Type.Array(
@@ -531,12 +525,9 @@ export const Diagram = Obj({
       bbox: Type.Array(Type.Integer(), { description: "[x, y, width, height] in source pixels" }),
     }),
   ),
-  // legend: the source unchanged beside a table of its labels in Arabic.
   method: StringEnum(DIAGRAM_METHODS),
   source: DiagramImage,
   output: Nullable(DiagramImage),
-  // How many Muse Image samples the code check read, and why the last one failed; no problems once
-  // one passed.
   check: Obj({ attempts: Type.Integer(), problems: Type.Array(Type.String()) }),
 });
 
@@ -591,8 +582,6 @@ export type ContractName = keyof typeof CONTRACTS;
 // the lesson builder builds them from a LessonDraft. Nor are Quiz and QuizAttempt: the examiner
 // builds them from a QuizDraft, a KeyCheck and ShortGrades. Nor is CoachEvent: the coach builds it
 // around a CoachDraft. Nor is a re-planned CoursePlan: code builds it, and a ReplanNote explains it.
-// Nor are Diagram and LessonDiagrams: code builds them from DiagramLabels and checks them with
-// ImageTexts.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
   "IntakeReply",

@@ -1,7 +1,5 @@
-// Where a lesson's diagrams come from (#28): the images a Wikimedia page shows, and each image's own
-// file page, which states its licence and author in markup code can read. The page's licence does
-// not cover its images, and a model's word about a licence is not evidence, so only this code
-// decides which image may be shown or relabelled.
+// A Wikimedia page's licence does not cover its images: each image's own file page states its
+// licence and author.
 //
 // The MediaWiki API would say the same, but robots.txt on every Wikimedia wiki disallows /w/ for
 // all agents, and the page fetcher obeys robots.txt. Article pages, file pages and
@@ -15,11 +13,8 @@ const WIKIMEDIA = /(^|\.)(wikipedia|wikibooks|wikiversity|wikisource|wikivoyage|
 
 export const isWikimediaPage = (url: string) => WIKIMEDIA.test(URL.parse(url)?.hostname ?? "");
 
-// An image an article shows, under the heading it sits under ("" before the first one).
 export type Figure = { file_page: string; heading: string; width: number; height: number };
 
-// An image's file page, as code reads it: every licence its templates state, the author, and the
-// file's URL and type.
 export type FileInfo = {
   licences: string[];
   author: string | null;
@@ -49,6 +44,7 @@ const decoded = (text: string) =>
 const plainText = (html: string) =>
   decoded(html.replace(/<[^>]*>/g, " "))
     .replace(/\s+/g, " ")
+    .replace(/ (?=[.,;:])/g, "")
     .trim();
 
 const attrOf = (tag: string, name: string) => {
@@ -65,23 +61,24 @@ const unescaped = (text: string) => {
 };
 const fileName = (path: string) => unescaped(path).replace(/ /g, "_");
 
-// A file page's title as a reader sees it: "Visicalc.png" for .../wiki/File:Visicalc.png.
 export const fileTitle = (filePage: string) =>
   unescaped(filePage.split("/").pop() ?? "")
     .replace(/^[^:]*:/, "")
     .replace(/_/g, " ");
 
-// Small images are icons and logos, not diagrams.
 const MIN_FILE = { width: 200, height: 100 };
 const MIN_SHOWN_WIDTH = 120;
 
-// A heading, or an image that links to its own file page.
-const PARTS = /<h([2-4])\b[^>]*>([\s\S]*?)<\/h\1>|<a\b([^>]*)>\s*<img\b([^>]*)>/gi;
+const HEADING_OR_LINKED_IMAGE =
+  /<h([2-4])\b[^>]*>([\s\S]*?)<\/h\1>|<a\b([^>]*)>\s*<img\b([^>]*)>/gi;
+const COMMONS_UPLOAD = /\/\/(upload|thumb)\.wikimedia\.org\/wikipedia\/commons\//;
+
+const showsOwnFile = (src: string, title: string) => fileName(src).includes(fileName(title));
 
 export function figuresOf(html: string, pageUrl: string): Figure[] {
   const figures: Figure[] = [];
   let heading = "";
-  for (const [, , headingHtml, link, img] of html.matchAll(PARTS)) {
+  for (const [, , headingHtml, link, img] of html.matchAll(HEADING_OR_LINKED_IMAGE)) {
     if (headingHtml !== undefined) {
       heading = plainText(headingHtml);
       continue;
@@ -94,15 +91,12 @@ export function figuresOf(html: string, pageUrl: string): Figure[] {
     const filePage = URL.parse(href, pageUrl);
     const segment = unescaped(filePage?.pathname.split("/").pop() ?? "");
     const title = segment.includes(":") ? segment.slice(segment.indexOf(":") + 1) : "";
-    // A linked image points elsewhere; only an image that links to its own file page is kept.
-    if (!filePage || !title || !fileName(src).includes(fileName(title))) continue;
+    if (!filePage || !title || !showsOwnFile(src, title)) continue;
     const width = Number(attrOf(img ?? "", "data-file-width"));
     const height = Number(attrOf(img ?? "", "data-file-height"));
     const shown = Number(attrOf(img ?? "", "width"));
     if (width < MIN_FILE.width || height < MIN_FILE.height || shown < MIN_SHOWN_WIDTH) continue;
-    // A file shared from Commons is read on Commons, so its credit reads the same from every wiki.
-    const shared = /\/\/(upload|thumb)\.wikimedia\.org\/wikipedia\/commons\//.test(src);
-    const file_page = shared
+    const file_page = COMMONS_UPLOAD.test(src)
       ? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName(title))}`
       : `${filePage.origin}${filePage.pathname}`;
     if (figures.some((f) => f.file_page === file_page)) continue;
@@ -111,10 +105,9 @@ export function figuresOf(html: string, pageUrl: string): Figure[] {
   return figures;
 }
 
-// The class names in a tag, entities decoded: a template may write licensetpl&#95;short.
+// A Commons template may write a class as licensetpl&#95;short.
 const classesOf = (tag: string) => (attrOf(tag, "class") ?? "").split(/\s+/);
 
-// The text of each element whose class is `name` and that holds text only, as licence spans do.
 function spansOf(html: string, name: string): string[] {
   const found: string[] = [];
   for (const m of html.matchAll(/<(span|div|td)\b([^>]*)>([^<]*)<\/\1>/gi)) {
@@ -123,7 +116,6 @@ function spansOf(html: string, name: string): string[] {
   return found;
 }
 
-// An SVG is fetched as Wikimedia's PNG rendering of it.
 const SVG_WIDTH = 1280;
 const svgRendering = (url: string) => {
   const m =
@@ -139,10 +131,7 @@ export function fileInfoOf(html: string, fileUrl: string): FileInfo {
   const authorCell = [
     ...html.matchAll(/<td\b([^>]*)>[^<]*<\/td>\s*<td\b[^>]*>([\s\S]*?)<\/td>/gi),
   ].find((m) => attrOf(m[1] ?? "", "id") === "fileinfotpl_aut")?.[2];
-  // Links flattened to text leave a space before the punctuation after them.
-  const author = plainText(authorCell ?? "")
-    .replace(/\s+(?=[.,;:])/g, "")
-    .slice(0, 300);
+  const author = plainText(authorCell ?? "").slice(0, 300);
   const media = /<div\b[^>]*class="fullMedia"[^>]*>[\s\S]*?<a\b([^>]*)>/i.exec(html);
   const href = media ? attrOf(media[1] ?? "", "href") : undefined;
   const original = href ? URL.parse(href, fileUrl) : null;
@@ -180,9 +169,9 @@ export type ImageLicence =
   | { ok: false; reason: string; reason_ar: string };
 
 const PUBLIC_DOMAIN = /^(public domain|PD\b)/i;
-// The licences under which a learner may get the image relabelled. Any other licence the allowlist
-// takes shows the image as it is.
 const ADAPTABLE = /^(LicenseRef-PublicDomain|CC0-1\.0|CC-BY(-SA)?(-\d\.\d)?)$/;
+
+export const forbidsChanges = (spdx: string) => /-ND(-|$)/.test(spdx);
 
 const deedOf = (spdx: string) => {
   const cc = /^CC-(BY(?:-NC)?(?:-ND|-SA)?)(?:-(\d\.\d))?$/.exec(spdx);
@@ -190,25 +179,27 @@ const deedOf = (spdx: string) => {
   return spdx === "CC0-1.0" ? "https://creativecommons.org/publicdomain/zero/1.0/" : null;
 };
 
-// Each licence the file page states, classified by the scout's checker. As for a page, every one
-// must be on the allowlist; of several, the image is used under the most restrictive one. CC BY and
-// CC BY-SA need an author to credit.
+type Named = { use: string; spdx: string };
+const termsOf = (spdx: string) => spdx.match(/-(BY|SA|NC|ND)\b/g)?.length ?? 0;
+const moreRestrictive = (a: Named, b: Named) =>
+  (Number(a.use === "personal_study") - Number(b.use === "personal_study") ||
+    termsOf(a.spdx) - termsOf(b.spdx)) > 0;
+
 export function imageLicence(info: FileInfo, fileUrl: string): ImageLicence {
-  if (!info.licences.length) {
+  const [first, ...rest] = info.licences.map((name) => ({
+    name,
+    ...(PUBLIC_DOMAIN.test(name)
+      ? { spdx: "LicenseRef-PublicDomain", use: "open" as const }
+      : classifyLicence(name, fileUrl)),
+  }));
+  if (!first) {
     return {
       ok: false,
       reason: "its file page states no licence code can read",
       reason_ar: "لا تذكر صفحة ملفه ترخيصًا يقرؤه الكود",
     };
   }
-  const named = info.licences
-    .map((name) =>
-      PUBLIC_DOMAIN.test(name)
-        ? { name, spdx: "LicenseRef-PublicDomain", use: "open" as const, terms: 0 }
-        : { name, ...classifyLicence(name, fileUrl), terms: 0 },
-    )
-    .map((n) => ({ ...n, terms: n.spdx.match(/-(BY|SA|NC|ND)\b/g)?.length ?? 0 }));
-  const off = named.find((n) => n.use === "rejected");
+  const off = [first, ...rest].find((n) => n.use === "rejected");
   if (off) {
     return {
       ok: false,
@@ -216,11 +207,7 @@ export function imageLicence(info: FileInfo, fileUrl: string): ImageLicence {
       reason_ar: `تذكر صفحة ملفه ترخيص ${off.name}، وهو ليس من التراخيص المقبولة`,
     };
   }
-  const [cited] = named.toSorted(
-    (a, b) =>
-      Number(b.use === "personal_study") - Number(a.use === "personal_study") || b.terms - a.terms,
-  );
-  if (!cited) throw new Error("unreachable: no licence");
+  const cited = rest.reduce((a, b) => (moreRestrictive(b, a) ? b : a), first);
   if (/^CC-BY/.test(cited.spdx) && !info.author) {
     return {
       ok: false,

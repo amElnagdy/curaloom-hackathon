@@ -8,16 +8,15 @@ import type {
   ImageTexts,
   Lesson,
 } from "../../../../contracts/index.ts";
-import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
+import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import type { ModelResult, Provider } from "../../providers/provider.ts";
 import { createFileStore } from "../../store/store.ts";
 import type { PageFetcher, PageView } from "../../tools/fetch-page.ts";
 import type { TraceEvent } from "../../trace/trace.ts";
-import { createDiagramsBuilder, DiagramsConflict, diagramsBrief } from "./diagrams.ts";
+import { createDiagramsBuilder, diagramsBrief, LessonNotWritten } from "./diagrams.ts";
 import { diagramImageResponse } from "./http.ts";
 import type { Figure, FileInfo } from "./wiki.ts";
 
-// A 558x137 PNG's header, and a WebP whose header says 2928x720, marked with its sample number.
 const PNG = Buffer.from([
   0x89,
   0x50,
@@ -110,7 +109,6 @@ const RESOURCES = [
 ];
 const BRIEF = diagramsBrief(LESSON, RESOURCES, GLOSSARY);
 
-// Spark's reading of Pivottable-Pivoted, and its transcripts of the source and of a good sample.
 const LABELS: DiagramLabels = {
   caption_ar: "جدول محوري يجمع الوحدات حسب المنطقة وتاريخ الشحن",
   labels: [
@@ -147,16 +145,19 @@ const result = <J>(json: J, image: ModelResult["image"] = null): ModelResult<J> 
 
 type Script = {
   files?: Record<string, FileInfo>;
-  // Spark's readings in turn; the last one repeats.
   readings?: DiagramLabels[];
-  // Spark's transcript of each Muse Image sample in turn.
   samples?: string[][];
+  // How many readings fail before one answers, and whether the source's transcript fails.
+  failedReadings?: number;
+  sourceFails?: boolean;
 };
 
 function setup({
   files = { [PIVOTED]: file(["Public domain"]) },
   readings = [LABELS],
   samples = [GOOD],
+  failedReadings = 0,
+  sourceFails = false,
 }: Script = {}) {
   const dir = mkdtempSync(join(tmpdir(), "diagrams-"));
   dirs.push(dir);
@@ -168,10 +169,13 @@ function setup({
     async structured(call: { schema: { name: string }; input: unknown }) {
       if (call.schema.name === "DiagramLabels") {
         sent.reads.push(JSON.parse(`"${promptOf(call.input)}"`));
-        return result(readings[Math.min(sent.reads.length, readings.length) - 1]);
+        if (sent.reads.length <= failedReadings) throw new Error("Spark is down");
+        const answered = sent.reads.length - failedReadings;
+        return result(readings[Math.min(answered, readings.length) - 1]);
       }
       const marked = JSON.stringify(call.input).match(/data:image\/webp;base64,([^"]+)/)?.[1];
       const sample = marked ? (Buffer.from(marked, "base64")[30] ?? 0) : 0;
+      if (!sample && sourceFails) throw new Error("Spark is down");
       const texts: ImageTexts = { texts: sample ? (samples[sample - 1] ?? GOOD) : SOURCE_TEXTS };
       return result(texts);
     },
@@ -352,6 +356,48 @@ describe("a lesson's diagrams", () => {
     expect(diagram?.labels[0]?.ar).toBe("مجموع الوحدات");
   });
 
+  it("shows the legend after one sample when the source cannot be transcribed to check it", async () => {
+    const { builder, sent } = setup({ sourceFails: true });
+
+    const [diagram] = await builder.build("L2");
+
+    expect(sent.edits).toHaveLength(1);
+    expect(diagram).toMatchObject({
+      method: "legend",
+      output: null,
+      check: { attempts: 1, problems: ["the source could not be transcribed: Spark is down"] },
+    });
+  });
+
+  it("tries the next image when one fails, and fails the step only when every image fails", async () => {
+    const open = { [EXAMPLE]: file(["Public domain"]), [PIVOTED]: file(["Public domain"]) };
+    const once = setup({ files: open, failedReadings: 1 });
+
+    const [diagram] = await once.builder.build("L2");
+
+    expect(diagram?.file.page_url).toBe(PIVOTED);
+    expect(once.trace().map((e) => e.summary_en)).toContain(
+      "Pivot table example.svg failed (Spark is down); trying the next image",
+    );
+
+    const always = setup({ files: open, failedReadings: Number.POSITIVE_INFINITY });
+    await expect(always.builder.build("L2")).rejects.toThrow(StepFailed);
+  });
+
+  it("skips an image whose file page cannot be read, or whose text stays untranslated", async () => {
+    const acronyms = { ...LABELS, labels: [{ src: "ETL", ar: "ETL", box: [0, 0, 100, 100] }] };
+    const { builder, sent, trace } = setup({ readings: [acronyms] });
+
+    expect(await builder.build("L2")).toEqual([]);
+    expect(sent.edits).toEqual([]);
+    expect(trace().map((e) => e.summary_en)).toEqual(
+      expect.arrayContaining([
+        "Skipping Pivot table example.svg: its file page could not be read (HTTP 404)",
+        "Skipping Pivottable-Pivoted.PNG: no text in it was translated into Arabic",
+      ]),
+    );
+  });
+
   it("gives a lesson no diagram when no image passes, and says why", async () => {
     const { builder, sent, trace } = setup({
       files: { [PIVOTED]: file(["CC BY-SA 4.0", "GFDL"]) },
@@ -367,6 +413,6 @@ describe("a lesson's diagrams", () => {
   it("waits for the lesson to be written", async () => {
     const { builder } = setup();
 
-    await expect(builder.build("L3")).rejects.toThrow(DiagramsConflict);
+    await expect(builder.build("L3")).rejects.toThrow(LessonNotWritten);
   });
 });

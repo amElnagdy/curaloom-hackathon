@@ -62,8 +62,6 @@ export function createOrchestrator({ store, makeProvider, clock }: OrchestratorO
     const tracer = tracerFor(sessionId);
     const readState = () => store.readDoc<SessionState>(sessionId, SESSION_DOC) ?? { steps: {} };
     const state = readState();
-    // Steps of one session can run at once, such as a lesson's quiz and its diagrams, so a step is
-    // recorded into the session as it is when the step ends.
     const record = (step: StepRecord) => {
       const now = readState();
       store.writeDoc(sessionId, SESSION_DOC, { ...now, steps: { ...now.steps, [key]: step } });

@@ -2,9 +2,7 @@
 // fetch. Web search picks its URLs, so a third party controls them: it requests only public
 // addresses on ports 80 and 443, checked before every redirect hop and again at connect time. It
 // follows the provider's profile: `record` saves what it saw under demo/fixtures/pages, and
-// `replay` reads it back with no network, so a replayed run checks the same licences. Under the
-// same rules it reads an HTML page into a view, such as the images an article shows, and fetches
-// an image (#28).
+// `replay` reads it back with no network, so a replayed run checks the same licences.
 
 import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
@@ -32,8 +30,6 @@ export type FetchOutcome = { ok: true; page: Page } | { ok: false; url: string; 
 
 type Refused = { ok: false; url: string; reason: string };
 
-// What a caller reads from an HTML page. A recording keeps what `read` returned, not the page, so
-// a replay reads the view as it was recorded. The trace lines name the page, e.g. «صفحة ملف رسم».
 export type PageView<T> = {
   name: string;
   trace_ar: { ok: string; failed: string };
@@ -74,13 +70,13 @@ const MAX_REDIRECTS = 3;
 const PORTS = new Set(["", "80", "443"]);
 const TEXT_TYPES = /^(?:text\/html|application\/xhtml\+xml|text\/plain)\b/i;
 const HTML_TYPES = /^(?:text\/html|application\/xhtml\+xml)\b/i;
-const IMAGE_TYPES = /^image\/(?:png|jpeg|gif|webp)\b/i;
+const IMAGE_TYPES = /^image\/(?:png|jpeg|gif|webp)\s*(?:;|$)/i;
 
 // What one request saw, as recorded. A transient failure (network error, timeout) is retried once;
 // a refused address is not.
 type Seen =
   | { kind: "page"; status: number; content_type: string; truncated: boolean; text: string }
-  | { kind: "view"; status: number; content_type: string; truncated: boolean; value: unknown }
+  | { kind: "html"; status: number; content_type: string; truncated: boolean; html: string }
   | { kind: "image"; status: number; content_type: string; truncated: boolean; b64: string }
   | { kind: "redirect"; status: number; location: string }
   | { kind: "failed"; reason: string; transient: boolean };
@@ -91,13 +87,10 @@ type Followed = { hops: string[]; latency_ms: number } & ({ seen: Final } | { re
 // What a site's robots.txt allows: the Disallow rules for `*`, or why nothing there may be fetched.
 type Robots = { disallow: string[] } | { blocked: string };
 // A page is read as HTML or plain text by its type; a robots.txt is read as plain text whatever
-// its type, so a mislabelled one keeps its rules. A view reads an HTML page, and an image is kept
-// as its bytes.
-type Body = "page" | "robots" | "image" | PageView<unknown>;
+// its type, so a mislabelled one keeps its rules.
+type Body = "page" | "robots" | "html" | "image";
 
-// A view or an image is recorded apart from the page text at the same URL.
-const variantOf = (body: Body) =>
-  body === "page" || body === "robots" ? undefined : body === "image" ? body : `view:${body.name}`;
+const variantOf = (body: Body) => (body === "page" || body === "robots" ? undefined : body);
 
 const typesOf = (body: Body) =>
   body === "page"
@@ -157,7 +150,7 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
         return { kind: "image", ...read, b64: Buffer.from(bytes).toString("base64") };
       }
       const raw = decode(bytes, content_type);
-      if (typeof body === "object") return { kind: "view", ...read, value: body.read(raw, url) };
+      if (body === "html") return { kind: "html", ...read, html: raw };
       const plain = body === "robots" || /^text\/plain/i.test(content_type);
       const text = plain ? raw : htmlToText(raw);
       return { kind: "page", status: res.status, content_type, truncated, text };
@@ -250,8 +243,7 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     return site;
   }
 
-  // Requests `url` and its redirects, each hop allowed by its site's robots.txt.
-  function get(url: string, body: Body, trace: Trace): Promise<Followed> {
+  function followAllowed(url: string, body: Body, trace: Trace): Promise<Followed> {
     return follow(url, body, async (hop) => {
       const site = await robotsOf(hop.origin, trace);
       if ("blocked" in site) return site.blocked;
@@ -264,7 +256,7 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
 
   return {
     async fetchPage(url, trace) {
-      const followed = await get(url, "page", trace);
+      const followed = await followAllowed(url, "page", trace);
       const outcome: FetchOutcome =
         "refused" in followed
           ? { ok: false, url, reason: followed.refused }
@@ -280,12 +272,13 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     },
 
     async fetchView<T>(url: string, view: PageView<T>, trace: Trace): Promise<ViewOutcome<T>> {
-      const followed = await get(url, view as PageView<unknown>, trace);
-      const final = "refused" in followed ? null : followed.seen;
-      const reason = final ? unread(final, "view") : (followed as { refused: string }).refused;
+      const followed = await followAllowed(url, "html", trace);
+      const reason = "refused" in followed ? followed.refused : whyUnread(followed.seen, "html");
+      const seen = "seen" in followed ? followed.seen : null;
+      const final_url = followed.hops.at(-1) ?? url;
       const outcome: ViewOutcome<T> =
-        final?.kind === "view" && reason === null
-          ? { ok: true, final_url: followed.hops.at(-1) ?? url, value: final.value as T }
+        seen?.kind === "html" && reason === null
+          ? { ok: true, final_url, value: view.read(seen.html, final_url) }
           : { ok: false, url, reason: reason ?? "not read" };
       const detail = outcome.ok ? "read" : outcome.reason;
       traceFetch(trace, `fetch_page[${view.name}]`, followed, outcome.ok, detail, view.trace_ar);
@@ -293,16 +286,16 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     },
 
     async fetchImage(url, trace) {
-      const followed = await get(url, "image", trace);
-      const final = "refused" in followed ? null : followed.seen;
-      const reason = final ? unread(final, "image") : (followed as { refused: string }).refused;
+      const followed = await followAllowed(url, "image", trace);
+      const reason = "refused" in followed ? followed.refused : whyUnread(followed.seen, "image");
+      const seen = "seen" in followed ? followed.seen : null;
       const outcome: ImageOutcome =
-        final?.kind === "image" && reason === null
+        seen?.kind === "image" && reason === null
           ? {
               ok: true,
               final_url: followed.hops.at(-1) ?? url,
-              mime: final.content_type.split(";")[0]?.trim().toLowerCase() ?? "",
-              b64: final.b64,
+              mime: seen.content_type.split(";")[0]?.trim().toLowerCase() ?? "",
+              b64: seen.b64,
             }
           : { ok: false, url, reason: reason ?? "not read" };
       const detail = outcome.ok
@@ -317,7 +310,6 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
   };
 }
 
-// One tool_call event per fetch that requested anything, naming the first hop's host.
 function traceFetch(
   trace: Trace,
   tool: string,
@@ -336,9 +328,7 @@ function traceFetch(
   });
 }
 
-// Why a view or an image did not arrive whole, or null when it did. Neither is used cut at the byte
-// cap: a view may lose what its caller looks for, and an image would not decode.
-function unread(seen: Final, kind: "view" | "image"): string | null {
+function whyUnread(seen: Final, kind: "html" | "image"): string | null {
   if (seen.kind === "failed") return seen.reason;
   if (seen.status >= 300) return `HTTP ${seen.status}`;
   if (seen.kind !== kind) {

@@ -470,8 +470,6 @@
   gap: var(--s-3);
 }
 
-/* Diagrams (#28): a card under both columns of the section it illustrates. The two versions share
-   one frame sized from the source, so switching between them moves nothing below. */
 .figure {
   grid-column: 1 / -1;
   display: flex;
@@ -563,9 +561,20 @@
   opacity: 0;
   pointer-events: none;
 }
+@media (forced-colors: active) {
+  .versions label:has(:checked) {
+    forced-color-adjust: none;
+    background: SelectedItem;
+    color: SelectedItemText;
+  }
+}
 .well {
   padding: var(--s-6) var(--s-5);
   background: var(--fill);
+}
+.well:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 .frame {
   position: relative;
@@ -686,8 +695,7 @@
   .lesson {
     padding: var(--s-5) var(--s-4);
   }
-  /* A diagram keeps a readable width and scrolls sideways in its band, from its left edge, since
-     the redrawn diagrams keep their left-to-right layout. */
+  /* An RTL scroller starts at its right edge, but the diagrams keep a left-to-right layout. */
   .well {
     overflow-x: auto;
     direction: ltr;
@@ -695,7 +703,6 @@
   }
   .frame {
     inline-size: min(var(--fit), 40rem);
-    margin-inline: 0;
   }
   .figHead,
   .credit,

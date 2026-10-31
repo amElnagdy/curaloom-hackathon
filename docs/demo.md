@@ -25,6 +25,8 @@ REPLAY_LATENCY=0.5 pnpm demo:replay
 
 The recorded calls on the demo's path waited about 5 minutes in all. At `0.3`, a scripted browser walked the presenter steps below, from the intake to lesson 2's quiz, in 2 minutes 8 seconds. Its clicks were instant, so a presenter takes longer by the time they spend reading and clicking. That walk predates the voice chip in step 2, which adds about 10 seconds: the 9-second clip, then 0.8 seconds of replayed transcription.
 
+At `0.3`, a scripted browser on the steps above saw lesson 1's diagram 45 seconds after the lesson opened, and lesson 2's 18 seconds after it opened at step 13. The trace shows the steps themselves taking 44 s and 18 s. The diagrams are their own step, asked for only once the lesson is written, so the plan and the lessons do not wait for them.
+
 ## Reset
 
 To start the demo again from the beginning:
@@ -57,7 +59,7 @@ This is the recorded path, walked in a browser at 1440×900 on `pnpm demo:replay
 2. In the chat, click «استمع إلى الرسالة الصوتية المسجّلة وأرسلها للتفريغ». The clip plays for 9 seconds, then its transcript fills the composer. Click «املأ الرسالة المسجّلة (١ من ٣)», which replaces the transcript with the recorded text, then «أرسل». Wait for the interviewer's reply. For (٢ من ٣) and (٣ من ٣), click the chip, then «أرسل».
 3. In the short check, pick «لا أعرف بعد» in all three questions. Scroll down inside the chat and click «أرسل إجاباتك».
 4. Scroll down the page and click «اذهب إلى خطتك». The plan page builds the plan, then writes lesson 1, in about 50 seconds. When «ابدأ الدرس الأول» in the activity column turns blue, click it.
-5. At the end of lesson 1, click «إلى الاختبار».
+5. Lesson 1 opens with a quiet line after its sections: «يبحث مُعرِّب الرسوم في مصادر هذا الدرس عن رسم…». About 45 seconds later the VisiCalc screenshot appears under the first section, with a two-column table of its labels in Arabic. Its two relabelled samples failed the code check, so the lesson shows the source, and the trace drawer shows both samples and why each failed. You do not have to wait for it. At the end of lesson 1, click «ابدأ الاختبار». While the quiz is still being written, the button reads «إلى الاختبار».
 6. First attempt. Pick these answers, then click «املأ الإجابة المسجّلة» under questions 5 and 6, and click «سلّم الإجابات». The score is 75%.
    - Question 1: «المصنف (classeur) ملف يجمع ورقة عمل…».
    - Question 2: «بحذف القيم القديمة وإعادة كتابة المجاميع يدويا…». This is the wrong answer, on purpose.
@@ -78,7 +80,7 @@ This is the recorded path, walked in a browser at 1440×900 on `pnpm demo:replay
     - Question 4: «ترتب الصفوف من الأكبر إلى الأصغر…».
     - Question 5: «برنامج جداول البيانات (tableur) هو خلية واحدة…».
 12. Click «اعتمد الخطة الجديدة».
-13. Click the chart in the side rail, «التقدّم». «تاريخ خطتك» shows versions 1 and 2. Click lesson 2, «ما الجدول المحوري ولماذا يستخدمه محلل البيانات», to open it.
+13. Click the chart in the side rail, «التقدّم». «تاريخ خطتك» shows versions 1 and 2. Click lesson 2, «ما الجدول المحوري ولماذا يستخدمه محلل البيانات», to open it. About 18 seconds later the pivot table appears under its second section with Arabic labels. «الأصل» above it shows the source, and «بالعربية» goes back.
 
 Paths off this list:
 
@@ -110,6 +112,8 @@ After a prompt or contract change, on the same topic:
 3. Run `pnpm fixtures:prune`.
 4. Check the new files in `demo/fixtures/responses/` for the API key and the learner id `l_omar`. The name «عمر» belongs only in a request that gives the model the learner's name, as the intake's does.
 5. Walk the presenter steps on `pnpm demo:replay`.
+
+The diagrams agent's pages are recorded as HTML (`"kind": "html"` in the recording), and replay runs the reading code in `src/server/agents/diagrams/wiki.ts` on them, so a change to that code needs no new recording. `pnpm fixtures:prune` prunes only `demo/fixtures/responses/`. A page recording no test reads stays until you delete it.
 
 To add a path to the demo, add it to the chain test first, then record. The tests for the comeback's «مصدر آخر» path and for lesson 2 under the accepted v2 are examples.
 

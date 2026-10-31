@@ -364,7 +364,7 @@ describe("fetchView and fetchImage", () => {
       ...extra,
     });
 
-  it("records what a view read, apart from the page text, and replays it", async () => {
+  it("records a page's HTML apart from its text, and reads it with the view as it is now", async () => {
     const recorder = fetcher({ profile: "record", transport: site().transport });
     const viewed = await recorder.pages.fetchView(PAGE, TITLES, recorder.trace);
     const replayer = fetcher({
@@ -372,17 +372,30 @@ describe("fetchView and fetchImage", () => {
       transport: noNetwork,
       fixturesDir: recorder.fixturesDir,
     });
+    const headings: PageView<number> = {
+      ...TITLES,
+      name: "headings",
+      read: (html) => html.match(/<h\d>/g)?.length ?? 0,
+    };
 
     expect(viewed).toEqual({ ok: true, final_url: PAGE, value: ["Pivot&nbsp;tables"] });
     expect(await replayer.pages.fetchView(PAGE, TITLES, replayer.trace)).toEqual(viewed);
+    expect(await replayer.pages.fetchView(PAGE, headings, replayer.trace)).toEqual({
+      ok: true,
+      final_url: PAGE,
+      value: HTML.match(/<h\d>/g)?.length,
+    });
     await expect(replayer.pages.fetchPage(PAGE, replayer.trace)).rejects.toThrow(
       /PROVIDER_PROFILE=record/,
     );
-    expect(replayer.events.at(-1)).toMatchObject({
-      kind: "tool_call",
-      summary_ar: "قرأ عناوين صفحة (open.example.org)",
-      summary_en: `fetch_page[titles] ${PAGE}: read`,
-    });
+    expect(replayer.events.slice(-2)).toMatchObject([
+      {
+        kind: "tool_call",
+        summary_ar: "قرأ عناوين صفحة (open.example.org)",
+        summary_en: `fetch_page[titles] ${PAGE}: read`,
+      },
+      { kind: "tool_call", summary_en: `fetch_page[headings] ${PAGE}: read` },
+    ]);
   });
 
   it("fetches an image as its bytes and replays it", async () => {
@@ -403,11 +416,13 @@ describe("fetchView and fetchImage", () => {
     expect(await replayer.pages.fetchImage(IMAGE, replayer.trace)).toEqual(image);
   });
 
-  it("refuses what robots.txt disallows, the wrong type, and anything cut at its cap", async () => {
+  it("refuses what robots.txt disallows, the wrong type or a list of types, and anything cut at its cap", async () => {
     const hidden = "https://open.example.org/private/pivot.png";
+    const twoTypes = "https://open.example.org/media/two-types.png";
     const web = site({
       [hidden]: { type: "image/png", body: BYTES },
       "https://open.example.org/media/page.png": { body: HTML },
+      [twoTypes]: { type: "image/png,text/html", body: BYTES },
     });
     const { pages, trace } = fetcher({
       profile: "live",
@@ -427,6 +442,10 @@ describe("fetchView and fetchImage", () => {
     expect(await pages.fetchImage(IMAGE, trace)).toMatchObject({
       ok: false,
       reason: "cut at the byte cap",
+    });
+    expect(await roomy.pages.fetchImage(twoTypes, roomy.trace)).toMatchObject({
+      ok: false,
+      reason: "not a PNG, JPEG, GIF or WebP image (image/png,text/html)",
     });
     expect(await roomy.pages.fetchView(IMAGE, TITLES, roomy.trace)).toMatchObject({
       ok: false,

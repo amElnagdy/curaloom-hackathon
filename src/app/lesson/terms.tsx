@@ -169,8 +169,6 @@ export function QuizBuilding({
   );
 }
 
-// Under the learner's lesson while its diagrams are being made (#28): it asks the diagrams agent for
-// them as soon as the lesson is shown, and the page then shows each in the section it illustrates.
 export function DiagramsBuilding({ sessionId, lessonId }: { sessionId: string; lessonId: string }) {
   const url = `/api/sessions/${encodeURIComponent(sessionId)}/diagrams/${encodeURIComponent(lessonId)}`;
   const { failed, retry } = useBuild(url);

@@ -127,8 +127,6 @@ class HttpError extends Error {
 
 const sha256 = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
 
-// An image sent as a data URL is named in a recording by its hash, as audio is: the hash names the
-// request as well, and the image does not sit in the repo once per request that sends it.
 const DATA_URL = /^data:[\w/+.-]+;base64,/;
 const hashedImages = (json: unknown): unknown =>
   JSON.parse(

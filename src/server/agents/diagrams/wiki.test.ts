@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type FileInfo, figuresOf, fileInfoOf, imageLicence, isWikimediaPage } from "./wiki.ts";
 
-// The markup of fr.wikipedia.org/wiki/Tableur, cut down: a heading with its edit link, a thumbnail
-// that links to its file page, an icon, and an image that links to another article.
 const ARTICLE = `
 <h2 class="vector-pinnable-header-label">Sommaire</h2>
 <h2 id="De_la_feuille">De la feuille de calcul au tableur</h2><span class="mw-editsection">[<a href="/w/index.php?action=edit">modifier</a>]</span>
@@ -14,7 +12,6 @@ const ARTICLE = `
 <a href="https://fr.wikipedia.org/wiki/Fichier:Visicalc.png" class="mw-file-description"><img src="//upload.wikimedia.org/wikipedia/commons/7/7a/Visicalc.png" data-file-width="560" data-file-height="384" width="560"/></a>
 `;
 
-// A file page, cut down: the author row and the hidden licence table of each licence template.
 const FILE_PAGE = (
   licences: string[],
   author = '<a href="https://en.wikipedia.org/wiki/User:Gortu">User:Gortu</a>',
@@ -129,10 +126,15 @@ describe("an image's licence, decided by code", () => {
     expect(imageLicence(info(["CC BY 2.5", "CC BY-SA 3.0"]), FILE_URL)).toMatchObject({
       spdx: "CC-BY-SA-3.0",
     });
-    expect(imageLicence(info(["CC BY-SA 4.0", "CC BY-NC 4.0"]), FILE_URL)).toMatchObject({
-      spdx: "CC-BY-NC-4.0",
-      adapt: false,
-    });
+    for (const order of [
+      ["CC BY-SA 4.0", "CC BY-NC 4.0"],
+      ["CC BY-NC 4.0", "CC BY-SA 4.0"],
+    ]) {
+      expect(imageLicence(info(order), FILE_URL)).toMatchObject({
+        spdx: "CC-BY-NC-4.0",
+        adapt: false,
+      });
+    }
   });
 
   it("refuses an image when any licence is off the allowlist, none is stated, or CC BY names no author", () => {

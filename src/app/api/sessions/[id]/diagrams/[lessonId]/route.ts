@@ -13,9 +13,6 @@ import { createProvider } from "../../../../../../server/providers/provider.ts";
 import { createFileStore } from "../../../../../../server/store/store.ts";
 import { createPageFetcher } from "../../../../../../server/tools/fetch-page.ts";
 
-// POST /api/sessions/:id/diagrams/:lessonId — makes the written lesson's diagrams (#28) once, from
-// the images of the Wikimedia pages it quotes, and answers {diagrams}. The lesson page asks for
-// them while the learner reads.
 export async function POST(
   request: Request,
   ctx: RouteContext<"/api/sessions/[id]/diagrams/[lessonId]">,

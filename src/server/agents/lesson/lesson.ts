@@ -53,7 +53,17 @@ export type LessonBrief = {
 
 export class LessonNotFound extends Error {}
 
-// Only a resource whose licence code verified can be quoted.
+// The resources a lesson may quote: those its sessions name whose licence code verified.
+export function lessonResources(
+  plan: CoursePlan,
+  resources: Resource[],
+  lessonId: string,
+): Resource[] {
+  const sessions = plan.committed.sessions.filter((s) => s.lesson_id === lessonId);
+  const ids = new Set(sessions.flatMap((s) => s.resource_ids));
+  return resources.filter((r) => ids.has(r.id) && r.licence.verified);
+}
+
 export function lessonBrief(
   profile: LearnerProfile,
   plan: CoursePlan,
@@ -64,7 +74,6 @@ export function lessonBrief(
   const lesson = plan.committed.lessons.find((l) => l.id === lessonId);
   if (!lesson) throw new LessonNotFound(`The plan has no lesson ${lessonId}`);
   const sessions = plan.committed.sessions.filter((s) => s.lesson_id === lessonId);
-  const ids = new Set(sessions.flatMap((s) => s.resource_ids));
   return {
     topic: profile.topic,
     goal: profile.goal,
@@ -76,9 +85,9 @@ export function lessonBrief(
       module_ar: plan.road[lesson.module]?.module ?? "",
       minutes: sessions.reduce((sum, s) => sum + s.minutes, 0),
     },
-    resources: resources
-      .filter((r) => ids.has(r.id) && r.licence.verified)
-      .map(({ id, url, title, lang, licence }) => ({ id, url, title, lang, licence })),
+    resources: lessonResources(plan, resources, lessonId).map(
+      ({ id, url, title, lang, licence }) => ({ id, url, title, lang, licence }),
+    ),
     glossary,
   };
 }

@@ -1,6 +1,6 @@
 {
   "url": "http://en.wikipedia.org/wiki/Pivot_table",
-  "latency_ms": 182,
+  "latency_ms": 103,
   "response": {
     "kind": "redirect",
     "status": 301,

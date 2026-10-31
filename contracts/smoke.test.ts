@@ -96,7 +96,7 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
   DiagramLabels: {
     role: "diagram_labels",
     input:
-      "A 600x200 diagram of a pivot table has these text blocks: 'Region' at the top left, 'Sum of Sales' at the top right, 'North' and 'South' below 'Region'. Give each block, its Arabic translation and its box as [x, y, width, height]. Glossary: pivot table = جدول محوري.",
+      "A 600x200 diagram of a pivot table has these text blocks: 'Region' at the top left, 'Sum of Sales' at the top right, 'North' and 'South' below 'Region'. Give each block, its Arabic translation and its box as [x_min, y_min, x_max, y_max] on a 0-1000 grid. Glossary: pivot table = جدول محوري.",
   },
   ImageTexts: {
     role: "image_text",

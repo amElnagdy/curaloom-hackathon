@@ -22,11 +22,27 @@ it("keeps ids unique and the cost total running across tracers on one session", 
   expect(trace[1]?.total_cost_usd).toBe(0.75);
 });
 
-it("continues ids and the total from a trace written by an earlier process", () => {
+it("keeps ids unique across requests that each open the store while the other still traces", () => {
   const dir = mkdtempSync(join(tmpdir(), "trace-"));
-  createTracer(createFileStore(dir), "s_1", clock).emit({ ...event, cost_usd: 0.25 });
+  const building = createTracer(createFileStore(dir), "s_1", clock);
+  const quizzing = createTracer(createFileStore(dir), "s_1", clock);
 
-  const resumed = createTracer(createFileStore(dir), "s_1", clock).emit({ ...event, cost_usd: 1 });
+  building.emit(event);
+  quizzing.emit(event);
+  building.emit(event);
+
+  const ids = createFileStore(dir)
+    .readTrace<TraceEvent>("s_1")
+    .map((e) => e.id);
+  expect(ids).toEqual(["evt_0001", "evt_0002", "evt_0003"]);
+});
+
+it("continues ids and the total from a trace written by an earlier process", () => {
+  const store = createFileStore(mkdtempSync(join(tmpdir(), "trace-")));
+  const earlier = { ...event, id: "evt_0001", cost_usd: 0.25 };
+  store.appendTrace("s_1", earlier);
+
+  const resumed = createTracer(store, "s_1", clock).emit({ ...event, cost_usd: 1 });
 
   expect(resumed).toMatchObject({ id: "evt_0002", total_cost_usd: 1.25 });
 });

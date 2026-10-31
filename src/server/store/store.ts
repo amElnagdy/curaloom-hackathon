@@ -79,7 +79,20 @@ export function createFileCache(root: string = DATA_DIR): Cache {
   };
 }
 
+// One store per root for the whole process: the tracer keeps each session's event count on its
+// store, so requests that each open the store must share one or they reuse event ids.
+const stores = new Map<string, Store>();
+
 export function createFileStore(root: string = DATA_DIR): Store {
+  let store = stores.get(root);
+  if (!store) {
+    store = fileStore(root);
+    stores.set(root, store);
+  }
+  return store;
+}
+
+function fileStore(root: string): Store {
   const sessionPath = (sessionId: string, ...parts: string[]) =>
     join(root, "sessions", checked("session id", sessionId), ...parts);
   const docPath = (sessionId: string, name: string) =>

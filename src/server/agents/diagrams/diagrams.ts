@@ -1,11 +1,3 @@
-// The diagrams agent (#28) gives a written lesson one diagram from the pages it quotes, its labels in
-// Arabic. Code finds the images a quoted Wikimedia page shows and reads each image's licence and
-// author from its own file page. Spark 1.3 reads the labels and translates them with the course
-// glossary. Under CC0, public domain, CC BY or CC BY-SA, Muse Image 1.0 redraws the diagram with the
-// Arabic labels, and code checks Spark's transcripts of both images, text block by text block,
-// retrying once. An image whose licence forbids changes, or whose check fails twice, is shown as it
-// is beside a legend of its labels in Arabic.
-
 import {
   type CoursePlan,
   type Diagram,
@@ -23,11 +15,12 @@ import type { ImageInput } from "../../providers/provider.ts";
 import { contentHash, type Store } from "../../store/store.ts";
 import type { PageFetcher } from "../../tools/fetch-page.ts";
 import { planFor } from "../architect/architect.ts";
-import { savedLessons } from "../lesson/lesson.ts";
+import { lessonResources, savedLessons } from "../lesson/lesson.ts";
 import {
   type GlossaryTerm,
   glossaryProblems,
-  imageSize,
+  type ImageHeader,
+  imageHeader,
   rankFigures,
   relabelProblems,
 } from "./rules.ts";
@@ -36,19 +29,17 @@ import {
   FILE_PAGE,
   type Figure,
   fileTitle,
+  forbidsChanges,
   imageLicence,
   isWikimediaPage,
 } from "./wiki.ts";
 
-// One diagram a lesson, from the first of its pages' images that passes, and at most this many file
-// pages read to find it.
 const MAX_DIAGRAMS = 1;
 const MAX_FIGURES = 4;
-// Muse Image samples per diagram: the first, and one retry told what the check found.
 const MAX_SAMPLES = 2;
+// Spark gives each box on a square grid of this many steps, whatever the image's size.
+const GRID = 1000;
 
-// All the diagrams agent knows: the lesson, its Wikimedia pages with the headings each section
-// quotes under (the pages it quotes first, then the rest of its resources), and its glossary terms.
 export type DiagramsBrief = {
   lesson_id: string;
   title_ar: string;
@@ -56,19 +47,18 @@ export type DiagramsBrief = {
   glossary: GlossaryTerm[];
 };
 
-// `resources` are the lesson's resources in the plan.
 export function diagramsBrief(
   lesson: Lesson,
-  resources: Pick<Resource, "id" | "url">[],
+  quotable: Pick<Resource, "id" | "url">[],
   glossary: GlossaryEntry[],
 ): DiagramsBrief {
   const quoted = lesson.sections.map((s) => s.source_excerpt.resource_id);
-  const ids = [...new Set([...quoted, ...resources.map((r) => r.id)])];
+  const ids = [...new Set([...quoted, ...quotable.map((r) => r.id)])];
   return {
     lesson_id: lesson.id,
     title_ar: lesson.title_ar,
     pages: ids.flatMap((id) => {
-      const url = resources.find((r) => r.id === id)?.url;
+      const url = quotable.find((r) => r.id === id)?.url;
       if (!url || !isWikimediaPage(url)) return [];
       const sections = lesson.sections.flatMap((s, index) =>
         s.source_excerpt.resource_id === id ? [{ index, heading: s.source_excerpt.locator }] : [],
@@ -88,7 +78,7 @@ Give one entry per separate text block (one table cell, one shape caption, one t
 For each entry:
 - src: the text exactly as written.
 - ar: a short Modern Standard Arabic translation that fits the same space. Keep any acronym inside the text in Latin letters.
-- box: [x_min, y_min, x_max, y_max] tight around the text only, on a normalized 0-1000 grid with (0,0) at the top-left.
+- box: [x_min, y_min, x_max, y_max] tight around the text only, on a normalized 0-${GRID} grid with (0,0) at the top-left.
 Do not miss any text. Then give caption_ar: one short Arabic line that says what the diagram shows.`;
 
 const TRANSCRIBE_PROMPT = `List every piece of text in this image exactly as written, in any language or script, including numbers and dates.
@@ -121,70 +111,81 @@ const editPrompt = (labels: Label[], problems: string[]) =>
     .join("\n");
 
 type Label = DiagramLabels["labels"][number];
-type Image = ImageInput & { width: number; height: number };
+type Image = { b64: string } & ImageHeader;
 
 const dataUrl = (image: ImageInput) => `data:${image.mime};base64,${image.b64}`;
+const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const ARABIC = /\p{Script=Arabic}/u;
 
-// Spark's box, [x_min, y_min, x_max, y_max] on a 0-1000 grid, as [x, y, width, height] in pixels.
 function bboxOf(box: number[], { width, height }: Image): number[] {
-  const [x1 = 0, y1 = 0, x2 = 0, y2 = 0] = box.map((v) => Math.min(1000, Math.max(0, v)));
-  const x = Math.round((Math.min(x1, x2) * width) / 1000);
-  const y = Math.round((Math.min(y1, y2) * height) / 1000);
+  const [x1 = 0, y1 = 0, x2 = 0, y2 = 0] = box.map((v) => Math.min(GRID, Math.max(0, v)));
+  const x = Math.round((Math.min(x1, x2) * width) / GRID);
+  const y = Math.round((Math.min(y1, y2) * height) / GRID);
   return [
     x,
     y,
-    Math.round((Math.max(x1, x2) * width) / 1000) - x,
-    Math.round((Math.max(y1, y2) * height) / 1000) - y,
+    Math.round((Math.max(x1, x2) * width) / GRID) - x,
+    Math.round((Math.max(y1, y2) * height) / GRID) - y,
   ];
 }
 
-// Spark reads and translates the labels. A label that drops a glossary term gets one more reading
-// told which; what is still off then is traced, and the labels are used.
+async function readOnce(
+  ctx: AgentContext,
+  brief: DiagramsBrief,
+  title: string,
+  image: Image,
+  misses: string[],
+): Promise<DiagramLabels> {
+  const { json } = await ctx.provider.structured({
+    role: "diagram_labels",
+    trace: {
+      agent: "diagrams",
+      summary_ar: `يقرأ نصوص الرسم ${title} ويترجمها بمصطلحات المسرد`,
+      summary_en: `Reading and translating the labels of ${title}${misses.length ? " again, told the glossary misses" : ""}`,
+    },
+    input: [
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: readPrompt(brief.glossary, misses) },
+          { type: "input_image", image_url: dataUrl(image) },
+        ],
+      },
+    ],
+    schema: { name: "DiagramLabels", schema: DiagramLabels },
+  });
+  const read = validate(DiagramLabels, json);
+  return {
+    caption_ar: read.caption_ar.trim(),
+    labels: read.labels.filter((l) => l.src.trim() && l.ar.trim()),
+  };
+}
+
+// One reading, and a second told what broke the glossary if the first did.
 async function readLabels(
   ctx: AgentContext,
   brief: DiagramsBrief,
   title: string,
   image: Image,
 ): Promise<DiagramLabels> {
-  let misses: string[] = [];
-  for (let reading = 1; ; reading++) {
-    const { json } = await ctx.provider.structured({
-      role: "diagram_labels",
-      trace: {
-        agent: "diagrams",
-        summary_ar: `يقرأ نصوص الرسم ${title} ويترجمها بمصطلحات المسرد`,
-        summary_en: `Reading and translating the labels of ${title}${reading > 1 ? " again, told the glossary misses" : ""}`,
-      },
-      input: [
-        {
-          role: "user",
-          content: [
-            { type: "input_text", text: readPrompt(brief.glossary, misses) },
-            { type: "input_image", image_url: dataUrl(image) },
-          ],
-        },
-      ],
-      schema: { name: "DiagramLabels", schema: DiagramLabels },
-    });
-    const read = validate(DiagramLabels, json);
-    const labels = read.labels.filter((l) => l.src.trim() && l.ar.trim());
-    misses = glossaryProblems(labels, brief.glossary);
-    if (!misses.length || reading === 2) {
-      if (misses.length) {
-        ctx.trace({
-          kind: "decision",
-          summary_ar: `بقيت في ترجمة نصوص الرسم ${title} مصطلحات لا تطابق المسرد: ${misses.length}`,
-          summary_en: `${title}: labels still off the glossary after two readings: ${misses.join("; ")}`,
-        });
-      }
-      return { caption_ar: read.caption_ar.trim(), labels };
-    }
+  const first = await readOnce(ctx, brief, title, image, []);
+  const misses = glossaryProblems(first.labels, brief.glossary);
+  if (!misses.length) return first;
+  ctx.trace({
+    kind: "decision",
+    summary_ar: `ترجمة نصوص الرسم ${title} خالفت المسرد؛ يعيد القراءة مرة واحدة`,
+    summary_en: `${title}: labels off the glossary, reading once more: ${misses.join("; ")}`,
+  });
+  const second = await readOnce(ctx, brief, title, image, misses);
+  const still = glossaryProblems(second.labels, brief.glossary);
+  if (still.length) {
     ctx.trace({
       kind: "decision",
-      summary_ar: `ترجمة نصوص الرسم ${title} خالفت المسرد؛ يعيد القراءة مرة واحدة`,
-      summary_en: `${title}: labels off the glossary, reading once more: ${misses.join("; ")}`,
+      summary_ar: `بقيت في ترجمة نصوص الرسم ${title} مصطلحات لا تطابق المسرد: ${still.length}`,
+      summary_en: `${title}: labels still off the glossary after two readings: ${still.join("; ")}`,
     });
   }
+  return second;
 }
 
 async function transcribe(ctx: AgentContext, image: ImageInput, what: { ar: string; en: string }) {
@@ -218,16 +219,16 @@ const saveImage = (ctx: AgentContext, image: Image) => ({
 
 type Relabelled = Pick<Diagram, "method" | "output" | "check">;
 
-// Muse Image redraws the diagram with the Arabic labels; code compares Spark's transcripts of the
-// source and of each sample. A failed sample is kept in a blob the trace names.
 async function relabel(
   ctx: AgentContext,
   title: string,
   image: Image,
   labels: Label[],
 ): Promise<Relabelled> {
-  const source = transcribe(ctx, image, { ar: "الرسم الأصلي", en: `the source of ${title}` });
-  source.catch(() => {});
+  const source = transcribe(ctx, image, { ar: "الرسم الأصلي", en: `the source of ${title}` }).then(
+    (texts) => ({ texts }),
+    (e: unknown) => ({ error: messageOf(e) }),
+  );
   let problems: string[] = [];
   for (let sample = 1; sample <= MAX_SAMPLES; sample++) {
     let output: Image | null = null;
@@ -245,16 +246,32 @@ async function relabel(
         format: "webp",
       });
       const b64 = edit.image?.b64 ?? "";
-      const size = imageSize(Buffer.from(b64, "base64"));
-      if (!size) throw new Error("Muse Image returned no image code can read");
-      output = { b64, mime: `image/${edit.image?.format ?? "webp"}`, ...size };
+      const header = imageHeader(Buffer.from(b64, "base64"));
+      if (!header) throw new Error("Muse Image returned no image code can read");
+      output = { b64, ...header };
+      const read = await source;
+      if ("error" in read) {
+        ctx.trace({
+          kind: "decision",
+          summary_ar: `تعذّر نسخ نصوص الرسم الأصلي ${title}، فلا يُفحص الرسم المعرَّب؛ يعرض الأصل مع جدول نصوصه بالعربية`,
+          summary_en: `${title}: the source could not be transcribed, so no sample can be checked: ${read.error}`,
+        });
+        return {
+          method: "legend",
+          output: null,
+          check: {
+            attempts: sample,
+            problems: [`the source could not be transcribed: ${read.error}`],
+          },
+        };
+      }
       const texts = await transcribe(ctx, output, {
         ar: "الرسم المعرَّب",
         en: `${title} relabelled (sample ${sample})`,
       });
-      problems = relabelProblems(labels, await source, texts);
+      problems = relabelProblems(labels, read.texts, texts);
     } catch (e) {
-      problems = [`the sample could not be made or read: ${e instanceof Error ? e.message : e}`];
+      problems = [`the sample could not be made or read: ${messageOf(e)}`];
     }
     if (!problems.length && output) {
       ctx.trace({
@@ -281,8 +298,6 @@ async function relabel(
   return { method: "legend", output: null, check: { attempts: MAX_SAMPLES, problems } };
 }
 
-// The diagram an image makes, or null when it makes none: its file page states no licence code
-// accepts, or it cannot be fetched or read, or it has no text to translate.
 async function diagramOf(
   ctx: AgentContext,
   pages: Pick<PageFetcher, "fetchView" | "fetchImage">,
@@ -299,19 +314,24 @@ async function diagramOf(
     return null;
   };
   const file = await pages.fetchView(figure.file_page, FILE_PAGE, ctx.trace);
-  if (!file.ok) return null;
+  if (!file.ok) {
+    return skip("تعذّرت قراءة صفحة ملفه", `its file page could not be read (${file.reason})`);
+  }
   const licence = imageLicence(file.value, figure.file_page);
   if (!licence.ok) return skip(licence.reason_ar, licence.reason);
   if (!file.value.image_url)
     return skip("لا تذكر صفحة ملفه رابط الصورة", "its file page names no image");
   const fetched = await pages.fetchImage(file.value.image_url, ctx.trace);
-  if (!fetched.ok) return null;
-  const size = imageSize(Buffer.from(fetched.b64, "base64"));
-  if (!size) return skip("لم يقرأ الكود مقاسها", "code cannot read its size");
-  const image: Image = { b64: fetched.b64, mime: fetched.mime, ...size };
+  if (!fetched.ok)
+    return skip("تعذّر تنزيل صورته", `its image could not be fetched (${fetched.reason})`);
+  const header = imageHeader(Buffer.from(fetched.b64, "base64"));
+  if (!header) return skip("لم يقرأ الكود نوعها ومقاسها", "code cannot read its type and size");
+  const image: Image = { b64: fetched.b64, ...header };
 
   const { caption_ar, labels } = await readLabels(ctx, brief, title, image);
-  if (!labels.length) return skip("ليس فيه نص يُترجم", "it has no text to translate");
+  if (!labels.some((l) => ARABIC.test(l.ar))) {
+    return skip("ليس فيه نص تُرجم إلى العربية", "no text in it was translated into Arabic");
+  }
   const { ok: _, ...cited } = licence;
   const diagram = {
     image_id: `img_${contentHash(figure.file_page)}`,
@@ -325,10 +345,13 @@ async function diagramOf(
     source: saveImage(ctx, image),
   };
   if (!licence.adapt) {
+    const why = forbidsChanges(licence.spdx)
+      ? { ar: "لا يسمح بتعديله", en: "which allows no changes" }
+      : { ar: "ليس من التراخيص التي يعدّل الكود رسومها", en: "which code does not adapt" };
     ctx.trace({
       kind: "decision",
-      summary_ar: `ترخيص ${licence.name} لا يسمح بتعديل الرسم ${title}؛ يعرضه كما هو مع جدول نصوصه بالعربية`,
-      summary_en: `${title} is under ${licence.name}, which allows no changes: shown as it is with an Arabic legend`,
+      summary_ar: `ترخيص الرسم ${title}، ${licence.name}، ${why.ar}؛ يعرضه كما هو مع جدول نصوصه بالعربية`,
+      summary_en: `${title} is under ${licence.name}, ${why.en}: shown as it is with an Arabic legend`,
     });
     return { ...diagram, method: "legend", output: null, check: { attempts: 0, problems: [] } };
   }
@@ -349,11 +372,23 @@ const diagramsAgent = (
       }),
     );
     const diagrams: Diagram[] = [];
+    const failures: unknown[] = [];
     for (const figure of rankFigures(shown).slice(0, MAX_FIGURES)) {
       if (diagrams.length === MAX_DIAGRAMS) break;
-      const diagram = await diagramOf(ctx, pages, brief, figure);
-      if (diagram) diagrams.push(diagram);
+      try {
+        const diagram = await diagramOf(ctx, pages, brief, figure);
+        if (diagram) diagrams.push(diagram);
+      } catch (e) {
+        failures.push(e);
+        ctx.trace({
+          kind: "decision",
+          summary_ar: `تعذّر إعداد الرسم ${fileTitle(figure.file_page)}؛ ينتقل إلى الرسم التالي`,
+          summary_en: `${fileTitle(figure.file_page)} failed (${messageOf(e)}); trying the next image`,
+        });
+      }
     }
+    // A lesson that got no diagram because every attempt failed is a failed step, so it retries.
+    if (!diagrams.length && failures.length) throw failures[0];
     const [first] = diagrams;
     ctx.trace({
       kind: "decision",
@@ -376,22 +411,17 @@ const diagramsAgent = (
 
 const DIAGRAMS_DOC = "diagrams";
 
-// Each lesson's diagrams and the brief (its hash) they were made for.
-type SavedDiagrams = Record<string, { brief: string; diagrams: Diagram[] }>;
+type SavedDiagrams = Record<string, { brief_hash: string; diagrams: Diagram[] }>;
 
-// The lesson's diagrams, if they were made for this brief.
 export function savedDiagrams(
   store: Store,
   sessionId: string,
   brief: DiagramsBrief,
 ): Diagram[] | undefined {
   const saved = store.readDoc<SavedDiagrams>(sessionId, DIAGRAMS_DOC)?.[brief.lesson_id];
-  return saved?.brief === contentHash(brief) ? saved.diagrams : undefined;
+  return saved?.brief_hash === contentHash(brief) ? saved.diagrams : undefined;
 }
 
-// The brief for a written lesson of the learner's plan, or undefined before it is written.
-// The course a lesson's diagrams come from: the latest plan, its resources, the lessons written for
-// it and their glossary.
 export type WrittenCourse = {
   plan: CoursePlan;
   resources: Resource[];
@@ -405,14 +435,10 @@ export function lessonDiagramsBrief(
 ): DiagramsBrief | undefined {
   const lesson = course.lessons[lessonId];
   if (!lesson) return undefined;
-  // The lesson's resources as the lesson builder had them: those its sessions name, verified.
-  const sessions = course.plan.committed.sessions.filter((s) => s.lesson_id === lessonId);
-  const ids = new Set(sessions.flatMap((s) => s.resource_ids));
-  const resources = course.resources.filter((r) => ids.has(r.id) && r.licence.verified);
-  return diagramsBrief(lesson, resources, course.glossary);
+  const quotable = lessonResources(course.plan, course.resources, lessonId);
+  return diagramsBrief(lesson, quotable, course.glossary);
 }
 
-// The learner's written course, or undefined before his plan.
 export function writtenCourse(
   store: Store,
   sessionId: string,
@@ -426,29 +452,27 @@ export function writtenCourse(
     : undefined;
 }
 
-// An image a lesson's diagram shows, by its blob ref; undefined for any other ref.
 export function diagramImage(
   store: Store,
   sessionId: string,
   lessonId: string,
   ref: string,
-): { mime: string; bytes: Buffer } | undefined {
+): { mime: ImageHeader["mime"]; bytes: Buffer } | undefined {
   const diagrams = store.readDoc<SavedDiagrams>(sessionId, DIAGRAMS_DOC)?.[lessonId]?.diagrams;
   const shown = diagrams?.some((d) => d.source.ref === ref || d.output?.ref === ref);
   if (!shown) return undefined;
-  const { mime, b64 } = store.readBlob<ImageInput>(sessionId, ref);
-  return { mime, bytes: Buffer.from(b64, "base64") };
+  const bytes = Buffer.from(store.readBlob<ImageInput>(sessionId, ref).b64, "base64");
+  const header = imageHeader(bytes);
+  return header ? { mime: header.mime, bytes } : undefined;
 }
 
-// Diagrams asked for before their lesson is written.
-export class DiagramsConflict extends Error {}
+export class LessonNotWritten extends Error {}
 
 export type DiagramsBuilderDeps = {
   orchestrator: Pick<ReturnType<typeof createOrchestrator>, "runStep">;
   store: Store;
   sessionId: string;
   pages: Pick<PageFetcher, "fetchView" | "fetchImage">;
-  // The brief for a written lesson: the route passes lessonDiagramsBrief on the learner's plan.
   brief(lessonId: string): DiagramsBrief | undefined;
 };
 
@@ -460,10 +484,9 @@ export function createDiagramsBuilder({
   brief: briefFor,
 }: DiagramsBuilderDeps) {
   return {
-    // The lesson's diagrams, made on the first call for this brief.
     async build(lessonId: string): Promise<Diagram[]> {
       const brief = briefFor(lessonId);
-      if (!brief) throw new DiagramsConflict(`Lesson ${lessonId} is not written yet`);
+      if (!brief) throw new LessonNotWritten(`Lesson ${lessonId} is not written yet`);
       const saved = savedDiagrams(store, sessionId, brief);
       if (saved) return saved;
       const hash = contentHash(brief);
@@ -471,7 +494,10 @@ export function createDiagramsBuilder({
         key: `diagrams:${lessonId}:${hash}`,
       });
       const doc = store.readDoc<SavedDiagrams>(sessionId, DIAGRAMS_DOC) ?? {};
-      store.writeDoc(sessionId, DIAGRAMS_DOC, { ...doc, [lessonId]: { brief: hash, diagrams } });
+      store.writeDoc(sessionId, DIAGRAMS_DOC, {
+        ...doc,
+        [lessonId]: { brief_hash: hash, diagrams },
+      });
       return diagrams;
     },
   };
