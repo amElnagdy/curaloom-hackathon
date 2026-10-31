@@ -273,7 +273,7 @@ function sourceSection(): string[] {
 
   const models = new Map<string, number>();
   for (const file of readdirSync(join(ROOT, RESPONSES))) {
-    const model = file.match(/^responses-(.+)-[0-9a-f]{16}\.json$/)?.[1] ?? "unknown";
+    const model = file.match(/^[a-z_]+-(.+)-[0-9a-f]{16}\.json$/)?.[1] ?? "unknown";
     models.set(model, (models.get(model) ?? 0) + 1);
   }
   const modelCounts = [...models]

@@ -51,9 +51,9 @@ SIL Open Font License 1.1: https://spdx.org/licenses/OFL-1.1.html
 
 ## Icons
 
-lucide-react 1.56.0 (https://lucide.dev), licence ISC. `src/` uses 69 of its icons: ArrowLeftRight, ArrowRight, BatteryFull, BellRing, BookA, BookOpen, CalendarCheck, CalendarClock, CalendarPlus, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleDashed, ClipboardCheck, ClipboardPaste, Clock, Copy, Cpu, ExternalLink, FastForward, Feather, FileCheck, FlaskConical, Gauge, GitBranch, Hand, History, Hourglass, Info, Languages, Layers, Library, Lightbulb, Lock, LockOpen, Logs, MapIcon, Menu, MessageCircle, MessageCircleQuestion, MessageSquare, Moon, OctagonX, PanelLeft, Pause, PenLine, PencilLine, Play, Plus, Radio, RotateCcw, SearchX, Send, SendHorizontal, ShieldCheck, Signal, SlidersHorizontal, Smartphone, Sparkles, Sunrise, Target, TriangleAlert, Wifi, Wrench, X.
+lucide-react 1.56.0 (https://lucide.dev), licence ISC. `src/` uses 73 of its icons: ArrowLeftRight, ArrowRight, AudioLines, BatteryFull, BellRing, BookA, BookOpen, CalendarCheck, CalendarClock, CalendarPlus, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleDashed, ClipboardCheck, ClipboardPaste, Clock, Copy, Cpu, ExternalLink, FastForward, Feather, FileCheck, FlaskConical, Gauge, GitBranch, Hand, History, Hourglass, Info, Languages, Layers, Library, Lightbulb, LoaderCircle, Lock, LockOpen, Logs, MapIcon, Menu, MessageCircle, MessageCircleQuestion, MessageSquare, Mic, Moon, OctagonX, PanelLeft, Pause, PenLine, PencilLine, Play, Plus, Radio, RotateCcw, SearchX, Send, SendHorizontal, ShieldCheck, Signal, SlidersHorizontal, Smartphone, Sparkles, Square, Sunrise, Target, TriangleAlert, Wifi, Wrench, X.
 
-Lucide's licence file marks some icons as derived from Feather, under the MIT licence, Copyright (c) 2013-present Cole Bemis. 17 of the icons used are among them: ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, ExternalLink, Feather, Info, Lock, Moon, Plus, Radio, Smartphone, Target, X.
+Lucide's licence file marks some icons as derived from Feather, under the MIT licence, Copyright (c) 2013-present Cole Bemis. 18 of the icons used are among them: ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, ExternalLink, Feather, Info, Lock, Moon, Plus, Radio, Smartphone, Square, Target, X.
 
 ## Recorded source pages
 
@@ -187,4 +187,4 @@ The other files in that folder hold no page text:
 
 ## Recorded model replies
 
-`demo/fixtures/responses/` holds 75 recorded Meta Model API calls: 71 from muse-spark-1.3, 4 from muse-wonder-1.0. Each file keeps the request and the model's reply.
+`demo/fixtures/responses/` holds 76 recorded Meta Model API calls: 71 from muse-spark-1.3, 1 from muse-voice-transcribe-1.0, 4 from muse-wonder-1.0. Each file keeps the request and the model's reply.

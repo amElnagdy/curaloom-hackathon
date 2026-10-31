@@ -12,7 +12,7 @@ Most good learning material is not in Arabic, and adults who study alone around 
 
 ## What the app does
 
-1. An intake agent interviews the learner in their own dialect and records their goal, background, weekly hours and past attempts. A short check sets the starting level.
+1. An intake agent interviews the learner in their own dialect, by text or voice, and records their goal, background, weekly hours and past attempts. A short check sets the starting level.
 2. A scout searches the open web in English, Russian, Chinese and French. Code fetches each cited page and decides its licence from the page text. A model's claim about a licence does not count.
 3. An architect designs a course around the learner's hours.
 4. A lesson builder writes each lesson in Arabic beside the source excerpt it explains. Every term gets a bilingual glossary card, and every excerpt shows its source and licence.
@@ -54,6 +54,7 @@ Every model call goes to the Meta Model API's `/responses` endpoint through the 
   - the coach's messages (`coach`);
   - the re-plan's explanation and the choice of a new source (`replan`).
 - **Muse Wonder 1.0:** the course design (`curriculum`).
+- **Muse Voice Transcribe 1.0:** the learner's voice message in the interview (`transcribe`). The transcript fills the message box, and the learner checks it before sending.
 
 The provider layer uses these API features:
 
@@ -62,7 +63,7 @@ The provider layer uses these API features:
 - Reasoning effort per role: `medium` for `agent_default`, `low` for `coach` and `replan`.
 - Cost per call, from the token prices in `config/models.yaml`. The trace shows it.
 
-`config/models.yaml` also routes `transcribe` (Muse Voice Transcribe 1.0), `segment` (SAM 3.1) and `image_edit` (Muse Image 1.0). No feature calls them yet. The API access spike tested each of them ([`docs/spikes/api-access.md`](docs/spikes/api-access.md)).
+`config/models.yaml` also routes `segment` (SAM 3.1) and `image_edit` (Muse Image 1.0). No feature calls them yet. The API access spike tested each of them ([`docs/spikes/api-access.md`](docs/spikes/api-access.md)).
 
 ## Set up
 
@@ -131,7 +132,8 @@ A human review then ruled that both models' answer to one disputed diacritics it
 - Storage is JSON files on the local disk, for one server process.
 - The licence checker reads the licence statements in a page's text. CC BY, CC BY-SA, CC0, MIT, Apache-2.0 and public domain count as open. A licence with NC or ND counts for personal study only, and a page with no licence statement is rejected.
 - The recorded run kept no Chinese source. The one Chinese page it read is under MPL-2.0, which is not on the allowlist.
-- Voice input, diagram relabelling and a local Muse Glimmer coach are not built.
+- In replay, the voice message is one bundled clip in a synthetic Arabic voice. The presenter then sends the recorded typed message, because the transcript differs from it by a few letters.
+- Diagram relabelling and a local Muse Glimmer coach are not built.
 - Messages held for quiet hours are not withdrawn when the learner comes back.
 
 ## Licence
