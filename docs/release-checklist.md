@@ -91,7 +91,7 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
 - [ ] **The pages are full copies, not excerpts.** The issue asks for "only openly licensed excerpts with attribution". Each file holds the whole page text, because replay runs the licence check on it again. Recommendation: keep the full text. The notices give the attribution.
 - [x] **The MPL-2.0 page stays.** The LibreOffice help page in Chinese is under MPL-2.0. The scout rejects it, because MPL-2.0 is not on its allowlist, but replay needs the file to reach that rejection. MPL-2.0 allows the copy under its own terms, and the notice names the licence.
 - [ ] **ShareAlike reaches the recordings. Owner: Ahmed.** Four recorded lesson-writing calls quote CC BY-SA pages, and their Arabic replies adapt that text. Those replies carry CC BY-SA 4.0, not the project licence. See step 4 under "Licence".
-- [ ] **Publishing model output. Owner: Ahmed.** The 76 recordings in `demo/fixtures/responses/`, the eval results in `evals/arabic/` and `docs/spikes/api-access.results.json` hold Muse model output. Check that the Meta Model API terms allow publishing it.
+- [ ] **Publishing model output. Owner: Ahmed.** The 88 recordings in `demo/fixtures/responses/`, the eval results in `evals/arabic/` and `docs/spikes/api-access.results.json` hold Muse model output. Check that the Meta Model API terms allow publishing it.
 - [x] **Project-written fixtures.** `demo/fixtures/omar.json` is written for the demo. `evals/arabic/items.jsonl` cites no source and has no URL, so the items appear to be written for this eval.
 
 ## No hardcoded product name outside config

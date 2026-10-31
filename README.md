@@ -15,7 +15,7 @@ Most good learning material is not in Arabic, and adults who study alone around 
 1. An intake agent interviews the learner in their own dialect, by text or voice, and records their goal, background, weekly hours and past attempts. A short check sets the starting level.
 2. A scout searches the open web in English, Russian, Chinese and French. Code fetches each cited page and decides its licence from the page text. A model's claim about a licence does not count.
 3. An architect designs a course around the learner's hours.
-4. A lesson builder writes each lesson in Arabic beside the source excerpt it explains. Every term gets a bilingual glossary card, and every excerpt shows its source and licence.
+4. A lesson builder writes each lesson in Arabic beside the source excerpt it explains. Every term gets a bilingual glossary card, and every excerpt shows its source and licence. When a source page has a diagram whose licence allows changes, Muse Image rewrites its labels in Arabic. Code then compares Spark's transcripts of the source and the edit before the lesson shows it. When the check fails twice, or the licence forbids changes, the lesson shows the original with its labels translated in a table.
 5. An examiner writes and grades a quiz for each lesson. The next lesson opens only at 80%.
 6. When the learner stops studying, a coach sends a reminder on day 2, offers a lighter week on day 5 and checks in on day 10. It sends messages only with the learner's consent and holds them during the quiet hours the learner set. The word «توقف» ("stop") ends the messages.
 7. When the learner comes back, a five-question recap shows what they still know. Code proposes a new plan version, Muse Spark explains the change in Arabic, and nothing changes until the learner accepts.
@@ -24,7 +24,7 @@ A trace drawer shows each model call, tool call and decision as it happens, with
 
 ## Architecture
 
-CuraLoom is one Next.js app. The browser renders a right-to-left Arabic UI. Route handlers run an orchestrator, which steps through the agents: intake, scout, architect, lesson builder, examiner and coach. The orchestrator checks each step's output against its TypeBox contract in `contracts/index.ts`, retries once on failure, saves the output and traces the step.
+CuraLoom is one Next.js app. The browser renders a right-to-left Arabic UI. Route handlers run an orchestrator, which steps through the agents: intake, scout, architect, lesson builder, diagrams, examiner and coach. The orchestrator checks each step's output against its TypeBox contract in `contracts/index.ts`, retries once on failure, saves the output and traces the step.
 
 - Agents call models only through the provider layer in `src/server/providers/`. It routes each call by role through `config/models.yaml`, and it runs in one of three modes: `live`, `record` or `replay`.
 - Session state and traces are JSON files under `data/`.
@@ -44,7 +44,7 @@ CuraLoom is one Next.js app. The browser renders a right-to-left Arabic UI. Rout
 
 ## Meta models
 
-Every model call goes to the Meta Model API's `/responses` endpoint through the provider layer. `config/models.yaml` maps each role to a model, so a model change is an edit there. What each model does:
+Every model call goes to the Meta Model API through the provider layer. `config/models.yaml` maps each role to a model, so a model change is an edit there. What each model does:
 
 - **Muse Spark 1.3:**
   - the interview (`agent_default`);
@@ -52,9 +52,11 @@ Every model call goes to the Meta Model API's `/responses` endpoint through the 
   - lesson writing (`agent_default`);
   - quiz writing (`agent_default`) and grading of short answers (`judge`);
   - the coach's messages (`coach`);
-  - the re-plan's explanation and the choice of a new source (`replan`).
+  - the re-plan's explanation and the choice of a new source (`replan`);
+  - reading a diagram's labels and translating them with the course glossary (`diagram_labels`), and transcribing the source diagram and each relabelled copy for the code check (`image_text`).
 - **Muse Wonder 1.0:** the course design (`curriculum`).
 - **Muse Voice Transcribe 1.0:** the learner's voice message in the interview (`transcribe`). The transcript fills the message box, and the learner checks it before sending.
+- **Muse Image 1.0:** a source diagram with its labels rewritten in Arabic (`image_edit`). Code reads each image's licence and author from its Wikimedia file page, and edits only public domain, CC0, CC BY and CC BY-SA images.
 
 The provider layer uses these API features:
 
@@ -63,7 +65,7 @@ The provider layer uses these API features:
 - Reasoning effort per role: `medium` for `agent_default`, `low` for `coach` and `replan`.
 - Cost per call, from the token prices in `config/models.yaml`. The trace shows it.
 
-`config/models.yaml` also routes `segment` (SAM 3.1) and `image_edit` (Muse Image 1.0). No feature calls them yet. The API access spike tested each of them ([`docs/spikes/api-access.md`](docs/spikes/api-access.md)).
+`config/models.yaml` also routes `segment` (SAM 3.1), which no feature calls. The diagram spike found no job for it ([`docs/spikes/image-arabic.md`](docs/spikes/image-arabic.md)).
 
 ## Set up
 
@@ -133,7 +135,7 @@ A human review then ruled that both models' answer to one disputed diacritics it
 - The licence checker reads the licence statements in a page's text. CC BY, CC BY-SA, CC0, MIT, Apache-2.0 and public domain count as open. A licence with NC or ND counts for personal study only, and a page with no licence statement is rejected.
 - The recorded run kept no Chinese source. The one Chinese page it read is under MPL-2.0, which is not on the allowlist.
 - In replay, the voice message is one bundled clip in a synthetic Arabic voice. The presenter then sends the recorded typed message, because the transcript differs from it by a few letters.
-- Diagram relabelling is not built yet.
+- Diagrams come only from Wikimedia pages, at most one per lesson. An image is skipped when any licence on its file page is off the allowlist, so a common CC BY-SA and GFDL pair is skipped too. In the recording, Muse Image's two edits of lesson 1's VisiCalc screenshot both failed the code check, so lesson 1 shows the source with a table of labels. Lesson 2's pivot table passed and shows in Arabic.
 - There is no on-device model. A local Muse Glimmer coach was dropped (#29): Meta's API does not serve Glimmer, and a 17 GB model on each learner's machine is not realistic.
 - Messages held for quiet hours are not withdrawn when the learner comes back.
 

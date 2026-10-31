@@ -24,7 +24,7 @@ An agent for Arabic-speaking adults that finds openly licensed lessons in Russia
 
 ## Long description
 
-Most good learning material is not in Arabic, and adults who study alone drop long courses. The app interviews the learner in their own dialect, by text or voice, and learns their goal, background, weekly time and past attempts. A scout agent searches the open web in four languages, and code verifies every source's licence before it is used. Muse Wonder designs a course around the learner's time. Each lesson is written in Arabic beside the source excerpt it explains, with a card for every term and the licence of every excerpt. A quiz gates each lesson at 80%.
+Most good learning material is not in Arabic, and adults who study alone drop long courses. The app interviews the learner in their own dialect, by text or voice, and learns their goal, background, weekly time and past attempts. A scout agent searches the open web in four languages, and code verifies every source's licence before it is used. Muse Wonder designs a course around the learner's time. Each lesson is written in Arabic beside the source excerpt it explains, with a card for every term and the licence of every excerpt. When a source has a diagram whose licence allows changes, Muse Image rewrites its labels in Arabic, and code checks the edit against Spark's transcripts before the lesson shows it. A quiz gates each lesson at 80%.
 
 When the learner goes quiet, a coach nudges on day 2, offers a lighter week on day 5 and checks in on day 10, within the consent and quiet hours the learner set. A stop word ends the messages for good. When the learner comes back, a five-question recap shows what they still know, and the re-planner proposes a new plan: missed sessions moved, a lighter first week, and a review first if the recap was low. Code makes every change, Muse Spark explains it in Arabic, and nothing changes until the learner accepts.
 
@@ -32,17 +32,19 @@ Every model call and decision shows in a live trace with its cost. The demo runs
 
 ## Meta tools used
 
-- **Muse Spark 1.3** handles the interview, the scout's web search with citations, lesson and quiz writing, short-answer grading, the coach's messages, and the re-plan's explanation and choice of a new source.
+- **Muse Spark 1.3** handles the interview, the scout's web search with citations, lesson and quiz writing, short-answer grading, the coach's messages, the re-plan's explanation and choice of a new source, and reading and transcribing each diagram for the relabelling check.
 - **Muse Wonder 1.0** designs the course.
 - **Muse Voice Transcribe 1.0** turns the learner's voice message in the interview into text they check before sending.
+- **Muse Image 1.0** rewrites a source diagram's labels in Arabic. Code edits only public domain, CC0, CC BY and CC BY-SA images, and keeps an edit only when Spark's transcript of it passes the check.
 - **Arabic quality.** In the #8 eval, both models passed every bar on 30 items: Spark 0.98 and Wonder 1.00.
 
 ## Cost
 
 These figures are worked out from token counts and the prices in `config/models.yaml`. They are not billing records, so check them against the Meta console.
 
-- **Recorded demo answers:** 76 recordings, 71 Spark, 4 Wonder and 1 Voice Transcribe calls, plus 32 web searches. Together about $1.83.
+- **Recorded demo answers:** 88 recordings, 80 Spark, 4 Wonder, 3 Muse Image and 1 Voice Transcribe calls, plus 32 web searches. Together about $2.05.
 - **Building voice input:** about $0.004 of Voice Transcribe calls.
+- **Diagram relabelling:** about $1.27 for spike #9, and about $0.41 of live calls while building it.
 - **The #8 Arabic eval:** $1.49, including one discarded run.
 
 ## Before submitting

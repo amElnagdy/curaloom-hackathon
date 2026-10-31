@@ -51,7 +51,7 @@ SIL Open Font License 1.1: https://spdx.org/licenses/OFL-1.1.html
 
 ## Icons
 
-lucide-react 1.56.0 (https://lucide.dev), licence ISC. `src/` uses 73 of its icons: ArrowLeftRight, ArrowRight, AudioLines, BatteryFull, BellRing, BookA, BookOpen, CalendarCheck, CalendarClock, CalendarPlus, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleDashed, ClipboardCheck, ClipboardPaste, Clock, Copy, Cpu, ExternalLink, FastForward, Feather, FileCheck, FlaskConical, Gauge, GitBranch, Hand, History, Hourglass, Info, Languages, Layers, Library, Lightbulb, LoaderCircle, Lock, LockOpen, Logs, MapIcon, Menu, MessageCircle, MessageCircleQuestion, MessageSquare, Mic, Moon, OctagonX, PanelLeft, Pause, PenLine, PencilLine, Play, Plus, Radio, RotateCcw, SearchX, Send, SendHorizontal, ShieldCheck, Signal, SlidersHorizontal, Smartphone, Sparkles, Square, Sunrise, Target, TriangleAlert, Wifi, Wrench, X.
+lucide-react 1.56.0 (https://lucide.dev), licence ISC. `src/` uses 74 of its icons: ArrowLeftRight, ArrowRight, AudioLines, BatteryFull, BellRing, BookA, BookOpen, CalendarCheck, CalendarClock, CalendarPlus, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleDashed, ClipboardCheck, ClipboardPaste, Clock, Copy, Cpu, ExternalLink, FastForward, Feather, FileCheck, FlaskConical, Gauge, GitBranch, Hand, History, Hourglass, ImageIcon, Info, Languages, Layers, Library, Lightbulb, LoaderCircle, Lock, LockOpen, Logs, MapIcon, Menu, MessageCircle, MessageCircleQuestion, MessageSquare, Mic, Moon, OctagonX, PanelLeft, Pause, PenLine, PencilLine, Play, Plus, Radio, RotateCcw, SearchX, Send, SendHorizontal, ShieldCheck, Signal, SlidersHorizontal, Smartphone, Sparkles, Square, Sunrise, Target, TriangleAlert, Wifi, Wrench, X.
 
 Lucide's licence file marks some icons as derived from Feather, under the MIT licence, Copyright (c) 2013-present Cole Bemis. 18 of the icons used are among them: ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, ExternalLink, Feather, Info, Lock, Moon, Plus, Radio, Smartphone, Square, Target, X.
 
@@ -98,6 +98,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Text is available under the Creative Commons Attribution-ShareAlike License ;"
 - Stored copy: `demo/fixtures/pages/en.wikibooks.org-8f7bbb8e164629d2.json`, the page's text as fetched.
+- Stored HTML copy: `demo/fixtures/pages/en.wikibooks.org-f59bc6af3bf7361a.json`, the whole page as fetched, which the diagrams agent reads for its figures.
 - Recorded model calls that name it: 9. Lesson-writing calls that quote its text: 1.
 - Credit line the lesson page copies: «Microsoft Office/Create a Pivot Table»، https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
@@ -108,6 +109,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License ;"
 - Stored copy: `demo/fixtures/pages/en.wikipedia.org-ffbe05d82f77f9ff.json`, the page's text as fetched.
+- Stored HTML copy: `demo/fixtures/pages/en.wikipedia.org-1746e7cafeb2b708.json`, the whole page as fetched, which the diagrams agent reads for its figures.
 - Recorded model calls that name it: 9. Lesson-writing calls that quote its text: 2.
 - Credit line the lesson page copies: «Pivot table - Wikipedia»، https://en.wikipedia.org/wiki/Pivot_table، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
@@ -118,6 +120,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Droit d'auteur : les textes sont disponibles sous licence Creative Commons attribution, partage dans les mêmes conditions ;"
 - Stored copy: `demo/fixtures/pages/fr.wikipedia.org-19cfaa64b2177867.json`, the page's text as fetched.
+- Stored HTML copy: `demo/fixtures/pages/fr.wikipedia.org-fc81a20edc63a82f.json`, the whole page as fetched, which the diagrams agent reads for its figures.
 - Recorded model calls that name it: 6. Lesson-writing calls that quote its text: 1.
 - Credit line the lesson page copies: «Tableur»، https://fr.wikipedia.org/wiki/Tableur، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
@@ -138,6 +141,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Droit d'auteur : les textes sont disponibles sous licence Creative Commons attribution, partage dans les mêmes conditions ;"
 - Stored copy: `demo/fixtures/pages/fr.wikipedia.org-c61a1e51781a683c.json`, the page's text as fetched.
+- Stored HTML copy: `demo/fixtures/pages/fr.wikipedia.org-9650919c6c9f80f2.json`, the whole page as fetched, which the diagrams agent reads for its figures.
 - Recorded model calls that name it: 6. Lesson-writing calls that quote its text: 1.
 - Credit line the lesson page copies: «Microsoft Excel»، https://fr.wikipedia.org/wiki/Microsoft_Excel، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
@@ -166,6 +170,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Текст доступен по лицензии Creative Commons «С указанием авторства — С сохранением условий» (CC BY-SA) ;"
 - Stored copy: `demo/fixtures/pages/ru.wikibooks.org-c167a21689c8b115.json`, the page's text as fetched.
+- Stored HTML copy: `demo/fixtures/pages/ru.wikibooks.org-f3034505a977db30.json`, the whole page as fetched, which the diagrams agent reads for its figures.
 - Recorded model calls that name it: 8. Lesson-writing calls that quote its text: 1.
 - Credit line the lesson page copies: «Microsoft Excel — Викиучебник»، https://ru.wikibooks.org/wiki/Microsoft_Excel، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
@@ -176,15 +181,43 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Текст доступен по лицензии Creative Commons «С указанием авторства — С сохранением условий» (CC BY-SA) ;"
 - Stored copy: `demo/fixtures/pages/ru.wikipedia.org-a475aa23cd43123a.json`, the page's text as fetched.
+- Stored HTML copy: `demo/fixtures/pages/ru.wikipedia.org-238ca6821bf528c4.json`, the whole page as fetched, which the diagrams agent reads for its figures.
 - Recorded model calls that name it: 9. Lesson-writing calls that quote its text: 2.
 - Credit line the lesson page copies: «Сводная таблица»، https://ru.wikipedia.org/wiki/Сводная_таблица، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 The other files in that folder hold no page text:
 
-- 8 robots.txt files, read to check that a site allows the fetch.
+- 10 robots.txt files, read to check that a site allows the fetch.
 - 3 redirects, URL to URL.
 - https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/: HTTP 403, no text stored.
+- 5 files for the images below.
+
+## Recorded images
+
+The diagrams agent reads each image's licence and author from its file page, and code decides whether the app may relabel it. The replay demo reads these file pages and images from `demo/fixtures/pages/`.
+
+### Visicalc.png
+
+- File page: https://commons.wikimedia.org/wiki/File:Visicalc.png
+- Author, as the file page names it: User:Gortu
+- Licence: Public domain. The app may relabel it.
+- Stored copies: `demo/fixtures/pages/commons.wikimedia.org-9bb19ab237b5a43a.json`, the file page's HTML, and `demo/fixtures/pages/upload.wikimedia.org-3c609a7b117d1c8c.json`, the image.
+- Recorded model calls that send the image: 4. Muse Image edits among them: 2, and each edit's reply holds a relabelled copy of the image.
+
+### Pivottable-Pivoted.PNG
+
+- File page: https://commons.wikimedia.org/wiki/File:Pivottable-Pivoted.PNG
+- Author, as the file page names it: Wikidan829 at English Wikipedia / Later version(s) were uploaded by Jbarta at English Wikipedia.
+- Licence: Public domain. The app may relabel it.
+- Stored copies: `demo/fixtures/pages/commons.wikimedia.org-eaaf395e9e80c0e2.json`, the file page's HTML, and `demo/fixtures/pages/upload.wikimedia.org-0f640d0271e8a8d9.json`, the image.
+- Recorded model calls that send the image: 3. Muse Image edits among them: 1, and each edit's reply holds a relabelled copy of the image.
+
+### Excel pivot.gif
+
+- File page: https://en.wikibooks.org/wiki/File:Excel_pivot.gif
+- Not used: its file page states Fair use, which is not on the allowlist.
+- Stored copies: `demo/fixtures/pages/en.wikibooks.org-72502f656dd72882.json`, the file page's HTML.
 
 ## Recorded model replies
 
-`demo/fixtures/responses/` holds 76 recorded Meta Model API calls: 71 from muse-spark-1.3, 1 from muse-voice-transcribe-1.0, 4 from muse-wonder-1.0. Each file keeps the request and the model's reply.
+`demo/fixtures/responses/` holds 88 recorded Meta Model API calls: 3 from muse-image-1.0, 80 from muse-spark-1.3, 1 from muse-voice-transcribe-1.0, 4 from muse-wonder-1.0. Each file keeps the request and the model's reply.

@@ -1,8 +1,8 @@
 // `pnpm notices` writes THIRD_PARTY_NOTICES.md from what the repo holds: the installed npm packages
 // (`pnpm licenses list`), the fonts `src/app/layout.tsx` loads, the lucide icons `src/` imports, and
-// the source pages recorded in `demo/fixtures/`. Each recorded page's licence comes from the scout's
-// own checker, and its credit line from the lesson page's. Run it again after a dependency, font,
-// icon or fixture change.
+// the source pages and images recorded in `demo/fixtures/`. Each recorded page's licence comes from
+// the scout's own checker, each image's from the diagrams agent's, and each credit line from the
+// lesson page's. Run it again after a dependency, font, icon or fixture change.
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -10,6 +10,7 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { creditLine } from "../src/app/_shell/format.ts";
 import { config } from "../src/config.ts";
+import { fileInfoOf, fileTitle, imageLicence } from "../src/server/agents/diagrams/wiki.ts";
 import { classifyLicence } from "../src/server/agents/scout/licence.ts";
 import { normalizeResponses } from "../src/server/providers/meta.ts";
 
@@ -45,11 +46,16 @@ type RecordedPage = {
   url: string;
   response:
     | { kind: "page"; status: number; truncated: boolean; text: string }
+    | { kind: "html"; status: number; truncated: boolean; html: string }
+    | { kind: "image"; status: number; content_type: string; b64: string }
     | { kind: "redirect"; status: number; location: string }
     | { kind: "failed"; reason: string };
 };
 
 type Cited = { title: string; lang?: string };
+
+const sha256 = (data: string) => createHash("sha256").update(data).digest("hex");
+const isFilePage = (url: string) => /^\/wiki\/File:/.test(URL.parse(url)?.pathname ?? "");
 
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(join(ROOT, path), "utf8")) as T;
 const spdxUrl = (id: string) => `https://spdx.org/licenses/${id}.html`;
@@ -191,10 +197,17 @@ function citedPages(): Map<string, Cited> {
   return cited;
 }
 
-function sourceSection(): string[] {
-  const recorded = readdirSync(join(ROOT, PAGES))
+const recordedPages = (): RecordedPage[] =>
+  readdirSync(join(ROOT, PAGES))
     .sort()
     .map((file) => ({ ...readJson<Omit<RecordedPage, "file">>(`${PAGES}/${file}`), file }));
+
+const recordedCalls = (): string[] =>
+  readdirSync(join(ROOT, RESPONSES)).map((file) =>
+    readFileSync(join(ROOT, RESPONSES, file), "utf8"),
+  );
+
+function sourceSection(recorded: RecordedPage[], recordings: string[]): string[] {
   const redirects = new Map(
     recorded.flatMap((p) => (p.response.kind === "redirect" ? [[p.url, p.response.location]] : [])),
   );
@@ -210,18 +223,14 @@ function sourceSection(): string[] {
       .filter((from) => finalUrl(from) === url)
       .map((from) => cited.get(normalUrl(from)))
       .find(Boolean);
-  const recordings = readdirSync(join(ROOT, RESPONSES)).map((file) =>
-    readFileSync(join(ROOT, RESPONSES, file), "utf8"),
-  );
 
   const isRobots = (url: string) => URL.parse(url)?.pathname === "/robots.txt";
   const withText = recorded.filter(
     (p) => p.response.kind === "page" && p.response.text && !isRobots(p.url),
   );
   const robots = recorded.filter((p) => p.response.kind === "page" && isRobots(p.url));
-  const empty = recorded.filter(
-    (p) => p.response.kind !== "redirect" && !isRobots(p.url) && !withText.includes(p),
-  );
+  const htmlCopies = recorded.filter((p) => p.response.kind === "html" && !isFilePage(p.url));
+  const media = recorded.filter((p) => isFilePage(p.url) || p.response.kind === "image");
 
   const sources = withText.map((page) => {
     const text = page.response.kind === "page" ? page.response.text : "";
@@ -234,6 +243,7 @@ function sourceSection(): string[] {
     const ids = forms.map((u) => `r_${createHash("sha256").update(u).digest("hex").slice(0, 8)}`);
     const named = recordings.filter((r) => [...forms, ...ids].some((form) => r.includes(form)));
     const quoted = named.filter((r) => ids.some((id) => r.includes(`### ${id} |`)));
+    const html = htmlCopies.filter((h) => forms.includes(finalUrl(h.url)));
     return {
       page,
       check,
@@ -242,8 +252,18 @@ function sourceSection(): string[] {
       authors: AUTHORS.find(([pattern]) => pattern.test(host))?.[1],
       named: named.length,
       quoted: quoted.length,
+      html,
     };
   });
+  const paired = new Set(sources.flatMap((s) => s.html));
+  const empty = recorded.filter(
+    (p) =>
+      p.response.kind !== "redirect" &&
+      !isRobots(p.url) &&
+      !withText.includes(p) &&
+      !paired.has(p) &&
+      !media.includes(p),
+  );
 
   const use = (s: (typeof sources)[number]) =>
     s.check.use === "rejected"
@@ -262,6 +282,10 @@ function sourceSection(): string[] {
     `- Licence: ${s.check.spdx}, ${spdxUrl(s.check.spdx)}. Use: ${use(s)}.`,
     `- Licence statement on the page: "${s.check.quote}"`,
     `- Stored copy: \`${PAGES}/${s.page.file}\`, the page's text as fetched${s.page.response.kind === "page" && s.page.response.truncated ? ", cut at the fetcher's byte cap" : ""}.`,
+    ...s.html.map(
+      (h) =>
+        `- Stored HTML copy: \`${PAGES}/${h.file}\`, the whole page as fetched, which the diagrams agent reads for its figures.`,
+    ),
     `- Recorded model calls that name it: ${s.named}. Lesson-writing calls that quote its text: ${s.quoted}.`,
     ...(s.check.use === "rejected"
       ? []
@@ -270,16 +294,6 @@ function sourceSection(): string[] {
         ]),
     "",
   ]);
-
-  const models = new Map<string, number>();
-  for (const file of readdirSync(join(ROOT, RESPONSES))) {
-    const model = file.match(/^[a-z_]+-(.+)-[0-9a-f]{16}\.json$/)?.[1] ?? "unknown";
-    models.set(model, (models.get(model) ?? 0) + 1);
-  }
-  const modelCounts = [...models]
-    .sort()
-    .map(([model, n]) => `${n} from ${model}`)
-    .join(", ");
 
   return [
     "## Recorded source pages",
@@ -297,9 +311,64 @@ function sourceSection(): string[] {
     `- ${redirects.size} redirects, URL to URL.`,
     ...empty.map(
       (p) =>
-        `- ${decodeURI(p.url)}: ${p.response.kind === "page" ? `HTTP ${p.response.status}, no text stored` : `not fetched (${p.response.kind === "failed" ? p.response.reason : p.response.kind})`}.`,
+        `- ${decodeURI(p.url)}: ${p.response.kind === "page" || p.response.kind === "html" ? `HTTP ${p.response.status}, no text stored` : `not fetched (${p.response.kind === "failed" ? p.response.reason : p.response.kind})`}.`,
     ),
+    `- ${media.length} files for the images below.`,
     "",
+  ];
+}
+
+// Each image file page the diagrams agent read, with the licence its own check finds there.
+function imageSection(recorded: RecordedPage[], recordings: string[]): string[] {
+  const images = recorded.filter((p) => p.response.kind === "image");
+  const filePages = recorded.filter((p) => p.response.kind === "html" && isFilePage(p.url));
+  const entries = filePages.flatMap((page) => {
+    const info = fileInfoOf(page.response.kind === "html" ? page.response.html : "", page.url);
+    const licence = imageLicence(info, page.url);
+    const image = images.find((i) => i.url === info.image_url);
+    const sent =
+      image?.response.kind === "image"
+        ? `data-url-sha256:${sha256(`data:${image.response.content_type};base64,${image.response.b64}`)}`
+        : null;
+    const calls = sent ? recordings.filter((r) => r.includes(sent)) : [];
+    const edits = calls.filter((r) => r.includes('"path": "/images/edits"'));
+    return [
+      `### ${fileTitle(page.url)}`,
+      "",
+      `- File page: ${decodeURI(page.url)}`,
+      ...(info.author ? [`- Author, as the file page names it: ${info.author}`] : []),
+      licence.ok
+        ? `- Licence: ${licence.name}${licence.url ? `, ${licence.url}` : ""}. The app ${licence.adapt ? "may relabel it" : "shows it unedited"}.`
+        : `- Not used: ${licence.reason}.`,
+      `- Stored copies: \`${PAGES}/${page.file}\`, the file page's HTML${image ? `, and \`${PAGES}/${image.file}\`, the image` : ""}.`,
+      ...(image
+        ? [
+            `- Recorded model calls that send the image: ${calls.length}. Muse Image edits among them: ${edits.length}, and each edit's reply holds a relabelled copy of the image.`,
+          ]
+        : []),
+      "",
+    ];
+  });
+  return [
+    "## Recorded images",
+    "",
+    `The diagrams agent reads each image's licence and author from its file page, and code decides whether the app may relabel it. The replay demo reads these file pages and images from \`${PAGES}/\`.`,
+    "",
+    ...entries,
+  ];
+}
+
+function modelSection(recordings: string[]): string[] {
+  const models = new Map<string, number>();
+  for (const file of readdirSync(join(ROOT, RESPONSES))) {
+    const model = file.match(/^[a-z_]+-(.+)-[0-9a-f]{16}\.json$/)?.[1] ?? "unknown";
+    models.set(model, (models.get(model) ?? 0) + 1);
+  }
+  const modelCounts = [...models]
+    .sort()
+    .map(([model, n]) => `${n} from ${model}`)
+    .join(", ");
+  return [
     "## Recorded model replies",
     "",
     `\`${RESPONSES}/\` holds ${recordings.length} recorded Meta Model API calls: ${modelCounts}. Each file keeps the request and the model's reply.`,
@@ -308,6 +377,8 @@ function sourceSection(): string[] {
 }
 
 const installed = installedPackages();
+const pages = recordedPages();
+const recordings = recordedCalls();
 const lines = [
   "# Third-party notices",
   "",
@@ -318,7 +389,9 @@ const lines = [
   ...dependencySection(installed),
   ...fontSection(),
   ...iconSection(installed),
-  ...sourceSection(),
+  ...sourceSection(pages, recordings),
+  ...imageSection(pages, recordings),
+  ...modelSection(recordings),
 ];
 writeFileSync(join(ROOT, OUT), `${lines.join("\n").trimEnd()}\n`);
 const format = spawnSync("pnpm", ["exec", "biome", "format", "--write", OUT], { stdio: "inherit" });
