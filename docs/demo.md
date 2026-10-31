@@ -80,7 +80,7 @@ This is the recorded path, walked in a browser at 1440×900 on `pnpm demo:replay
     - Question 4: «ترتب الصفوف من الأكبر إلى الأصغر…».
     - Question 5: «برنامج جداول البيانات (tableur) هو خلية واحدة…».
 12. Click «اعتمد الخطة الجديدة».
-13. Click the chart in the side rail, «التقدّم». «تاريخ خطتك» shows versions 1 and 2. Click lesson 2, «ما الجدول المحوري ولماذا يستخدمه محلل البيانات», to open it. About 18 seconds later the pivot table appears under its second section with Arabic labels. «الأصل» above it shows the source, and «بالعربية» goes back.
+13. Click the chart in the side rail, «التقدّم». «تاريخ خطتك» shows versions 1 and 2. Click lesson 2, «ما الجدول المحوري ولماذا يستخدمه محلل البيانات», to open it. About 18 seconds later the pivot table appears under its second section with Arabic labels. The plan's acceptance starts writing lesson 2, so if you open it within about 20 seconds of step 12, the diagram waits for that too: a scripted walk saw it 32 seconds after opening. «الأصل» above it shows the source, and «بالعربية» goes back.
 
 Paths off this list:
 
