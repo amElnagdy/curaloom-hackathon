@@ -51,10 +51,6 @@ export function sessionsOf(plan: CoursePlan): Session[] {
   return [...plan.committed.sessions].sort((a, b) => a.day - b.day);
 }
 
-// The lesson the lesson and quiz pages show: the first in plan order, the one open before any
-// quiz. Not the first session's, since the learner may move another lesson's session before it.
-export const firstLesson = (plan: CoursePlan) => plan.committed.lessons[0];
-
 export function inModule(module: CourseModule, day: number): boolean {
   return day >= module.fromDay && day < module.toDay;
 }

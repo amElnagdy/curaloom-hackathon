@@ -513,6 +513,11 @@
   padding-top: var(--s-5);
   border-top: 1px solid var(--line);
 }
+.nextActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
 .nextText {
   display: flex;
   align-items: flex-start;

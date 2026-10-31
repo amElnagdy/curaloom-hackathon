@@ -87,6 +87,7 @@ export const WEEKS: CountForms = {
   many: "أسبوعًا",
 };
 export const MODULES: CountForms = { one: "وحدة واحدة", two: "وحدتان", few: "وحدات", many: "وحدة" };
+export const LESSONS: CountForms = { one: "درس واحد", two: "درسان", few: "دروس", many: "درسًا" };
 export const QUESTIONS: CountForms = {
   one: "سؤال واحد",
   two: "سؤالان",

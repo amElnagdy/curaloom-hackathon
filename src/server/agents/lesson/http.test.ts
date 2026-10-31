@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { StepFailed } from "../../orchestrator/orchestrator.ts";
 import { lessonResponse } from "./http.ts";
-import { type LessonBuilder, LessonConflict, LessonNotFound, type SavedLessons } from "./lesson.ts";
+import {
+  type LessonBuilder,
+  LessonConflict,
+  LessonLocked,
+  LessonNotFound,
+  type SavedLessons,
+} from "./lesson.ts";
 
 const seed = loadOmarSeed("Pivot tables");
 const SAVED: SavedLessons = {
@@ -61,14 +67,17 @@ describe("lesson route", () => {
     expect(calls).toEqual([]);
   });
 
-  it("answers 404 for a lesson the plan lacks, and 409 before there is a plan", async () => {
+  it("answers 404 for a lesson the plan lacks, and 409 before there is a plan or while the lesson is locked", async () => {
     const missing = await post(stubBuilder(new LessonNotFound("no lesson L9")).builder, "L9", {});
     const early = await post(stubBuilder(new LessonConflict("no plan yet")).builder, "L1", {});
+    const locked = await post(stubBuilder(new LessonLocked("L2 is locked")).builder, "L2", {});
 
     expect(missing.status).toBe(404);
     expect(early.status).toBe(409);
     expect(early.headers.get("retry-after")).toBeNull();
     expect(await early.json()).toEqual({ error: "no plan yet" });
+    expect(locked.status).toBe(409);
+    expect(locked.headers.get("retry-after")).toBeNull();
   });
 
   // Retry-After tells the page to ask again; a 409 without it will not clear by waiting.

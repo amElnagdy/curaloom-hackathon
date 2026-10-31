@@ -8,6 +8,7 @@
 // checks it again.
 
 import { CalendarClock, Check, Hourglass, RotateCcw, TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useState, useTransition } from "react";
 import type { CoursePlan, Resource } from "../../../contracts/index.ts";
@@ -129,6 +130,7 @@ export function Road({
   limits,
   sources,
   editable,
+  openLessons,
 }: {
   sessionId: string;
   plan: CoursePlan;
@@ -136,6 +138,8 @@ export function Road({
   // Each resource's language and original title, to name a session's sources.
   sources: Record<string, Pick<Resource, "lang" | "title">>;
   editable: boolean;
+  // The lessons the quiz gate has opened (#34), whose sessions link to them.
+  openLessons: string[];
 }) {
   const [open, setOpen] = useState<{ id: string; op: Op } | null>(null);
   const sessions = sessionsOf(plan);
@@ -185,7 +189,16 @@ export function Road({
                           <b>{s.day === 0 ? "البدء" : arabicNumber(s.day)}</b>
                         </div>
                         <div className={styles.rowTitle}>
-                          <BidiText text={lesson(s)?.title_ar ?? ""} />
+                          {openLessons.includes(s.lesson_id) ? (
+                            <Link href={`/lesson/${s.lesson_id}`} className={styles.rowLink}>
+                              <BidiText text={lesson(s)?.title_ar ?? ""} />
+                            </Link>
+                          ) : (
+                            <span>
+                              <BidiText text={lesson(s)?.title_ar ?? ""} />
+                              <span className="sr-only">، مقفل</span>
+                            </span>
+                          )}
                           <small>
                             الجلسة {ordinalF(sessions.indexOf(s))}
                             {s.resource_ids.map((id) => {

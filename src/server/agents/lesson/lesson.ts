@@ -12,6 +12,7 @@ import {
   type LearnerProfile,
   type Lesson,
   LessonDraft,
+  type Mastery,
   type Resource,
   validate,
 } from "../../../../contracts/index.ts";
@@ -23,6 +24,7 @@ import {
 import { contentHash, type Store } from "../../store/store.ts";
 import type { FetchOutcome, PageFetcher } from "../../tools/fetch-page.ts";
 import { planFor } from "../architect/architect.ts";
+import { lessonOpen } from "../examiner/rules.ts";
 import { classifyLicence } from "../scout/licence.ts";
 import {
   excerptOf,
@@ -243,6 +245,9 @@ export function savedLessons(
 // A lesson asked for before the learner has a plan.
 export class LessonConflict extends Error {}
 
+// A lesson asked for while the quiz gate keeps it shut (#20): it opens once the one before is passed.
+export class LessonLocked extends LessonConflict {}
+
 export type LessonBuilderDeps = {
   orchestrator: Pick<ReturnType<typeof createOrchestrator>, "runStep">;
   store: Store;
@@ -250,6 +255,8 @@ export type LessonBuilderDeps = {
   pages: PageFetcher;
   // The learner whose plan the lessons follow: the route passes the intake's profile.
   profile(): LearnerProfile;
+  // The learner's mastery under that plan (its id), which opens each lesson after the first.
+  mastery(planId: string): Mastery[];
 };
 
 export function createLessonBuilder({
@@ -258,6 +265,7 @@ export function createLessonBuilder({
   sessionId,
   pages,
   profile,
+  mastery,
 }: LessonBuilderDeps) {
   return {
     // The lesson, written on the first call for this plan. The brief names the step, so the same
@@ -267,6 +275,11 @@ export function createLessonBuilder({
       const saved = planFor(store, sessionId, learner);
       const plan = saved?.versions.at(-1);
       if (!saved || !plan) throw new LessonConflict("There is no plan for this learner yet");
+      const ids = plan.committed.lessons.map((l) => l.id);
+      if (ids.includes(lessonId) && !lessonOpen(ids, mastery(plan.id), lessonId)) {
+        const before = ids[ids.indexOf(lessonId) - 1];
+        throw new LessonLocked(`Lesson ${lessonId} is locked until lesson ${before} is passed`);
+      }
       const current = savedLessons(store, sessionId, plan) ?? {
         for_plan: plan.id,
         lessons: {},

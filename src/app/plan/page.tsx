@@ -25,22 +25,15 @@ import { config } from "../../config.ts";
 import { architectBrief, limitsOf, planFor } from "../../server/agents/architect/architect.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
-import { savedLessons } from "../../server/agents/lesson/lesson.ts";
 import { contentHash, createFileStore } from "../../server/store/store.ts";
 import { ActivityFeed, LiveStatusPill } from "../_shell/activity-feed.tsx";
 import { Callout } from "../_shell/blocks.tsx";
-import {
-  firstLesson,
-  latestPlan,
-  lessonPlace,
-  sessionsOf,
-  simDay,
-  unique,
-} from "../_shell/course.ts";
+import { latestPlan, sessionsOf, simDay, unique } from "../_shell/course.ts";
 import {
   arabicNumber,
   countOf,
   HOURS,
+  LESSONS,
   MINUTES,
   MODULES,
   ordinal,
@@ -48,6 +41,8 @@ import {
   SOURCES,
   WEEKS,
 } from "../_shell/format.ts";
+import { LessonStrip } from "../_shell/lesson-strip.tsx";
+import { currentLesson, learnerCourse } from "../_shell/lessons.ts";
 import {
   BidiText,
   buttonClass,
@@ -158,15 +153,14 @@ export default async function PlanPage() {
   const langs = unique(accepted.map((r) => r.lang));
   const totalWeeks = plan?.road.reduce((sum, m) => sum + m.weeks, 0) ?? 0;
   const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0);
-  // The first lesson is written once the plan is ready (#19); the example's is the seed's.
-  const first = plan && firstLesson(plan);
-  const firstSession = plan && first && lessonPlace(plan, first.id).session;
-  const firstReady =
-    !!first &&
-    (shown?.editable
-      ? !!(latest && savedLessons(store, DEMO_SESSION_ID, latest)?.lessons[first.id])
-      : seed.lessons.some((l) => l.id === first.id));
-  const writeFirst = !!(shown?.editable && first && !firstReady);
+  // The lesson the learner is on opens from here, and is written here first if it is not yet: the
+  // first once the plan is ready (#19), the next once the quiz gate opens it (#34).
+  const course = shown && learnerCourse();
+  const states = course && course.plan.id === plan?.id ? course.states : [];
+  const current = currentLesson(states);
+  const currentName = `الدرس ${ordinal(current?.position ?? 0)}`;
+  const startLabel = `${current?.best === undefined ? "ابدأ" : "تابع"} ${currentName}`;
+  const writeCurrent = !!(shown?.editable && current && !current.written);
 
   const article = (
     <article className={styles.doc} aria-labelledby="plan-title">
@@ -237,6 +231,21 @@ export default async function PlanPage() {
               <WeekStrip plan={plan} budget={shown.limits.budget_minutes} />
             </section>
 
+            {states.length > 0 && (
+              <section className={styles.section} aria-labelledby="lessons-title">
+                <div className={styles.sectionHead}>
+                  <h2 id="lessons-title">دروسك</h2>
+                  <Meta
+                    parts={[
+                      countOf(states.length, LESSONS),
+                      `اجتزت ${arabicNumber(states.filter((l) => l.passed).length)} من ${arabicNumber(states.length)}`,
+                    ]}
+                  />
+                </div>
+                <LessonStrip lessons={states} labelledBy="lessons-title" />
+              </section>
+            )}
+
             <section className={styles.section} aria-labelledby="road-title">
               <div className={styles.sectionHead}>
                 <h2 id="road-title">الطريق</h2>
@@ -251,6 +260,7 @@ export default async function PlanPage() {
                   resources.map((r) => [r.id, { lang: r.lang, title: r.title }]),
                 )}
                 editable={shown.editable}
+                openLessons={states.filter((l) => l.open).map((l) => l.planned.id)}
               />
             </section>
 
@@ -292,46 +302,54 @@ export default async function PlanPage() {
 
       <ActivityFeed>
         <div className={styles.start}>
-          {firstReady ? (
+          {current && (
+            <p className={styles.startNext}>
+              <small>{current.best === undefined ? "درسك التالي" : "درسك الآن"}</small>
+              <b>
+                <BidiText text={current.planned.title_ar} />
+              </b>
+            </p>
+          )}
+          {current?.written ? (
             <>
               <Link
-                href="/lesson"
+                href={`/lesson/${current.planned.id}`}
                 className={buttonClass("primary", "lg", { className: styles.startButton })}
               >
-                ابدأ الجلسة الأولى
+                {startLabel}
                 <DirIcon icon={ArrowRight} />
               </Link>
               <p className={styles.startHint}>
                 <CircleCheck aria-hidden />
                 <Meta
                   parts={[
-                    "الدرس الأول جاهز",
-                    ...(firstSession ? [countOf(firstSession.minutes, MINUTES)] : []),
+                    `${currentName} جاهز`,
+                    ...(current.session ? [countOf(current.session.minutes, MINUTES)] : []),
                   ]}
                 />
               </p>
             </>
           ) : (
             <LessonBuilding
-              key={`${plan?.id}-${first?.id}`}
+              key={`${plan?.id}-${current?.planned.id}`}
               sessionId={DEMO_SESSION_ID}
-              lessonId={first?.id ?? ""}
-              build={writeFirst}
+              lessonId={current?.planned.id ?? ""}
+              build={writeCurrent}
             >
               <button
                 type="button"
                 className={buttonClass("primary", "lg", { className: styles.startButton })}
                 disabled
               >
-                ابدأ الجلسة الأولى
+                {startLabel}
                 <DirIcon icon={ArrowRight} />
               </button>
-              {writeFirst ? (
-                <WritingHint className={styles.startHint} titleId="plan-title" />
+              {writeCurrent ? (
+                <WritingHint className={styles.startHint} titleId="plan-title" name={currentName} />
               ) : (
                 <p className={styles.startHint} data-locked>
                   <Lock aria-hidden />
-                  يُفتح حين يجهز الدرس الأول
+                  يُفتح حين يجهز {currentName}
                 </p>
               )}
             </LessonBuilding>

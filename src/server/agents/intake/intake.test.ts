@@ -20,9 +20,9 @@ import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
 import { createPlanner } from "../architect/architect.ts";
 import { planViolations } from "../architect/rules.ts";
-import { courseOf, createExaminer, QuizConflict } from "../examiner/examiner.ts";
+import { courseOf, createExaminer, QuizConflict, savedQuizzes } from "../examiner/examiner.ts";
 import { lessonOpen, quizViolations } from "../examiner/rules.ts";
-import { createLessonBuilder } from "../lesson/lesson.ts";
+import { createLessonBuilder, LessonLocked } from "../lesson/lesson.ts";
 import { wordCount } from "../lesson/rules.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
 import { DONT_KNOW } from "./diagnostic.ts";
@@ -419,19 +419,55 @@ describe("intake, replaying Omar's recorded interview", () => {
     expect(new Set(modelsOf(store, "architect"))).toEqual(new Set(["muse-wonder-1.0"]));
   }, 600_000);
 
-  // The plan page starts the first lesson once the plan is ready; later lessons share its glossary.
-  it("writes his first two lessons from the plan, one glossary for both", async () => {
-    const { store, orchestrator, pages, saved } = await planned();
-    const builder = createLessonBuilder({
-      orchestrator,
-      store,
-      sessionId: "s1",
-      pages,
-      profile: () => savedProfile(store, "s1") as LearnerProfile,
-    });
+  // The lesson page asks for the quiz while Omar reads lesson 1.
+  it("writes the quiz for his first lesson", async () => {
+    const { store, examiner, first, lesson } = await quizzed();
+
+    const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+
+    expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
+    expect(new Set(modelsOf(store, "examiner"))).toEqual(new Set(["muse-spark-1.3"]));
+  }, 600_000);
+
+  it("keeps his second lesson shut below 80%, then opens it once he passes a quiz with other questions", async () => {
+    const { examiner, builder, first, second, lesson, lessonIds } = await quizzed();
+    const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+
+    // He misses one multiple-choice item and explains half of the last short answer.
+    const missed = quiz.items.filter((i) => i.type === "mcq")[1];
+    const answers = answersTo(quiz, OMAR_FIRST, missed?.id);
+    const below = await examiner.attempt(first, quiz.id, answers);
+    // Its keys are shown with the grades, so the quiz takes no other attempt.
+    expect((await examiner.attempt(first, quiz.id, answers)).attempt).toEqual(below.attempt);
+    await expect(examiner.attempt(first, quiz.id, answersTo(quiz, OMAR_FIRST))).rejects.toThrow(
+      QuizConflict,
+    );
+    const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
+
+    expect(below.attempt.passed).toBe(false);
+    expect(below.attempt.score).toBeLessThan(0.8);
+    expect(lessonOpen(lessonIds, below.mastery ? [below.mastery] : [], second)).toBe(false);
+    await expect(builder.build(second)).rejects.toThrow(LessonLocked);
+    expect(quizViolations(retry, lesson.glossary_ids)).toEqual([]);
+    const asked = new Set(quiz.items.map((i) => i.prompt_ar));
+    expect(retry.items.filter((i) => asked.has(i.prompt_ar))).toEqual([]);
+
+    const passed = await examiner.attempt(first, retry.id, answersTo(retry, OMAR_RETRY));
+
+    expect(passed.attempt.passed).toBe(true);
+    expect(passed.mastery).toMatchObject({ passed: true, attempts: 2 });
+    expect(lessonOpen(lessonIds, passed.mastery ? [passed.mastery] : [], second)).toBe(true);
+    expect((await builder.build(second)).lessons[second]).toBeDefined();
+    for (const answer of passed.attempt.answers) {
+      expect(answer.feedback_ar).toMatch(/\p{Script=Arabic}/u);
+    }
+  }, 600_000);
+
+  // The plan page starts the first lesson once the plan is ready; the second opens once he passes the
+  // first's quiz, and shares its glossary.
+  it("writes his second lesson once he passes the first, one glossary for both", async () => {
+    const { store, builder, saved, first, second } = await passedFirst();
     const plan = saved.versions[0] as CoursePlan;
-    const [first, second] = plan.committed.lessons.map((l) => l.id);
-    if (!first || !second) throw new Error("the plan has fewer than two lessons");
 
     const afterFirst = await builder.build(first);
     const afterSecond = await builder.build(second);
@@ -463,46 +499,16 @@ describe("intake, replaying Omar's recorded interview", () => {
     expect(new Set(modelsOf(store, "lesson_builder"))).toEqual(new Set(["muse-spark-1.3"]));
   }, 600_000);
 
-  // The lesson page asks for the quiz while Omar reads lesson 1.
-  it("writes the quiz for his first lesson", async () => {
-    const { store, examiner, first, lesson } = await quizzed();
+  // The lesson page asks for lesson 2's quiz once he opens it.
+  it("writes the quiz for his second lesson once it opens", async () => {
+    const { store, builder, examiner, second } = await passedFirst();
+    const lesson = (await builder.build(second)).lessons[second] as Lesson;
 
-    const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+    const quiz = (await examiner.quiz(second)).quizzes[0] as Quiz;
 
+    expect(quiz.lesson_id).toBe(second);
     expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
     expect(new Set(modelsOf(store, "examiner"))).toEqual(new Set(["muse-spark-1.3"]));
-  }, 600_000);
-
-  it("keeps his second lesson shut below 80%, then opens it once he passes a quiz with other questions", async () => {
-    const { examiner, first, second, lesson, lessonIds } = await quizzed();
-    const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
-
-    // He misses one multiple-choice item and explains half of the last short answer.
-    const missed = quiz.items.filter((i) => i.type === "mcq")[1];
-    const answers = answersTo(quiz, OMAR_FIRST, missed?.id);
-    const below = await examiner.attempt(first, quiz.id, answers);
-    // Its keys are shown with the grades, so the quiz takes no other attempt.
-    expect((await examiner.attempt(first, quiz.id, answers)).attempt).toEqual(below.attempt);
-    await expect(examiner.attempt(first, quiz.id, answersTo(quiz, OMAR_FIRST))).rejects.toThrow(
-      QuizConflict,
-    );
-    const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
-
-    expect(below.attempt.passed).toBe(false);
-    expect(below.attempt.score).toBeLessThan(0.8);
-    expect(lessonOpen(lessonIds, below.mastery ? [below.mastery] : [], second)).toBe(false);
-    expect(quizViolations(retry, lesson.glossary_ids)).toEqual([]);
-    const asked = new Set(quiz.items.map((i) => i.prompt_ar));
-    expect(retry.items.filter((i) => asked.has(i.prompt_ar))).toEqual([]);
-
-    const passed = await examiner.attempt(first, retry.id, answersTo(retry, OMAR_RETRY));
-
-    expect(passed.attempt.passed).toBe(true);
-    expect(passed.mastery).toMatchObject({ passed: true, attempts: 2 });
-    expect(lessonOpen(lessonIds, passed.mastery ? [passed.mastery] : [], second)).toBe(true);
-    for (const answer of passed.attempt.answers) {
-      expect(answer.feedback_ar).toMatch(/\p{Script=Arabic}/u);
-    }
   }, 600_000);
 });
 
@@ -538,7 +544,14 @@ function answersTo(quiz: Quiz, shorts: string[], miss?: string) {
 async function quizzed() {
   const { store, orchestrator, pages, saved } = await planned();
   const profile = () => savedProfile(store, "s1") as LearnerProfile;
-  const builder = createLessonBuilder({ orchestrator, store, sessionId: "s1", pages, profile });
+  const builder = createLessonBuilder({
+    orchestrator,
+    store,
+    sessionId: "s1",
+    pages,
+    profile,
+    mastery: (planId) => savedQuizzes(store, "s1", planId).mastery,
+  });
   const lessonIds = (saved.versions[0] as CoursePlan).committed.lessons.map((l) => l.id);
   const [first, second] = lessonIds;
   if (!first || !second) throw new Error("the plan has fewer than two lessons");
@@ -549,7 +562,19 @@ async function quizzed() {
     sessionId: "s1",
     course: () => courseOf(store, "s1", profile()),
   });
-  return { store, examiner, first, second, lesson, lessonIds };
+  return { store, saved, builder, examiner, first, second, lesson, lessonIds };
+}
+
+// Omar's plan once he passed lesson 1's quiz on his second try, the way the quiz page leaves it.
+async function passedFirst() {
+  const course = await quizzed();
+  const { examiner, first } = course;
+  const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+  const missed = quiz.items.filter((i) => i.type === "mcq")[1];
+  await examiner.attempt(first, quiz.id, answersTo(quiz, OMAR_FIRST, missed?.id));
+  const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
+  await examiner.attempt(first, retry.id, answersTo(retry, OMAR_RETRY));
+  return course;
 }
 
 const modelsOf = (store: Store, agent: string) =>

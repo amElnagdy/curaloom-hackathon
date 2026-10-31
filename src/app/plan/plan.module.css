@@ -16,6 +16,17 @@
 .startButton {
   width: 100%;
 }
+.startNext {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+}
+.startNext small {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
 .startHint {
   display: inline-flex;
   align-items: center;
@@ -313,6 +324,14 @@
   gap: 0.15rem;
   min-width: 0;
   font-weight: 600;
+}
+.rowLink {
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+.rowLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
 }
 .rowTitle small {
   display: flex;

@@ -75,15 +75,18 @@ export function WritingStatus() {
 export function WritingHint({
   className,
   titleId,
+  name,
 }: {
   className: string | undefined;
   titleId: string;
+  // The lesson by its place, e.g. «الدرس الثاني».
+  name: string;
 }) {
   const { failed, retry } = useContext(Writing);
   return failed ? (
     <p className={className} data-failed role="alert">
       <TriangleAlert aria-hidden />
-      تعذّرت كتابة الدرس الأول.
+      تعذّرت كتابة {name}.
       <button
         type="button"
         className={buttonClass("ghost", "sm")}
@@ -98,7 +101,7 @@ export function WritingHint({
   ) : (
     <p className={className} data-locked>
       <Hourglass aria-hidden />
-      يكتب صانع الدروس الدرس الأول الآن
+      يكتب صانع الدروس {name} الآن
     </p>
   );
 }
@@ -150,7 +153,7 @@ export function QuizBuilding({
               حاول مرة أخرى
             </button>
           ) : (
-            <Link href="/quiz" className={buttonClass("secondary")}>
+            <Link href={`/quiz/${lessonId}`} className={buttonClass("secondary")}>
               إلى الاختبار
               <DirIcon icon={ArrowRight} />
             </Link>
