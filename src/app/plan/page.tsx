@@ -71,8 +71,15 @@ export const metadata: Metadata = { title: "الخطة" };
 
 const LANG_COUNT = ["", "بلغة واحدة", "بلغتين", "بثلاث لغات", "بأربع لغات"];
 
-// The plan the page shows and what it must fit. Only the session's own plan takes edits.
-type PlanOnPage = { plan: CoursePlan; resources: Resource[]; limits: Limits; editable: boolean };
+// The plan the page shows and what it must fit. Only the session's own latest version takes
+// edits; `older` is one of its earlier versions, shown as it was (`?v=`).
+type PlanOnPage = {
+  plan: CoursePlan;
+  resources: Resource[];
+  limits: Limits;
+  editable: boolean;
+  older: boolean;
+};
 
 function Prop({
   icon: Icon,
@@ -192,8 +199,9 @@ function askOf(reason: CoursePlan["reason"] | undefined, replies: CheckinAnswer[
   return reply ? { choice: reason, day: parseSimTime(reply.sim_ts).day } : null;
 }
 
-export default async function PlanPage() {
+export default async function PlanPage({ searchParams }: PageProps<"/plan">) {
   await connection();
+  const asked = Number((await searchParams).v);
   const store = createFileStore();
   const seed = loadOmarSeed(config.demoTopic);
   const learner = savedProfile(store, DEMO_SESSION_ID);
@@ -203,12 +211,23 @@ export default async function PlanPage() {
   const latest = saved?.versions.at(-1);
   const example = latestPlan(seed);
 
+  const older =
+    saved && latest && asked < latest.version
+      ? saved.versions.find((v) => v.version === asked)
+      : undefined;
+
   let shown: PlanOnPage | undefined;
   if (saved && latest) {
-    shown = { plan: latest, resources: saved.resources, limits: saved.limits, editable: true };
+    shown = {
+      plan: older ?? latest,
+      resources: saved.resources,
+      limits: saved.limits,
+      editable: !older,
+      older: !!older,
+    };
   } else if (!learner && example) {
     const limits = limitsOf(architectBrief(seed.profile, seed.resources));
-    shown = { plan: example, resources: seed.resources, limits, editable: false };
+    shown = { plan: example, resources: seed.resources, limits, editable: false, older: false };
   }
 
   const plan = shown?.plan;
@@ -232,8 +251,8 @@ export default async function PlanPage() {
   const askConsent = !!consent && !consent.granted && !consent.opted_out;
   const today = sim?.now().day ?? 0;
   const view = sim?.comeback();
-  const pending = saved?.pending ?? null;
-  const stage = comebackStage(view, pending);
+  const pending = (!older && saved?.pending) || null;
+  const stage = older ? null : comebackStage(view, pending);
   const ask = askOf(
     stage?.kind === "card" ? stage.reason : stage?.proposal.reason,
     sim?.checkinReplies() ?? [],
@@ -265,6 +284,11 @@ export default async function PlanPage() {
           <p className={styles.lede}>
             {!shown ? (
               <BuildingLede name={profile.name} />
+            ) : shown.older && plan ? (
+              <>
+                <b>النسخة {arabicNumber(plan.version)} من خطتك، كما كانت.</b> نسخة سابقة للعرض فقط،
+                لا تتغيّر ولا تُعدَّل. <Link href="/plan">عُد إلى خطتك الحالية</Link>.
+              </>
             ) : shown.editable && plan && from > 0 ? (
               <>
                 <b>
@@ -304,6 +328,8 @@ export default async function PlanPage() {
             <Prop icon={CircleDashed} label="الحالة">
               {!shown ? (
                 <BuildingStatus />
+              ) : shown.older ? (
+                <StatusPill status="neutral">نسخة سابقة</StatusPill>
               ) : pending ? (
                 <StatusPill status="attention">خطة مقترحة تنتظرك</StatusPill>
               ) : shown.editable ? (

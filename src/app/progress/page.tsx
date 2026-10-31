@@ -292,7 +292,13 @@ function PlanHistory({ versions }: { versions: CoursePlan[] }) {
             </span>
             <div className={styles.nodeBody}>
               <div className={styles.nodeHead}>
-                <h3>النسخة {arabicNumber(v.version)}</h3>
+                <h3>
+                  {latest ? (
+                    `النسخة ${arabicNumber(v.version)}`
+                  ) : (
+                    <Link href={`/plan?v=${v.version}`}>النسخة {arabicNumber(v.version)}</Link>
+                  )}
+                </h3>
                 <span className={styles.reason}>{REASON_TEXT[v.reason]}</span>
                 <Meta parts={meta} className={styles.nodeMeta} />
                 {latest && versions.length > 1 && (
