@@ -13,6 +13,10 @@ roles:
   transcribe: { provider: meta, model: muse-voice-transcribe-1.0 }
   segment: { provider: meta, model: sam-3.1 }
   image_edit: { provider: meta, model: muse-image-1.0 }
+  # Diagrams (#28): Spark reads and translates a diagram's labels, then lists the text of the source
+  # and of each Muse Image sample, which code checks. Spike #9 ran both with no reasoning setting.
+  diagram_labels: { provider: meta, model: muse-spark-1.3 }
+  image_text: { provider: meta, model: muse-spark-1.3 }
 
 # USD, standard mode. Tokens per 1M; every model a role uses needs an entry.
 prices:

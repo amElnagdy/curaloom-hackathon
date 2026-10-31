@@ -233,7 +233,7 @@ describe("Meta provider normalization", () => {
     expect(result.usage.cost_usd).toBeCloseTo(0.0025, 8);
   });
 
-  it("returns the edited image", async () => {
+  it("returns the edited image, asking for the source's aspect ratio and the format", async () => {
     const body = { data: [{ b64_json: "UklGRg==" }], output_format: "webp", usage: {} };
     const { p, sent } = provider([{ status: 200, body }]);
 
@@ -242,10 +242,16 @@ describe("Meta provider normalization", () => {
       trace: TRACE,
       prompt: "replace the labels with Arabic",
       images: [{ b64: "AAAA", mime: "image/png" }],
+      size: { width: 558, height: 137 },
+      format: "webp",
     });
 
     expect(sent[0]?.url).toBe("https://api.meta.ai/v1/images/edits");
-    expect(sent[0]?.body).toMatchObject({ images: [{ image_url: "data:image/png;base64,AAAA" }] });
+    expect(sent[0]?.body).toMatchObject({
+      images: [{ image_url: "data:image/png;base64,AAAA" }],
+      size: "558x137",
+      output_format: "webp",
+    });
     expect(result.image).toEqual({ b64: "UklGRg==", format: "webp" });
     expect(result.usage.cost_usd).toBeCloseTo(0.01, 8);
   });
@@ -406,6 +412,46 @@ describe("record and replay", () => {
     expect(
       readFileSync(join(fixturesDir, readdirSync(fixturesDir)[0] ?? ""), "utf8"),
     ).not.toContain("sk-test-secret");
+  });
+
+  it("records an image a request sends by its hash, and replays the request by it", async () => {
+    const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
+    const image = { b64: Buffer.from("a diagram's bytes").toString("base64"), mime: "image/png" };
+    const read = {
+      role: "agent_default",
+      trace: TRACE,
+      input: [
+        {
+          role: "user",
+          content: [{ type: "input_image", image_url: `data:image/png;base64,${image.b64}` }],
+        },
+      ],
+      schema,
+    };
+    const { p: recorder } = provider([{ status: 200, body: spike("json_schema", "/responses") }], {
+      profile: "record",
+      fixturesDir,
+    });
+    const recorded = await recorder.structured(read);
+
+    const replayer = createProvider({ models: MODELS, profile: "replay", fixturesDir });
+    const other = { ...image, b64: Buffer.from("another diagram").toString("base64") };
+    const fixture = readFileSync(join(fixturesDir, readdirSync(fixturesDir)[0] ?? ""), "utf8");
+
+    expect(fixture).not.toContain(image.b64);
+    expect(fixture).toMatch(/data-url-sha256:[0-9a-f]{64}/);
+    expect((await replayer.structured(read)).json).toEqual(recorded.json);
+    await expect(
+      replayer.structured({
+        ...read,
+        input: [
+          {
+            role: "user",
+            content: [{ type: "input_image", image_url: `data:image/png;base64,${other.b64}` }],
+          },
+        ],
+      }),
+    ).rejects.toThrow(MissingRecording);
   });
 
   it("records only a request it has no recording for, so a re-record pays for what changed", async () => {

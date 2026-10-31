@@ -1,0 +1,18 @@
+{
+  "url": "https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table",
+  "latency_ms": 830,
+  "response": {
+    "kind": "view",
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8",
+    "truncated": false,
+    "value": [
+      {
+        "file_page": "https://en.wikibooks.org/wiki/File:Excel_pivot.gif",
+        "heading": "Arranging data on the table",
+        "width": 385,
+        "height": 340
+      }
+    ]
+  }
+}

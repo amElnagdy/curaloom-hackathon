@@ -6,6 +6,7 @@ import {
   type CoursePlan,
   contractErrors,
   type Diagnostic,
+  type Diagram,
   type IntakeReply,
   LearnerProfile,
   type Lesson,
@@ -31,6 +32,8 @@ import { createPlanner, planFor, type SavedPlan } from "../architect/architect.t
 import { planResponse } from "../architect/http.ts";
 import { noteViolations, type ReplanRequest, replanBrief } from "../architect/replan.ts";
 import { planViolations } from "../architect/rules.ts";
+import { createDiagramsBuilder, lessonDiagramsBrief, writtenCourse } from "../diagrams/diagrams.ts";
+import { glossaryProblems } from "../diagrams/rules.ts";
 import {
   courseOf,
   createExaminer,
@@ -445,6 +448,18 @@ describe("intake, replaying Omar's recorded interview", () => {
     expect(new Set(modelsOf(store, "examiner"))).toEqual(new Set(["muse-spark-1.3"]));
   }, 600_000);
 
+  // Both recorded samples of the VisiCalc screenshot failed the check, so the recording shows the
+  // legend. The first left a stray ".75" beside the tax label; Spark read the second's "C1" as "C!".
+  it("shows lesson 1's VisiCalc screenshot with an Arabic legend once both relabelled samples fail", async () => {
+    const course = await quizzed();
+
+    const diagrams = await diagramsOf(course).build(course.first);
+
+    const diagram = expectDiagram(course, course.first, diagrams, "Visicalc.png");
+    expect(diagram).toMatchObject({ method: "legend", output: null, check: { attempts: 2 } });
+    expect(diagram.check.problems).not.toEqual([]);
+  }, 600_000);
+
   it("keeps his second lesson shut below 80%, then opens it once he passes a quiz with other questions", async () => {
     const { examiner, builder, first, second, lesson, lessonIds } = await quizzed();
     const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
@@ -516,6 +531,15 @@ describe("intake, replaying Omar's recorded interview", () => {
   }, 600_000);
 
   // The lesson page asks for lesson 2's quiz once he opens it.
+  it("relabels lesson 2's pivot table into Arabic once it opens", async () => {
+    const course = await passedFirst();
+    await course.builder.build(course.second);
+
+    const diagrams = await diagramsOf(course).build(course.second);
+
+    expectRelabelled(expectDiagram(course, course.second, diagrams, "Pivottable-Pivoted.PNG"));
+  }, 600_000);
+
   it("writes the quiz for his second lesson once it opens", async () => {
     const { store, builder, examiner, second } = await passedFirst();
     const lesson = (await builder.build(second)).lessons[second] as Lesson;
@@ -666,8 +690,8 @@ function explainedBySpark(
 
 describe("the demo's comeback, replaying the recorded course through the HTTP API", () => {
   it("proposes v2 after «جلسات أقصر» and a recap of 3 out of 5, with a review of lesson 1 first, and keeps it on accept", async () => {
-    const { store, v1, tapped, comeback, finished, planner, post, ok, sim, builder, second } =
-      await cameBack(3);
+    const came = await cameBack(3);
+    const { store, v1, tapped, comeback, finished, planner, post, ok, sim, builder, second } = came;
     const proposal = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile);
     const said = store
       .readTrace<TraceEvent>("s1")
@@ -677,8 +701,10 @@ describe("the demo's comeback, replaying the recorded course through the HTTP AP
 
     const { plan } = await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
     const lessons = await builder.build(second);
+    const diagrams = await diagramsOf(came).build(second);
 
     expect(tapped.answer).toEqual({ choice: "shrink", paused_until: null });
+    expectRelabelled(expectDiagram(came, second, diagrams, "Pivottable-Pivoted.PNG"));
     expect(comeback).toMatchObject({ state: "open", away_days: 10, reason: "shrink" });
     expect(comeback.recap.items).toHaveLength(5);
     expect(new Set(comeback.recap.items.map((i: { type: string }) => i.type))).toEqual(
@@ -753,8 +779,8 @@ describe("the demo's comeback, replaying the recorded course through the HTTP AP
   // (0.71) and r_df4da75d (0.61). The day-10 return lays the same days as a plain comeback: the
   // review on day 10 and lesson 2 from day 12, a lighter week of 15 + 3 × 20 = 75 minutes.
   it("proposes v2 after «مصدر آخر» with lesson 2 on Spark's pick, and writes lesson 2 again from it once accepted", async () => {
-    const { store, v1, tapped, finished, planner, post, ok, builder, examiner, second } =
-      await cameBack(3, "switch");
+    const came = await cameBack(3, "switch");
+    const { store, v1, tapped, finished, planner, post, ok, builder, examiner, second } = came;
     const untaken = (await examiner.quiz(second)).quizzes;
     const proposal = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile);
     const v2 = proposal?.pending as CoursePlan;
@@ -769,8 +795,10 @@ describe("the demo's comeback, replaying the recorded course through the HTTP AP
     const lessonsAfter = savedLessons(store, "s1", v2);
     const quizzesAfter = savedQuizzes(store, "s1", v2.id);
     const rewritten = (await builder.build(second)).lessons[second] as Lesson;
+    const diagrams = await diagramsOf(came).build(second);
 
     expect(tapped.answer).toEqual({ choice: "switch", paused_until: null });
+    expect(diagrams).toEqual([]);
     expect(finished.replanned).toEqual({ ok: true, version: 2, lighter: { minutes: 75, cap: 84 } });
     expect(proposal?.versions).toEqual(v1?.versions);
     expect(v2).toMatchObject({ id: v1?.versions[0]?.id, version: 2, reason: "switch" });
@@ -919,8 +947,66 @@ async function quizzed() {
     sessionId: "s1",
     course: () => courseOf(store, "s1", profile()),
   });
-  return { store, orchestrator, saved, builder, examiner, first, second, lesson, lessonIds };
+  return { store, orchestrator, pages, saved, builder, examiner, first, second, lesson, lessonIds };
 }
+
+// The diagrams route's builder on Omar's course.
+function diagramsOf({
+  store,
+  orchestrator,
+  pages,
+}: Pick<Awaited<ReturnType<typeof planned>>, "store" | "orchestrator" | "pages">) {
+  return createDiagramsBuilder({
+    orchestrator,
+    store,
+    sessionId: "s1",
+    pages,
+    brief: (lessonId) => {
+      const course = writtenCourse(store, "s1", savedProfile(store, "s1") as LearnerProfile);
+      return course && lessonDiagramsBrief(course, lessonId);
+    },
+  });
+}
+
+// The lesson's one diagram, `title` from Wikimedia Commons, its labels read in the lesson's glossary
+// terms and sent to Muse Image, with every call it took in the trace.
+function expectDiagram(
+  { store }: { store: Store },
+  lessonId: string,
+  diagrams: Diagram[],
+  title: string,
+): Diagram {
+  const [diagram, ...more] = diagrams;
+  const course = writtenCourse(store, "s1", savedProfile(store, "s1") as LearnerProfile);
+  const brief = course && lessonDiagramsBrief(course, lessonId);
+  const events = store.readTrace<TraceEvent>("s1").filter((e) => e.agent === "diagrams");
+
+  expect(more).toEqual([]);
+  expect(diagram).toMatchObject({
+    file: { title, page_url: `https://commons.wikimedia.org/wiki/File:${title}` },
+    licence: { spdx: "LicenseRef-PublicDomain", adapt: true },
+    author: expect.stringMatching(/\w/),
+  });
+  expect(glossaryProblems(diagram?.labels ?? [], brief?.glossary ?? [])).toEqual([]);
+  expect(new Set(events.filter((e) => e.kind === "model_call").map((e) => e.role))).toEqual(
+    new Set(["diagram_labels", "image_text", "image_edit"]),
+  );
+  expect(
+    events.filter((e) => e.kind === "tool_call").map((e) => e.summary_en.split(" ")[0]),
+  ).toEqual(expect.arrayContaining(["fetch_page[figures]", "fetch_page[file]", "fetch_image"]));
+  for (const e of events) {
+    expect(e.summary_ar).toMatch(/\p{Script=Arabic}/u);
+    expect(e.summary_en).toMatch(/[A-Za-z]/);
+  }
+  return diagram as Diagram;
+}
+
+const expectRelabelled = (diagram: Diagram) =>
+  expect(diagram).toMatchObject({
+    method: "muse_image",
+    output: { mime: "image/webp" },
+    check: { problems: [] },
+  });
 
 // Omar's plan once he passed lesson 1's quiz on his second try, the way the quiz page leaves it.
 async function passedFirst() {

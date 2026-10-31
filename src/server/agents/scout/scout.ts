@@ -48,7 +48,7 @@ export type ScoutRun = {
   orchestrator: Pick<ReturnType<typeof createOrchestrator>, "runStep">;
   sessionId: string;
   brief: ScoutBrief;
-  pages: PageFetcher;
+  pages: Pick<PageFetcher, "fetchPage">;
   // Outlives every session: it keeps each result and each paid search under data/cache/scout.
   cache: Cache;
 };
@@ -111,10 +111,14 @@ type Summary = { summary_ar: string; summary_en: string };
 type Pool = { seen: Set<string>; accepted: Accepted[]; rejected: Rejection[] };
 
 // What every part of one run reads: the orchestrator's context, the brief and the scout's tools.
-type ScoutContext = AgentContext & { brief: ScoutBrief; pages: PageFetcher; cache: Cache };
+type ScoutContext = AgentContext & {
+  brief: ScoutBrief;
+  pages: Pick<PageFetcher, "fetchPage">;
+  cache: Cache;
+};
 
 function scoutAgent(
-  pages: PageFetcher,
+  pages: Pick<PageFetcher, "fetchPage">,
   cache: Cache,
   resultKey: string,
 ): Agent<ScoutBrief, typeof ScoutResult> {

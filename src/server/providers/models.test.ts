@@ -87,6 +87,8 @@ describe("parseModels", () => {
         "transcribe",
         "segment",
         "image_edit",
+        "diagram_labels",
+        "image_text",
       ]),
     );
   });

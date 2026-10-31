@@ -202,7 +202,7 @@ function setup(options: FakeOptions = {}) {
   });
   const fetched: string[] = [];
   const web = { ...WEB, ...options.web };
-  const pages: PageFetcher = {
+  const pages: Pick<PageFetcher, "fetchPage"> = {
     async fetchPage(url) {
       fetched.push(url);
       return web[url] ?? gone(url);

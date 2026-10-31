@@ -93,6 +93,16 @@ const PROMPTS: Record<(typeof AGENT_OUTPUTS)[number], Prompt> = {
     input:
       "عاد المتعلم بعد عشرة أيام وطلب جلسات أقصر، فرتّبنا خطته من اليوم ١٠: مراجعة قصيرة للدرس الأول أولًا، وأسبوع أول أخف من ٥٥ دقيقة والحد ٨٤. اشرح له ذلك في جملتين، واجعل resource_id فارغًا (null) لأنه لم يطلب مصدرًا آخر.",
   },
+  DiagramLabels: {
+    role: "diagram_labels",
+    input:
+      "A 600x200 diagram of a pivot table has these text blocks: 'Region' at the top left, 'Sum of Sales' at the top right, 'North' and 'South' below 'Region'. Give each block, its Arabic translation and its box as [x, y, width, height]. Glossary: pivot table = جدول محوري.",
+  },
+  ImageTexts: {
+    role: "image_text",
+    input:
+      "Transcribe these text blocks of a diagram, one per item, exactly as written: 'المنطقة', 'مجموع المبيعات', 'الشمال', 'الجنوب'.",
+  },
 };
 
 describe.each(AGENT_OUTPUTS)("%s", (name: ContractName) => {

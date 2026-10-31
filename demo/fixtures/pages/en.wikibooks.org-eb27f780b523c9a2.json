@@ -1,0 +1,18 @@
+{
+  "url": "https://en.wikibooks.org/wiki/File:Excel_pivot.gif",
+  "latency_ms": 328,
+  "response": {
+    "kind": "view",
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8",
+    "truncated": false,
+    "value": {
+      "licences": [
+        "Fair use"
+      ],
+      "author": null,
+      "image_url": "https://upload.wikimedia.org/wikibooks/en/c/c3/Excel_pivot.gif",
+      "mime": "image/gif"
+    }
+  }
+}

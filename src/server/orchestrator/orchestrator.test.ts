@@ -126,6 +126,21 @@ describe("orchestrator", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("keeps every step of a session that ran at the same time as another", async () => {
+    const first = setup();
+    await Promise.all([
+      first.orchestrator.runStep("s_1", intake, "عندي خمس ساعات", { key: "intake:1" }),
+      first.orchestrator.runStep("s_1", intake, "صار عندي ثلاث ساعات", { key: "intake:2" }),
+    ]);
+
+    const restarted = setup(first.root);
+    await restarted.orchestrator.runStep("s_1", intake, "عندي خمس ساعات", { key: "intake:1" });
+    await restarted.orchestrator.runStep("s_1", intake, "صار عندي ثلاث ساعات", { key: "intake:2" });
+
+    expect(first.modelCalls()).toBe(2);
+    expect(restarted.modelCalls()).toBe(0);
+  });
+
   it("runs the same agent again under a different step key", async () => {
     const { orchestrator, modelCalls } = setup();
 

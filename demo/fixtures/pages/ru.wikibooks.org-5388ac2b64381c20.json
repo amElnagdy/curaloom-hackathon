@@ -1,0 +1,11 @@
+{
+  "url": "https://ru.wikibooks.org/wiki/Microsoft_Excel",
+  "latency_ms": 421,
+  "response": {
+    "kind": "view",
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8",
+    "truncated": false,
+    "value": []
+  }
+}

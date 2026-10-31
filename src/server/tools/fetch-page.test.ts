@@ -7,11 +7,12 @@ import {
   createPageFetcher,
   isPublicAddress,
   type PageFetcherOptions,
+  type PageView,
   publicTransport,
   type Transport,
 } from "./fetch-page.ts";
 
-type Served = { status?: number; type?: string; location?: string; body: string };
+type Served = { status?: number; type?: string; location?: string; body: string | Uint8Array };
 
 // A fake web: each URL serves a fixed response, and every request is logged.
 function fakeWeb(pages: Record<string, Served>) {
@@ -23,7 +24,8 @@ function fakeWeb(pages: Record<string, Served>) {
       return new Response("not found", { status: 404, headers: { "content-type": "text/plain" } });
     const headers = new Headers({ "content-type": page.type ?? "text/html; charset=utf-8" });
     if (page.location) headers.set("location", page.location);
-    return new Response(page.body, { status: page.status ?? 200, headers });
+    const body = typeof page.body === "string" ? page.body : new Uint8Array(page.body);
+    return new Response(body, { status: page.status ?? 200, headers });
   };
   return { transport, requested };
 }
@@ -343,6 +345,98 @@ describe("fetchPage", () => {
       expect(event.summary_en).toContain("open.example.org");
       expect(event.latency_ms).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe("fetchView and fetchImage", () => {
+  const TITLES: PageView<string[]> = {
+    name: "titles",
+    trace_ar: { ok: "قرأ عناوين صفحة", failed: "تعذّرت قراءة عناوين صفحة" },
+    read: (html) => [...html.matchAll(/<h1>([^<]*)<\/h1>/g)].map((m) => m[1] ?? ""),
+  };
+  const IMAGE = "https://open.example.org/media/pivot.png";
+  const BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+  const site = (extra: Record<string, Served> = {}) =>
+    fakeWeb({
+      [ROBOTS]: { type: "text/plain", body: "User-agent: *\nDisallow: /private/" },
+      [PAGE]: { body: HTML },
+      [IMAGE]: { type: "image/png", body: BYTES },
+      ...extra,
+    });
+
+  it("records what a view read, apart from the page text, and replays it", async () => {
+    const recorder = fetcher({ profile: "record", transport: site().transport });
+    const viewed = await recorder.pages.fetchView(PAGE, TITLES, recorder.trace);
+    const replayer = fetcher({
+      profile: "replay",
+      transport: noNetwork,
+      fixturesDir: recorder.fixturesDir,
+    });
+
+    expect(viewed).toEqual({ ok: true, final_url: PAGE, value: ["Pivot&nbsp;tables"] });
+    expect(await replayer.pages.fetchView(PAGE, TITLES, replayer.trace)).toEqual(viewed);
+    await expect(replayer.pages.fetchPage(PAGE, replayer.trace)).rejects.toThrow(
+      /PROVIDER_PROFILE=record/,
+    );
+    expect(replayer.events.at(-1)).toMatchObject({
+      kind: "tool_call",
+      summary_ar: "قرأ عناوين صفحة (open.example.org)",
+      summary_en: `fetch_page[titles] ${PAGE}: read`,
+    });
+  });
+
+  it("fetches an image as its bytes and replays it", async () => {
+    const recorder = fetcher({ profile: "record", transport: site().transport });
+    const image = await recorder.pages.fetchImage(IMAGE, recorder.trace);
+    const replayer = fetcher({
+      profile: "replay",
+      transport: noNetwork,
+      fixturesDir: recorder.fixturesDir,
+    });
+
+    expect(image).toEqual({
+      ok: true,
+      final_url: IMAGE,
+      mime: "image/png",
+      b64: Buffer.from(BYTES).toString("base64"),
+    });
+    expect(await replayer.pages.fetchImage(IMAGE, replayer.trace)).toEqual(image);
+  });
+
+  it("refuses what robots.txt disallows, the wrong type, and anything cut at its cap", async () => {
+    const hidden = "https://open.example.org/private/pivot.png";
+    const web = site({
+      [hidden]: { type: "image/png", body: BYTES },
+      "https://open.example.org/media/page.png": { body: HTML },
+    });
+    const { pages, trace } = fetcher({
+      profile: "live",
+      transport: web.transport,
+      maxImageBytes: 4,
+    });
+    const roomy = fetcher({ profile: "live", transport: web.transport, maxBytes: 64 });
+
+    expect(await pages.fetchImage(hidden, trace)).toMatchObject({
+      ok: false,
+      reason: "robots.txt disallows it",
+    });
+    expect(await pages.fetchImage("https://open.example.org/media/page.png", trace)).toMatchObject({
+      ok: false,
+      reason: /^not a PNG, JPEG, GIF or WebP image/,
+    });
+    expect(await pages.fetchImage(IMAGE, trace)).toMatchObject({
+      ok: false,
+      reason: "cut at the byte cap",
+    });
+    expect(await roomy.pages.fetchView(IMAGE, TITLES, roomy.trace)).toMatchObject({
+      ok: false,
+      reason: /^not an HTML page/,
+    });
+    expect(await roomy.pages.fetchView(PAGE, TITLES, roomy.trace)).toMatchObject({
+      ok: false,
+      reason: "cut at the byte cap",
+    });
+    expect(web.requested).not.toContain(hidden);
   });
 });
 

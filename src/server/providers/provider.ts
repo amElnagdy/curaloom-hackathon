@@ -12,6 +12,7 @@ import {
   completedFromStream,
   type FunctionTool,
   functionTools,
+  type ImageEdit,
   type ImageInput,
   imageEditRequest,
   META_BASE_URL,
@@ -28,7 +29,7 @@ import {
 } from "./meta.ts";
 import { costUsd, type Models, type RoleConfig } from "./models.ts";
 
-export type { Citation, FunctionTool, ImageInput, ResponseFormat, ToolCall };
+export type { Citation, FunctionTool, ImageEdit, ImageInput, ResponseFormat, ToolCall };
 
 export type ModelResult<J = unknown> = {
   text: string;
@@ -73,7 +74,7 @@ export type Provider = {
   transcribe(
     call: CallBase & { audio: Uint8Array; keywords?: string[] },
   ): Promise<ModelResult<null>>;
-  imageEdit(call: CallBase & { prompt: string; images: ImageInput[] }): Promise<ModelResult<null>>;
+  imageEdit(call: CallBase & ImageEdit): Promise<ModelResult<null>>;
   segment(call: CallBase & { prompt: string; image: ImageInput }): Promise<ModelResult<null>>;
   totalCostUsd(): number;
 };
@@ -124,14 +125,22 @@ class HttpError extends Error {
   }
 }
 
+const sha256 = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
+
+// An image sent as a data URL is named in a recording by its hash, as audio is: the hash names the
+// request as well, and the image does not sit in the repo once per request that sends it.
+const DATA_URL = /^data:[\w/+.-]+;base64,/;
+const hashedImages = (json: unknown): unknown =>
+  JSON.parse(
+    JSON.stringify(json, (_, v) =>
+      typeof v === "string" && DATA_URL.test(v) ? `data-url-sha256:${sha256(v)}` : v,
+    ),
+  );
+
 function fixtureKey(req: WireRequest): { material: unknown; hash: string; name: string } {
   const material = req.form
-    ? {
-        path: req.path,
-        request: req.form.request,
-        audio_sha256: createHash("sha256").update(req.form.audio).digest("hex"),
-      }
-    : { path: req.path, json: req.json };
+    ? { path: req.path, request: req.form.request, audio_sha256: sha256(req.form.audio) }
+    : { path: req.path, json: hashedImages(req.json) };
   const hash = createHash("sha256").update(JSON.stringify(material)).digest("hex").slice(0, 16);
   const model = String((req.json ?? req.form?.request)?.model ?? "unknown");
   return {
@@ -338,8 +347,7 @@ export function createProvider(options: ProviderOptions): Provider {
     webSearch: (c) => call(c, responsesCall(c, [{ type: "web_search" }]), normalizeResponses),
     transcribe: (c) =>
       call(c, (role) => transcribeRequest(role, c.audio, c.keywords), normalizeTranscribe),
-    imageEdit: (c) =>
-      call(c, (role) => imageEditRequest(role, c.prompt, c.images), normalizeImages),
+    imageEdit: (c) => call(c, (role) => imageEditRequest(role, c), normalizeImages),
     segment: (c) => call(c, (role) => segmentRequest(role, c.prompt, c.image), normalizeResponses),
     totalCostUsd: () => totalCost,
   };

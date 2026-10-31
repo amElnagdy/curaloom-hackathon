@@ -1,0 +1,127 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "List every piece of text in this image exactly as written, in any language or script, including numbers and dates.\nGive one entry per separate text block (one table cell, one shape caption, one title line), in reading order.\nDo not translate, correct or complete anything."
+            },
+            {
+              "type": "input_image",
+              "image_url": "data-url-sha256:04417755142d058423b4fd30697ade04b46e0006b9d0edfeffe7c4adbab6ef61"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "ImageTexts",
+          "schema": {
+            "type": "object",
+            "required": [
+              "texts"
+            ],
+            "properties": {
+              "texts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "every piece of text in the image exactly as written, one entry per text block"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "high"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "ImageTexts",
+        "schema": {
+          "properties": {
+            "texts": {
+              "description": "every piece of text in the image exactly as written, one entry per text block",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "texts"
+          ],
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae63f43ad05c479c9bf4612",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793474371,
+    "completed_at": 1793474371,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae63f43ad05c479c9bf4612:rs_f1bcf850-5021-4967-8a80-2d9fc49cac2a",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_2c393fd6-573e-43ea-a7b8-2033565a90b4",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"texts\": [\"C11 (L) الإجمالي\", \"C1\", \"25\", \"A\", \"B\", \"C\", \"D\", \"1\", \"الصنف\", \"العدد\", \"الوحدة\", \"التكلفة\", \"2\", \"-----\", \"----\", \"-----\", \"-----\", \"3\", \"-------\", \"-------\", \"-------\", \"---------\", \"4\", \"مذراة طين\", \"43\", \"12.95\", \"556.85\", \"5\", \"6\", \"قصة قصيرة\", \"15\", \"6.75\", \"101.25\", \"7\", \"مقو أصابع\", \"250\", \"49.95\", \"12487.50\", \"8\", \"سعوط العين\", \"2\", \"4.95\", \"9.90\", \"9\", \"10\", \"----------\", \"11\", \"المجموع الفرعي\", \"13155.50\", \"12\", \"9.75%\", \".75\", \"ضريبة\", \"1282.66\", \"13\", \"----------\", \"14\", \"الإجمالى\", \"14438.16\", \"15\", \"16\", \"17\", \"18\", \"19\", \"20\"]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": null,
+    "usage": {
+      "input_tokens": 3148,
+      "input_tokens_details": {
+        "cached_tokens": 44
+      },
+      "output_tokens": 9143,
+      "output_tokens_details": {
+        "reasoning_tokens": 8870
+      },
+      "total_tokens": 12291
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 31300
+}

@@ -1,0 +1,18 @@
+{
+  "url": "https://commons.wikimedia.org/wiki/File:Visicalc.png",
+  "latency_ms": 357,
+  "response": {
+    "kind": "view",
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8",
+    "truncated": false,
+    "value": {
+      "licences": [
+        "Public domain"
+      ],
+      "author": "User:Gortu",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Visicalc.png",
+      "mime": "image/png"
+    }
+  }
+}

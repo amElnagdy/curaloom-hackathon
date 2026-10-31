@@ -167,7 +167,9 @@ function lessonFromDraft(
   return { lesson, problems };
 }
 
-const lessonBuilder = (pages: PageFetcher): Agent<LessonBrief, typeof BuiltLesson> => ({
+const lessonBuilder = (
+  pages: Pick<PageFetcher, "fetchPage">,
+): Agent<LessonBrief, typeof BuiltLesson> => ({
   name: "lesson_builder",
   output: BuiltLesson,
   async run(ctx, brief) {
@@ -261,7 +263,7 @@ export type LessonBuilderDeps = {
   orchestrator: Pick<ReturnType<typeof createOrchestrator>, "runStep">;
   store: Store;
   sessionId: string;
-  pages: PageFetcher;
+  pages: Pick<PageFetcher, "fetchPage">;
   // The learner whose plan the lessons follow: the route passes the intake's profile.
   profile(): LearnerProfile;
   // The learner's mastery under that plan (its id), which opens each lesson after the first.

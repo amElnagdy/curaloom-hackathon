@@ -169,6 +169,29 @@ export function QuizBuilding({
   );
 }
 
+// Under the learner's lesson while its diagrams are being made (#28): it asks the diagrams agent for
+// them as soon as the lesson is shown, and the page then shows each in the section it illustrates.
+export function DiagramsBuilding({ sessionId, lessonId }: { sessionId: string; lessonId: string }) {
+  const url = `/api/sessions/${encodeURIComponent(sessionId)}/diagrams/${encodeURIComponent(lessonId)}`;
+  const { failed, retry } = useBuild(url);
+  return failed ? (
+    <p className={styles.figureWaiting} data-failed role="alert">
+      <TriangleAlert aria-hidden />
+      تعذّر إعداد رسم لهذا الدرس هذه المرة.
+      <button type="button" className={buttonClass("ghost", "sm")} onClick={retry}>
+        <RotateCcw aria-hidden />
+        حاول مرة أخرى
+      </button>
+    </p>
+  ) : (
+    <p className={styles.figureWaiting} role="status">
+      <span className={styles.breathing} aria-hidden />
+      يبحث مُعرِّب الرسوم في مصادر هذا الدرس عن رسم ليكتب تسمياته بالعربية، ويضعه في مكانه من الدرس حين
+      يجهز.
+    </p>
+  );
+}
+
 // Says the lesson has arrived, which the page shows in place of its shape without moving focus.
 export function WritingDone() {
   const { done } = useContext(Writing);

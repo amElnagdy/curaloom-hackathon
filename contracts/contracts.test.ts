@@ -58,6 +58,10 @@ describe("contracts", () => {
         "ScoutResult",
         "IntakeReply",
         "Diagnostic",
+        "DiagramLabels",
+        "ImageTexts",
+        "Diagram",
+        "LessonDiagrams",
       ].sort(),
     );
   });

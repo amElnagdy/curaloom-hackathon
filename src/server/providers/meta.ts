@@ -98,18 +98,24 @@ export function transcribeRequest(
   return { path: "/asr/transcribe", form: { request, audio, mime: "audio/wav" } };
 }
 
-export function imageEditRequest(
-  role: RoleConfig,
-  prompt: string,
-  images: ImageInput[],
-): WireRequest {
+// The output keeps the aspect ratio of `size`, not its pixel count: spike #9 got 2.1 to 2.5 MP back.
+export type ImageEdit = {
+  prompt: string;
+  images: ImageInput[];
+  size: { width: number; height: number };
+  format: "webp" | "png" | "jpeg";
+};
+
+export function imageEditRequest(role: RoleConfig, edit: ImageEdit): WireRequest {
   return {
     path: "/images/edits",
     json: {
       model: role.model,
-      prompt,
+      prompt: edit.prompt,
       n: 1,
-      images: images.map((image) => ({ image_url: dataUrl(image) })),
+      size: `${edit.size.width}x${edit.size.height}`,
+      output_format: edit.format,
+      images: edit.images.map((image) => ({ image_url: dataUrl(image) })),
     },
   };
 }

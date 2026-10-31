@@ -1,0 +1,113 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Transcribe these text blocks of a diagram, one per item, exactly as written: 'المنطقة', 'مجموع المبيعات', 'الشمال', 'الجنوب'.",
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "ImageTexts",
+          "schema": {
+            "type": "object",
+            "required": [
+              "texts"
+            ],
+            "properties": {
+              "texts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "every piece of text in the image exactly as written, one entry per text block"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "high"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "ImageTexts",
+        "schema": {
+          "additionalProperties": false,
+          "required": [
+            "texts"
+          ],
+          "type": "object",
+          "properties": {
+            "texts": {
+              "description": "every piece of text in the image exactly as written, one entry per text block",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae63d5044fcbc83628442e6",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793473872,
+    "completed_at": 1793473872,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae63d5044fcbc83628442e6:rs_e878bfea-3ef0-4286-b18e-fd812fb32703",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_be7bc0ae-4cb2-4df1-8030-141216c34be9",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"texts\": [\"\\u0627\\u0644\\u0645\\u0646\\u0637\\u0642\\u0629\", \"\\u0645\\u062c\\u0645\\u0648\\u0639 \\u0627\\u0644\\u0645\\u0628\\u064a\\u0639\\u0627\\u062a\", \"\\u0627\\u0644\\u0634\\u0645\\u0627\\u0644\", \"\\u0627\\u0644\\u062c\\u0646\\u0648\\u0628\"]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": null,
+    "usage": {
+      "input_tokens": 47,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 658,
+      "output_tokens_details": {
+        "reasoning_tokens": 540
+      },
+      "total_tokens": 705
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 3618
+}

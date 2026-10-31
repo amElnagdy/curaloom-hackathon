@@ -1,0 +1,11 @@
+{
+  "url": "https://upload.wikimedia.org/robots.txt",
+  "latency_ms": 206,
+  "response": {
+    "kind": "page",
+    "status": 200,
+    "content_type": "text/plain",
+    "truncated": false,
+    "text": "User-agent: *\nDisallow: /wikipedia/commons/archive/\n\n"
+  }
+}

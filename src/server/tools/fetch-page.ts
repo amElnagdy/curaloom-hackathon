@@ -2,7 +2,9 @@
 // fetch. Web search picks its URLs, so a third party controls them: it requests only public
 // addresses on ports 80 and 443, checked before every redirect hop and again at connect time. It
 // follows the provider's profile: `record` saves what it saw under demo/fixtures/pages, and
-// `replay` reads it back with no network, so a replayed run checks the same licences.
+// `replay` reads it back with no network, so a replayed run checks the same licences. Under the
+// same rules it reads an HTML page into a view, such as the images an article shows, and fetches
+// an image (#28).
 
 import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
@@ -28,9 +30,25 @@ export type Page = {
 
 export type FetchOutcome = { ok: true; page: Page } | { ok: false; url: string; reason: string };
 
+type Refused = { ok: false; url: string; reason: string };
+
+// What a caller reads from an HTML page. A recording keeps what `read` returned, not the page, so
+// a replay reads the view as it was recorded. The trace lines name the page, e.g. «صفحة ملف رسم».
+export type PageView<T> = {
+  name: string;
+  trace_ar: { ok: string; failed: string };
+  read(html: string, url: string): T;
+};
+export type ViewOutcome<T> = { ok: true; final_url: string; value: T } | Refused;
+export type ImageOutcome = { ok: true; final_url: string; mime: string; b64: string } | Refused;
+
 export type Trace = (event: Omit<TraceInput, "agent">) => void;
 
-export type PageFetcher = { fetchPage(url: string, trace: Trace): Promise<FetchOutcome> };
+export type PageFetcher = {
+  fetchPage(url: string, trace: Trace): Promise<FetchOutcome>;
+  fetchView<T>(url: string, view: PageView<T>, trace: Trace): Promise<ViewOutcome<T>>;
+  fetchImage(url: string, trace: Trace): Promise<ImageOutcome>;
+};
 
 // Sends one GET and returns the response as is: the fetcher follows redirects itself.
 export type Transport = (
@@ -45,19 +63,25 @@ export type PageFetcherOptions = {
   transport?: Transport;
   timeoutMs?: number;
   maxBytes?: number;
+  maxImageBytes?: number;
 };
 
 const PAGES_DIR = join(process.cwd(), "demo/fixtures/pages");
 const TIMEOUT_MS = 20_000;
 const MAX_BYTES = 512 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
 const PORTS = new Set(["", "80", "443"]);
 const TEXT_TYPES = /^(?:text\/html|application\/xhtml\+xml|text\/plain)\b/i;
+const HTML_TYPES = /^(?:text\/html|application\/xhtml\+xml)\b/i;
+const IMAGE_TYPES = /^image\/(?:png|jpeg|gif|webp)\b/i;
 
 // What one request saw, as recorded. A transient failure (network error, timeout) is retried once;
 // a refused address is not.
 type Seen =
   | { kind: "page"; status: number; content_type: string; truncated: boolean; text: string }
+  | { kind: "view"; status: number; content_type: string; truncated: boolean; value: unknown }
+  | { kind: "image"; status: number; content_type: string; truncated: boolean; b64: string }
   | { kind: "redirect"; status: number; location: string }
   | { kind: "failed"; reason: string; transient: boolean };
 type Final = Exclude<Seen, { kind: "redirect" }>;
@@ -67,8 +91,22 @@ type Followed = { hops: string[]; latency_ms: number } & ({ seen: Final } | { re
 // What a site's robots.txt allows: the Disallow rules for `*`, or why nothing there may be fetched.
 type Robots = { disallow: string[] } | { blocked: string };
 // A page is read as HTML or plain text by its type; a robots.txt is read as plain text whatever
-// its type, so a mislabelled one keeps its rules.
-type Body = "page" | "robots";
+// its type, so a mislabelled one keeps its rules. A view reads an HTML page, and an image is kept
+// as its bytes.
+type Body = "page" | "robots" | "image" | PageView<unknown>;
+
+// A view or an image is recorded apart from the page text at the same URL.
+const variantOf = (body: Body) =>
+  body === "page" || body === "robots" ? undefined : body === "image" ? body : `view:${body.name}`;
+
+const typesOf = (body: Body) =>
+  body === "page"
+    ? TEXT_TYPES
+    : body === "image"
+      ? IMAGE_TYPES
+      : body === "robots"
+        ? /./
+        : HTML_TYPES;
 
 // A failure that may pass: a network error or timeout, a busy server or a rate limit.
 const passing = (seen: Seen) =>
@@ -82,6 +120,7 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
   const transport = options.transport ?? publicTransport();
   const timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? MAX_BYTES;
+  const maxImageBytes = options.maxImageBytes ?? MAX_IMAGE_BYTES;
   const robots = new Map<string, Promise<Robots>>();
 
   async function fetchLive(url: string, body: Body): Promise<Seen> {
@@ -90,7 +129,10 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
       const res = await transport(new URL(url), {
         headers: {
           "user-agent": userAgent,
-          accept: "text/html,text/plain;q=0.9",
+          accept:
+            body === "image"
+              ? "image/png,image/jpeg,image/gif,image/webp"
+              : "text/html,text/plain;q=0.9",
           "accept-encoding": "identity",
         },
         signal,
@@ -104,12 +146,18 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
           ? { kind: "redirect", status: res.status, location: next.href }
           : { kind: "failed", reason: `HTTP ${res.status} to an invalid URL`, transient: false };
       }
-      if (res.status >= 300 || (body === "page" && !TEXT_TYPES.test(content_type))) {
+      if (res.status >= 300 || !typesOf(body).test(content_type)) {
         await res.body?.cancel();
         return { kind: "page", status: res.status, content_type, truncated: false, text: "" };
       }
-      const { bytes, truncated } = await readCapped(res, maxBytes);
+      const cap = body === "image" ? maxImageBytes : maxBytes;
+      const { bytes, truncated } = await readCapped(res, cap);
+      const read = { status: res.status, content_type, truncated };
+      if (body === "image") {
+        return { kind: "image", ...read, b64: Buffer.from(bytes).toString("base64") };
+      }
       const raw = decode(bytes, content_type);
+      if (typeof body === "object") return { kind: "view", ...read, value: body.read(raw, url) };
       const plain = body === "robots" || /^text\/plain/i.test(content_type);
       const text = plain ? raw : htmlToText(raw);
       return { kind: "page", status: res.status, content_type, truncated, text };
@@ -121,11 +169,12 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
   }
 
   async function observe(url: string, body: Body): Promise<Observation> {
-    const path = join(fixturesDir, fixtureName(url));
+    const name = fixtureName(url, variantOf(body));
+    const path = join(fixturesDir, name);
     if (profile === "replay") {
       if (!existsSync(path)) {
         throw new Error(
-          `No recorded page for ${url} (${fixtureName(url)}); run once with PROVIDER_PROFILE=record`,
+          `No recorded page for ${url} (${name}); run once with PROVIDER_PROFILE=record`,
         );
       }
       return JSON.parse(readFileSync(path, "utf8")) as Observation;
@@ -201,38 +250,102 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     return site;
   }
 
+  // Requests `url` and its redirects, each hop allowed by its site's robots.txt.
+  function get(url: string, body: Body, trace: Trace): Promise<Followed> {
+    return follow(url, body, async (hop) => {
+      const site = await robotsOf(hop.origin, trace);
+      if ("blocked" in site) return site.blocked;
+      const path = hop.pathname + hop.search;
+      return site.disallow.some((rule) => ruleMatches(rule, path))
+        ? "robots.txt disallows it"
+        : null;
+    });
+  }
+
   return {
     async fetchPage(url, trace) {
-      const followed = await follow(url, "page", async (hop) => {
-        const site = await robotsOf(hop.origin, trace);
-        if ("blocked" in site) return site.blocked;
-        const path = hop.pathname + hop.search;
-        return site.disallow.some((rule) => ruleMatches(rule, path))
-          ? "robots.txt disallows it"
-          : null;
-      });
+      const followed = await get(url, "page", trace);
       const outcome: FetchOutcome =
         "refused" in followed
           ? { ok: false, url, reason: followed.refused }
           : outcomeOf(url, followed.hops.at(-1) ?? url, followed.seen);
-      const [first] = followed.hops;
-      if (first) {
-        const host = new URL(first).host;
-        const detail = outcome.ok
-          ? `HTTP ${outcome.page.status}, ${Math.round(outcome.page.text.length / 1024)} KB of text${outcome.page.truncated ? ", cut at the byte cap" : ""}`
-          : outcome.reason;
-        trace({
-          kind: "tool_call",
-          summary_ar: outcome.ok
-            ? `قرأ صفحة مصدر ليتحقق من ترخيصها (${host})`
-            : `تعذّرت قراءة صفحة مصدر (${host})`,
-          summary_en: `fetch_page ${followed.hops.join(" -> ")}: ${detail}`,
-          latency_ms: followed.latency_ms,
-        });
-      }
+      const detail = outcome.ok
+        ? `HTTP ${outcome.page.status}, ${Math.round(outcome.page.text.length / 1024)} KB of text${outcome.page.truncated ? ", cut at the byte cap" : ""}`
+        : outcome.reason;
+      traceFetch(trace, "fetch_page", followed, outcome.ok, detail, {
+        ok: "قرأ صفحة مصدر ليتحقق من ترخيصها",
+        failed: "تعذّرت قراءة صفحة مصدر",
+      });
+      return outcome;
+    },
+
+    async fetchView<T>(url: string, view: PageView<T>, trace: Trace): Promise<ViewOutcome<T>> {
+      const followed = await get(url, view as PageView<unknown>, trace);
+      const final = "refused" in followed ? null : followed.seen;
+      const reason = final ? unread(final, "view") : (followed as { refused: string }).refused;
+      const outcome: ViewOutcome<T> =
+        final?.kind === "view" && reason === null
+          ? { ok: true, final_url: followed.hops.at(-1) ?? url, value: final.value as T }
+          : { ok: false, url, reason: reason ?? "not read" };
+      const detail = outcome.ok ? "read" : outcome.reason;
+      traceFetch(trace, `fetch_page[${view.name}]`, followed, outcome.ok, detail, view.trace_ar);
+      return outcome;
+    },
+
+    async fetchImage(url, trace) {
+      const followed = await get(url, "image", trace);
+      const final = "refused" in followed ? null : followed.seen;
+      const reason = final ? unread(final, "image") : (followed as { refused: string }).refused;
+      const outcome: ImageOutcome =
+        final?.kind === "image" && reason === null
+          ? {
+              ok: true,
+              final_url: followed.hops.at(-1) ?? url,
+              mime: final.content_type.split(";")[0]?.trim().toLowerCase() ?? "",
+              b64: final.b64,
+            }
+          : { ok: false, url, reason: reason ?? "not read" };
+      const detail = outcome.ok
+        ? `${outcome.mime}, ${Math.round((outcome.b64.length * 3) / 4 / 1024)} KB`
+        : outcome.reason;
+      traceFetch(trace, "fetch_image", followed, outcome.ok, detail, {
+        ok: "نزّل صورة رسم من مصدر الدرس",
+        failed: "تعذّر تنزيل صورة رسم من مصدر الدرس",
+      });
       return outcome;
     },
   };
+}
+
+// One tool_call event per fetch that requested anything, naming the first hop's host.
+function traceFetch(
+  trace: Trace,
+  tool: string,
+  followed: Followed,
+  ok: boolean,
+  detail: string,
+  text: { ok: string; failed: string },
+) {
+  const [first] = followed.hops;
+  if (!first) return;
+  trace({
+    kind: "tool_call",
+    summary_ar: `${ok ? text.ok : text.failed} (${new URL(first).host})`,
+    summary_en: `${tool} ${followed.hops.join(" -> ")}: ${detail}`,
+    latency_ms: followed.latency_ms,
+  });
+}
+
+// Why a view or an image did not arrive whole, or null when it did. Neither is used cut at the byte
+// cap: a view may lose what its caller looks for, and an image would not decode.
+function unread(seen: Final, kind: "view" | "image"): string | null {
+  if (seen.kind === "failed") return seen.reason;
+  if (seen.status >= 300) return `HTTP ${seen.status}`;
+  if (seen.kind !== kind) {
+    const wanted = kind === "image" ? "a PNG, JPEG, GIF or WebP image" : "an HTML page";
+    return `not ${wanted} (${seen.content_type || "no type"})`;
+  }
+  return seen.truncated ? "cut at the byte cap" : null;
 }
 
 // Why a URL may not be requested at all, or null when it may. A host name is checked again at
@@ -250,7 +363,7 @@ function robotsFrom(followed: Followed): Robots {
   }
   const { seen } = followed;
   if (seen.kind === "failed") return { blocked: `robots.txt could not be read (${seen.reason})` };
-  if (seen.status === 200) return { disallow: disallowedForAll(seen.text) };
+  if (seen.kind === "page" && seen.status === 200) return { disallow: disallowedForAll(seen.text) };
   if (seen.status >= 400 && seen.status < 500) return { disallow: [] };
   return { blocked: `robots.txt could not be read (HTTP ${seen.status})` };
 }
@@ -263,7 +376,7 @@ function seenText(followed: Followed): string {
 function outcomeOf(url: string, final_url: string, seen: Final): FetchOutcome {
   if (seen.kind === "failed") return { ok: false, url, reason: seen.reason };
   if (seen.status >= 300) return { ok: false, url, reason: `HTTP ${seen.status}` };
-  if (!TEXT_TYPES.test(seen.content_type)) {
+  if (seen.kind !== "page" || !TEXT_TYPES.test(seen.content_type)) {
     return { ok: false, url, reason: `not a text page (${seen.content_type || "no type"})` };
   }
   const { kind: _, ...page } = seen;
@@ -371,9 +484,10 @@ function toResponse(res: IncomingMessage): Response {
   return new Response(body, { status, headers });
 }
 
-function fixtureName(url: string): string {
+function fixtureName(url: string, variant?: string): string {
   const host = URL.parse(url)?.hostname.replace(/[^a-z0-9.-]/gi, "_") || "page";
-  return `${host}-${createHash("sha256").update(url).digest("hex").slice(0, 16)}.json`;
+  const key = variant ? `${variant} ${url}` : url;
+  return `${host}-${createHash("sha256").update(key).digest("hex").slice(0, 16)}.json`;
 }
 
 async function readCapped(res: Response, maxBytes: number) {

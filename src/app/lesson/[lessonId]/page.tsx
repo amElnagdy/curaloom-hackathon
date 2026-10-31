@@ -5,7 +5,8 @@
 // gate keeps shut names the quiz that opens it; an open one not written yet is asked of the lesson
 // builder on first open. With the lesson shown, its foot asks the examiner for the lesson's first
 // quiz (#20), which is written while the learner reads; a new quiz after an attempt below the gate
-// is asked for on the quiz page.
+// is asked for on the quiz page. Meanwhile the diagrams agent looks for a diagram on the lesson's
+// pages (#28), which the page then shows under the section it illustrates, its labels in Arabic.
 
 import {
   ArrowRight,
@@ -14,6 +15,7 @@ import {
   ChevronDown,
   Clock,
   ExternalLink,
+  ImageIcon,
   Languages,
   Layers,
   Library,
@@ -21,15 +23,24 @@ import {
   PenLine,
 } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
-import { Fragment, type ReactNode } from "react";
-import type { GlossaryEntry, Lesson, Quiz, Resource } from "../../../../contracts/index.ts";
+import { type CSSProperties, Fragment, type ReactNode } from "react";
+import type {
+  Diagram,
+  GlossaryEntry,
+  Lesson,
+  Quiz,
+  Resource,
+} from "../../../../contracts/index.ts";
 import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
 import { config } from "../../../config.ts";
+import { lessonDiagramsBrief, savedDiagrams } from "../../../server/agents/diagrams/diagrams.ts";
 import { quizView } from "../../../server/agents/examiner/examiner.ts";
 import type { QuizView } from "../../../server/agents/examiner/rules.ts";
 import { sourceMarks, type TermMark, termMarks } from "../../../server/agents/lesson/rules.ts";
+import { createFileStore } from "../../../server/store/store.ts";
 import {
   CallMark,
   Callout,
@@ -64,6 +75,7 @@ import styles from "../lesson.module.css";
 import { LessonWaiting, LockedBody, MissingLesson } from "../states.tsx";
 import {
   CopyButton,
+  DiagramsBuilding,
   ExcerptMark,
   LessonBuilding,
   QuizBuilding,
@@ -93,6 +105,9 @@ type Shown =
       glossary: GlossaryEntry[];
       sources: QuotedSource[];
       quiz: LessonQuiz;
+      // The learner's lesson's diagrams, or "making" until the diagrams agent has made them; the
+      // seed's example has none.
+      diagrams: Diagram[] | "making";
     };
 
 // The lesson's quiz as its foot shows it: the seed's, under the example, or the learner's quizzes.
@@ -121,6 +136,7 @@ function shownLesson(lessonId: string): Shown {
   const quiz: LessonQuiz = course.sample
     ? { sample: true, quiz: course.quizzes.quizzes.find((q) => q.lesson_id === lessonId) }
     : { sample: false, view: quizView(course.quizzes, lessonId) };
+  const brief = course.sample ? undefined : lessonDiagramsBrief(course, lessonId);
   return {
     kind: "lesson",
     sample: course.sample,
@@ -129,6 +145,7 @@ function shownLesson(lessonId: string): Shown {
     glossary: lesson.glossary_ids.flatMap((id) => course.glossary.filter((g) => g.id === id)),
     sources: quotedSources(lesson, course.resources),
     quiz,
+    diagrams: brief ? (savedDiagrams(createFileStore(), DEMO_SESSION_ID, brief) ?? "making") : [],
   };
 }
 
@@ -158,12 +175,15 @@ function LessonSection({
   glossary,
   source,
   sample,
+  children,
 }: {
   section: Lesson["sections"][number];
   index: number;
   glossary: GlossaryEntry[];
   source: QuotedSource | undefined;
   sample: boolean;
+  // The diagrams that illustrate the section, under both columns.
+  children?: ReactNode;
 }) {
   const byId = new Map(glossary.map((e) => [e.id, e]));
   const marks = termMarks(section.arabic, glossary);
@@ -219,7 +239,142 @@ function LessonSection({
       >
         {excerpt}
       </SourceExcerpt>
+      {children}
     </section>
+  );
+}
+
+const PUBLIC_DOMAIN = "LicenseRef-PublicDomain";
+
+// The legend's rows: each source label once, beside its Arabic, in two tables when there are many.
+function legendTables(labels: Diagram["labels"]): Diagram["labels"][] {
+  const rows = labels.filter(
+    (l, i) => labels.findIndex((k) => k.src === l.src && k.ar === l.ar) === i,
+  );
+  const half = rows.length > 6 ? Math.ceil(rows.length / 2) : rows.length;
+  return [rows.slice(0, half), rows.slice(half)].filter((t) => t.length);
+}
+
+// A diagram from the lesson's sources (#28). Relabelled by Muse Image, it opens in Arabic, and the
+// learner can switch to the source; otherwise it shows the source beside a legend of its labels in
+// Arabic. Its credit names the author, the licence code read from the file page, and that page.
+function DiagramFigure({ diagram, lessonId }: { diagram: Diagram; lessonId: string }) {
+  const { caption_ar, source, output, licence, author, file } = diagram;
+  const url = (ref: string) =>
+    `/api/sessions/${encodeURIComponent(DEMO_SESSION_ID)}/diagrams/${encodeURIComponent(lessonId)}/${ref}`;
+  const titleId = `${diagram.image_id}-title`;
+  // A tall diagram is kept to about 24rem high; a wide one fills the card.
+  const fit = Math.min(54, (24 * source.width) / source.height);
+  const frame = { "--ratio": `${source.width} / ${source.height}`, "--fit": `${fit}rem` };
+  const shareAlike = /-SA(-|$)/.test(licence.spdx);
+  return (
+    <figure className={styles.figure} aria-labelledby={titleId}>
+      <div className={styles.figHead}>
+        <p className={styles.figTitle} id={titleId}>
+          <ImageIcon aria-hidden />
+          <BidiText text={caption_ar} />
+        </p>
+        {output && (
+          <fieldset className={styles.versions}>
+            <legend className="sr-only">نسخة الرسم</legend>
+            <label>
+              <input type="radio" name={diagram.image_id} value="arabic" defaultChecked />
+              بالعربية
+            </label>
+            <label>
+              <input type="radio" name={diagram.image_id} value="source" />
+              الأصل
+            </label>
+          </fieldset>
+        )}
+      </div>
+      <div className={styles.well}>
+        <div className={styles.frame} style={frame as CSSProperties}>
+          {output && (
+            <Image
+              className={styles.arabicImage}
+              src={url(output.ref)}
+              alt={`${caption_ar}، بتسميات عربية`}
+              fill
+              unoptimized
+            />
+          )}
+          <Image
+            className={styles.sourceImage}
+            src={url(source.ref)}
+            alt={`${caption_ar}، كما في مصدره`}
+            fill
+            unoptimized
+          />
+        </div>
+      </div>
+      {!output && (
+        <div className={styles.legendWrap}>
+          {legendTables(diagram.labels).map((rows) => (
+            <table key={rows[0]?.src} className={styles.legend}>
+              <thead>
+                <tr>
+                  <th scope="col">في الأصل</th>
+                  <th scope="col">بالعربية</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((l) => (
+                  <tr key={`${l.src}:${l.ar}`}>
+                    <td>
+                      <bdi dir="auto">{l.src}</bdi>
+                    </td>
+                    <td>
+                      <BidiText text={l.ar} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
+        </div>
+      )}
+      <figcaption className={styles.credit}>
+        <p className={styles.figNote}>
+          <Languages aria-hidden />
+          <span>
+            {output
+              ? "تُرجمت تسميات هذا الرسم إلى العربية، وبقي الباقي كما هو."
+              : licence.adapt
+                ? "بقي هذا الرسم كما في مصدره، وهذه ترجمة تسمياته."
+                : "ترخيص هذا الرسم لا يسمح بتعديله، فبقي كما في مصدره، وهذه ترجمة تسمياته."}
+            {output && shareAlike && (
+              <>
+                {" "}
+                والنسخة العربية متاحة بالترخيص نفسه، <bdi lang="en">{licence.name}</bdi>.
+              </>
+            )}
+          </span>
+        </p>
+        <p className={styles.attr}>
+          {author && (
+            <span>
+              صاحب الرسم <bdi dir="auto">{author}</bdi>
+            </span>
+          )}
+          {licence.spdx === PUBLIC_DOMAIN ? (
+            <span title="قرأ الكود الترخيص من صفحة الملف">ملكية عامة</span>
+          ) : licence.url ? (
+            <a href={licence.url} target="_blank" rel="noopener noreferrer" lang="en" dir="ltr">
+              {licence.name}
+              <span className="sr-only"> (يفتح في نافذة جديدة)</span>
+            </a>
+          ) : (
+            <bdi lang="en">{licence.name}</bdi>
+          )}
+          <a href={file.page_url} target="_blank" rel="noopener noreferrer">
+            صفحة الملف
+            <ExternalLink aria-hidden />
+            <span className="sr-only"> (يفتح في نافذة جديدة، ومنها قرأ الكود الترخيص)</span>
+          </a>
+        </p>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -459,7 +614,14 @@ function QuizWay({ view, last }: { view: QuizView; last: Quiz }) {
 }
 
 function LessonView({ shown }: { shown: Extract<Shown, { kind: "lesson" }> }) {
-  const { lesson, sample, quiz, sources, glossary } = shown;
+  const { lesson, sample, quiz, sources, glossary, diagrams } = shown;
+  const last = lesson.sections.length - 1;
+  const figuresOf = (index: number) =>
+    diagrams === "making"
+      ? []
+      : diagrams
+          .filter((d) => Math.min(d.section, last) === index)
+          .map((d) => <DiagramFigure key={d.image_id} diagram={d} lessonId={lesson.id} />);
   return (
     <>
       <Terms>
@@ -486,8 +648,14 @@ function LessonView({ shown }: { shown: Extract<Shown, { kind: "lesson" }> }) {
               glossary={glossary}
               source={sources.find((s) => s.resource.id === section.source_excerpt.resource_id)}
               sample={sample}
-            />
+            >
+              {figuresOf(i)}
+            </LessonSection>
           ))}
+
+          {diagrams === "making" && (
+            <DiagramsBuilding sessionId={DEMO_SESSION_ID} lessonId={lesson.id} />
+          )}
 
           <LessonFoot lessonId={lesson.id} quiz={quiz} />
         </article>

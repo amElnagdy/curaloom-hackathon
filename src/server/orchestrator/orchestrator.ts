@@ -60,10 +60,13 @@ export function createOrchestrator({ store, makeProvider, clock }: OrchestratorO
     { key = agent.name }: { key?: string } = {},
   ): Promise<Static<S>> {
     const tracer = tracerFor(sessionId);
-    const state = store.readDoc<SessionState>(sessionId, SESSION_DOC) ?? { steps: {} };
+    const readState = () => store.readDoc<SessionState>(sessionId, SESSION_DOC) ?? { steps: {} };
+    const state = readState();
+    // Steps of one session can run at once, such as a lesson's quiz and its diagrams, so a step is
+    // recorded into the session as it is when the step ends.
     const record = (step: StepRecord) => {
-      state.steps[key] = step;
-      store.writeDoc(sessionId, SESSION_DOC, state);
+      const now = readState();
+      store.writeDoc(sessionId, SESSION_DOC, { ...now, steps: { ...now.steps, [key]: step } });
     };
     const emit = (event: Omit<TraceInput, "agent">) => tracer.emit({ agent: agent.name, ...event });
 

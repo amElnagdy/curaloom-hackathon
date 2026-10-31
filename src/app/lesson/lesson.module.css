@@ -470,6 +470,205 @@
   gap: var(--s-3);
 }
 
+/* Diagrams (#28): a card under both columns of the section it illustrates. The two versions share
+   one frame sized from the source, so switching between them moves nothing below. */
+.figure {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  border: var(--edge);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+.figureWaiting {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.figureWaiting[data-failed] {
+  color: var(--fail-ink);
+}
+.figureWaiting svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+.figHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-4);
+  padding: var(--s-3) var(--s-5);
+}
+.figTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  font-weight: 600;
+}
+.figTitle svg,
+.figNote svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: var(--ink-3);
+}
+.versions {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: var(--fill);
+}
+.versions label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
+}
+.versions label:hover {
+  color: var(--ink);
+}
+.versions label:has(:checked) {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+.versions label:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.versions input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.well {
+  padding: var(--s-6) var(--s-5);
+  background: var(--fill);
+}
+.frame {
+  position: relative;
+  aspect-ratio: var(--ratio);
+  inline-size: min(100%, var(--fit));
+  margin-inline: auto;
+}
+.frame img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    visibility 0s;
+}
+.figure:has(input[value="source"]:checked) .arabicImage,
+.figure:has(input[value="arabic"]:checked) .sourceImage {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    visibility 0s var(--dur-3);
+}
+.legendWrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 22rem));
+  gap: 0 var(--s-8);
+  align-items: start;
+  padding: var(--s-4) var(--s-5) var(--s-2);
+}
+.legend {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.legend th {
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-align: start;
+}
+.legend td {
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.legend td:first-child {
+  inline-size: 50%;
+  color: var(--ink-2);
+}
+.legend td:last-child {
+  font-weight: 500;
+}
+.legend tr:last-child td {
+  border-bottom: 0;
+}
+.credit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-3) var(--s-5) var(--s-4);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+.figNote {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  color: var(--ink-2);
+}
+.figNote svg {
+  margin-top: 0.2rem;
+}
+.attr {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+}
+.attr a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.attr a svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.breathing {
+  display: inline-block;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: var(--motion-breathe);
+}
+
 @media (max-width: 1100px) {
   .section {
     grid-template-columns: minmax(0, 1fr);
@@ -486,6 +685,22 @@
 @media (max-width: 760px) {
   .lesson {
     padding: var(--s-5) var(--s-4);
+  }
+  /* A diagram keeps a readable width and scrolls sideways in its band, from its left edge, since
+     the redrawn diagrams keep their left-to-right layout. */
+  .well {
+    overflow-x: auto;
+    direction: ltr;
+    padding: var(--s-4) var(--s-3);
+  }
+  .frame {
+    inline-size: min(var(--fit), 40rem);
+    margin-inline: 0;
+  }
+  .figHead,
+  .credit,
+  .legendWrap {
+    padding-inline: var(--s-4);
   }
   .glossItem {
     grid-template-columns: minmax(0, 1fr);

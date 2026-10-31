@@ -468,6 +468,80 @@ export const ReplanNote = Obj({
   ),
 });
 
+// A lesson's diagrams (#28). Spark reads and translates a diagram's labels (DiagramLabels) and lists
+// the text of an image for the check in code (ImageTexts); code builds each Diagram. The image bytes
+// stay in session blobs, which a Diagram names by ref.
+export const DiagramLabels = Obj({
+  caption_ar: Type.String({
+    description: "a short Arabic caption that says what the diagram shows, for a learner",
+  }),
+  labels: Type.Array(
+    Obj({
+      src: Type.String({ description: "the text exactly as written" }),
+      ar: Type.String({
+        description: "a short Modern Standard Arabic translation that fits the same space",
+      }),
+      box: Type.Array(Type.Integer(), {
+        description:
+          "[x_min, y_min, x_max, y_max] tight around the text, on a 0-1000 grid with (0,0) at the top left",
+      }),
+    }),
+  ),
+});
+
+export const ImageTexts = Obj({
+  texts: Type.Array(Type.String(), {
+    description: "every piece of text in the image exactly as written, one entry per text block",
+  }),
+});
+
+const DiagramImage = Obj({
+  ref: Type.String({ description: "the session blob that holds {mime, b64}" }),
+  mime: Type.String(),
+  width: Type.Integer(),
+  height: Type.Integer(),
+});
+
+export const DIAGRAM_METHODS = ["muse_image", "legend"] as const;
+
+export const Diagram = Obj({
+  image_id: Type.String(),
+  caption_ar: Type.String(),
+  resource_id: Type.String(),
+  // The lesson section it illustrates: the first that quotes the heading it sits under on its page,
+  // else the first that quotes its page, else the lesson's first.
+  section: Type.Integer(),
+  file: Obj({
+    title: Type.String(),
+    page_url: Type.String({ description: "the file page code read the licence and author from" }),
+    image_url: Type.String(),
+  }),
+  author: Nullable(Type.String()),
+  licence: Obj({
+    spdx: Type.String(),
+    name: Type.String({ description: "as the file page states it, e.g. CC BY-SA 2.5" }),
+    url: Nullable(Type.String()),
+    // CC0, public domain, CC BY and CC BY-SA allow relabelling; other licences show it unchanged.
+    adapt: Type.Boolean(),
+  }),
+  labels: Type.Array(
+    Obj({
+      src: Type.String(),
+      ar: Type.String(),
+      bbox: Type.Array(Type.Integer(), { description: "[x, y, width, height] in source pixels" }),
+    }),
+  ),
+  // legend: the source unchanged beside a table of its labels in Arabic.
+  method: StringEnum(DIAGRAM_METHODS),
+  source: DiagramImage,
+  output: Nullable(DiagramImage),
+  // How many Muse Image samples the code check read, and why the last one failed; no problems once
+  // one passed.
+  check: Obj({ attempts: Type.Integer(), problems: Type.Array(Type.String()) }),
+});
+
+export const LessonDiagrams = Obj({ diagrams: Type.Array(Diagram) });
+
 // What a learner can answer to the coach's day-10 check-in (#25).
 export const CHECKIN_CHOICES = ["pause", "shrink", "switch"] as const;
 // A learner's answer to a check-in, from the phone's buttons (#25). pause_days counts only with pause.
@@ -504,6 +578,10 @@ export const CONTRACTS = {
   CoachDraft,
   ReplanNote,
   CheckinReply,
+  DiagramLabels,
+  ImageTexts,
+  Diagram,
+  LessonDiagrams,
 };
 export type ContractName = keyof typeof CONTRACTS;
 
@@ -513,6 +591,8 @@ export type ContractName = keyof typeof CONTRACTS;
 // the lesson builder builds them from a LessonDraft. Nor are Quiz and QuizAttempt: the examiner
 // builds them from a QuizDraft, a KeyCheck and ShortGrades. Nor is CoachEvent: the coach builds it
 // around a CoachDraft. Nor is a re-planned CoursePlan: code builds it, and a ReplanNote explains it.
+// Nor are Diagram and LessonDiagrams: code builds them from DiagramLabels and checks them with
+// ImageTexts.
 export const AGENT_OUTPUTS = [
   "LearnerProfile",
   "IntakeReply",
@@ -526,6 +606,8 @@ export const AGENT_OUTPUTS = [
   "ShortGrades",
   "CoachDraft",
   "ReplanNote",
+  "DiagramLabels",
+  "ImageTexts",
 ] as const satisfies readonly ContractName[];
 
 export type LearnerProfile = Static<typeof LearnerProfile>;
@@ -557,6 +639,10 @@ export type CoachDraft = Static<typeof CoachDraft>;
 export type ReplanNote = Static<typeof ReplanNote>;
 export type CheckinChoice = (typeof CHECKIN_CHOICES)[number];
 export type CheckinReply = Static<typeof CheckinReply>;
+export type DiagramLabels = Static<typeof DiagramLabels>;
+export type ImageTexts = Static<typeof ImageTexts>;
+export type Diagram = Static<typeof Diagram>;
+export type LessonDiagrams = Static<typeof LessonDiagrams>;
 
 function nameOf(schema: TSchema): string {
   return Object.entries(CONTRACTS).find(([, s]) => s === schema)?.[0] ?? "value";
