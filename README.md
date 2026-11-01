@@ -71,14 +71,37 @@ The provider layer uses these API features:
 
 ## Set up
 
-You need Node.js 24 or later and pnpm 11. Run `corepack enable` to get the pnpm version that `package.json` names.
+You need git, Node.js 24 or later, and pnpm 11.7.0, the version `package.json` names. `.nvmrc` and `.node-version` name Node 24 for nvm, fnm and CI.
 
 ```sh
 git clone <repository URL> curaloom
 cd curaloom
+node -v
+```
+
+If `node -v` prints a version below `v24`, or no version, install Node 24 with [nvm](https://github.com/nvm-sh/nvm). Run this inside the clone, where `nvm install` reads `.nvmrc`:
+
+```sh
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+. ~/.nvm/nvm.sh
+nvm install
+node -v
+```
+
+`node -v` now prints `v24` and a minor version. Then get pnpm through Corepack, which comes with Node, and start the demo:
+
+```sh
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+corepack enable
+pnpm -v
 pnpm install
 pnpm demo:replay
 ```
+
+`pnpm -v` prints `11.7.0`.
+
+- `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` stops Corepack from asking before it downloads pnpm. The question waits for an answer forever in a script, an agent or CI.
+- `corepack enable` fails with `EACCES` when Node is installed for the whole system, because it writes links next to the `node` binary. Use Node from nvm as above, or run `corepack enable --install-directory ~/.local/bin` with `~/.local/bin` on your `PATH`.
 
 When the server prints `Ready`, open http://localhost:3107/intake. The replay needs no API key. The three Noto fonts ship in `src/app/fonts/`, so after `pnpm install` the build and the demo need no network.
 
