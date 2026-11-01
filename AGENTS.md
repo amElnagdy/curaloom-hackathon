@@ -9,7 +9,7 @@ pnpm check                    # lint, typecheck, test; the pre-commit hook runs 
 pnpm dev
 ```
 
-CI (`.github/workflows/ci.yml`) runs the same checks plus `pnpm build`, with no secrets.
+CI (`.github/workflows/ci.yml`) runs the same checks plus `pnpm build` and `pnpm e2e`, the presenter's walk in a browser, with no secrets.
 
 To see the UI while the user's `pnpm dev` runs (Next allows one dev server per checkout), run `pnpm preview`. It builds and serves on port 3107 (`DEMO_PORT` moves it), replays the recorded responses on their sample topic, and keeps its own build in `.next-preview/` and its own data in `.preview-data/`, emptied on each start, so it can run beside `pnpm demo:replay` on another `DEMO_PORT`. `docs/demo.md` covers the demo's other servers, its reset and re-recording.
 

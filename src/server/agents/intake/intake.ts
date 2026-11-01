@@ -20,6 +20,7 @@ import {
 } from "../../orchestrator/orchestrator.ts";
 import type { Provider } from "../../providers/provider.ts";
 import { type Cache, contentHash, type Store } from "../../store/store.ts";
+import { requestLevel } from "../recorded-level.ts";
 import {
   type DiagnosticQuestion,
   diagnosticErrors,
@@ -66,6 +67,8 @@ export type IntakeView = {
   // The learner's answer to each question and the level they set, once the quick check is done.
   picked: Record<string, string> | null;
   result: Result | null;
+  // The app's note under the closing reply when replay plans from another level (recordedLevelNote).
+  level_note_ar: string | null;
 };
 
 // A call that does not fit where the interview is, such as a message during the quick check.
@@ -145,6 +148,16 @@ const LEVEL: Record<Level, { ar: string; plan_ar: string }> = {
   intermediate: { ar: "متوسط", plan_ar: "فتبدأ خطتك بمراجعة قصيرة للأساسيات ثم تتجاوزها." },
   advanced: { ar: "متقدم", plan_ar: "فتتجاوز خطتك الأساسيات إلى ما بعدها." },
 };
+
+export const levelName = (level: Level) => LEVEL[level].ar;
+
+// The line that tells a learner at `level` their plan follows the recorded run's level, which
+// replay plans them from when theirs has no recordings (recorded-level.ts); null otherwise.
+export function recordedLevelNote(level: Level): string | null {
+  const planned = requestLevel(level);
+  if (planned === level) return null;
+  return `تُبنى خطتك في هذا العرض المسجّل على مسار ال${LEVEL[planned].ar}، أما خارج العرض فيبنيها التطبيق على مستواك.`;
+}
 
 const DIAGNOSTIC_INSTRUCTIONS =
   "Write three multiple-choice questions in Arabic that check what a learner already knows about the topic, from basic to harder, so that their starting level can be set. Each question has four short options and exactly one right answer; copy the answer exactly from options_ar. Write a technical term in Arabic with the English term in parentheses after it. Do not add an option such as «I don't know»: the app adds it.";
@@ -265,6 +278,14 @@ const profileBuilder: Agent<ProfileInput, typeof LearnerProfile> = {
       summary_ar: `الاختبار القصير: ${right} من ${diagnostic.scores.length}، والمستوى ${LEVEL[diagnostic.level].ar}`,
       summary_en: `Quick check: ${right} of ${diagnostic.scores.length} right; level ${diagnostic.level}`,
     });
+    const planned = requestLevel(diagnostic.level);
+    if (planned !== diagnostic.level) {
+      ctx.trace({
+        kind: "decision",
+        summary_ar: `يبني العرض المسجّل خطتك على مسار ال${LEVEL[planned].ar}، لا على مستواك ال${LEVEL[diagnostic.level].ar}`,
+        summary_en: `Replay has no recordings for level ${diagnostic.level}, so the recorded demo plans on the ${planned} path; the profile keeps ${diagnostic.level}`,
+      });
+    }
     const notes = [
       heard.history_notes ?? "",
       missing.length ? `لم تذكر في المقابلة: ${named(missing)}.` : "",
@@ -297,6 +318,7 @@ const viewOf = (state: IntakeState): IntakeView => ({
       : state.questions.map(({ answer: _, ...question }) => question),
   picked: state.status === "done" ? state.picked : null,
   result: state.status === "done" ? state.result : null,
+  level_note_ar: state.status === "done" ? recordedLevelNote(state.result.level) : null,
 });
 
 // The session's interview, or null before it starts.
@@ -440,7 +462,10 @@ export function createIntake({
       );
       store.writeDoc(sessionId, PROFILE_DOC, profile);
       const { ar, plan_ar } = LEVEL[diagnostic.level];
-      const closing = `شكرًا يا ${learner.name}، اكتملت المقابلة. مستواك الآن: ${ar}، ${plan_ar}`;
+      // plan_ar describes this level's plan, which replay does not build when it plans from another
+      // level; the note under the reply says so instead.
+      const plan = requestLevel(diagnostic.level) === diagnostic.level ? `، ${plan_ar}` : ".";
+      const closing = `شكرًا يا ${learner.name}، اكتملت المقابلة. مستواك الآن: ${ar}${plan}`;
       const done: Done = {
         ...state,
         status: "done",

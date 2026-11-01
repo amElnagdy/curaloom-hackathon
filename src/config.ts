@@ -22,8 +22,9 @@ export type Config = {
   // never writes into the dev server's.
   dataDir: string;
   // In replay, each recorded reply waits its recorded latency times this, so a demo paces like a
-  // live run (#30). 0 answers at once.
-  replayLatency: number;
+  // live run (#30). 0 answers at once. Unset, replay answers at once too, but a launcher may pick its
+  // own pace (demo/run.ts), which an explicit 0 overrides.
+  replayLatency: number | undefined;
 };
 
 type Env = Record<string, string | undefined>;
@@ -44,8 +45,8 @@ function parseChoice<const T extends readonly string[]>(
   throw new Error(`${name} must be one of ${choices.join(", ")}; got "${value}"`);
 }
 
-function parsePace(name: string, value: string | undefined): number {
-  if (value === undefined) return 0;
+function parsePace(name: string, value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
   const pace = Number(value);
   if (Number.isFinite(pace) && pace >= 0) return pace;
   throw new Error(`${name} must be a number of 0 or more; got "${value}"`);

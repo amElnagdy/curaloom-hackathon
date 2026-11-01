@@ -11,6 +11,7 @@ import {
   CircleCheck,
   CircleDashed,
   Clock,
+  History,
   Languages,
   Lightbulb,
   Lock,
@@ -29,7 +30,7 @@ import { config } from "../../config.ts";
 import { architectBrief, limitsOf, planFor } from "../../server/agents/architect/architect.ts";
 import { lighterWeek } from "../../server/agents/architect/replan.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
-import { savedProfile } from "../../server/agents/intake/intake.ts";
+import { levelName, recordedLevelNote, savedProfile } from "../../server/agents/intake/intake.ts";
 import { parseSimTime } from "../../server/clock/time.ts";
 import type { CheckinAnswer, ComebackView } from "../../server/coach/coach.ts";
 import { sessionSim } from "../../server/coach/session.ts";
@@ -210,6 +211,8 @@ export default async function PlanPage({ searchParams }: PageProps<"/plan">) {
   const saved = learner && planFor(store, DEMO_SESSION_ID, learner);
   const latest = saved?.versions.at(-1);
   const example = latestPlan(seed);
+  // In replay, a level with no recordings is planned as the recorded one (#55).
+  const levelNote = saved ? recordedLevelNote(profile.diagnostic.level) : null;
 
   const older =
     saved && latest && asked < latest.version
@@ -354,6 +357,11 @@ export default async function PlanPage({ searchParams }: PageProps<"/plan">) {
               <Callout icon={Lightbulb} tone={plan.explanation_ar ? "neutral" : "accent"}>
                 <b>لماذا هكذا؟</b> <BidiText text={plan.rationale_ar} />
               </Callout>
+              {levelNote && (
+                <Callout icon={History}>
+                  <b>مستواك: {levelName(profile.diagnostic.level)}.</b> {levelNote}
+                </Callout>
+              )}
             </div>
 
             <section className={styles.section} aria-labelledby="weeks-title">

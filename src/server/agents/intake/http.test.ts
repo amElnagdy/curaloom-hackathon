@@ -20,6 +20,7 @@ const VIEW: IntakeView = {
   questions: null,
   picked: null,
   result: null,
+  level_note_ar: null,
 };
 
 // An intake that records what it was asked and fails as told.

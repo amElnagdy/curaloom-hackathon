@@ -22,6 +22,7 @@ import {
 import type { Citation } from "../../providers/provider.ts";
 import { type Cache, contentHash } from "../../store/store.ts";
 import type { PageFetcher } from "../../tools/fetch-page.ts";
+import { requestLevel } from "../recorded-level.ts";
 import { classifyLicence, type LicenceCheck } from "./licence.ts";
 import { rank } from "./rank.ts";
 
@@ -41,7 +42,8 @@ export type ScoutBrief = {
 export function scoutBrief(profile: LearnerProfile): ScoutBrief {
   const langs = [...new Set(profile.source_langs_ok)];
   if (!langs.length) throw new Error("The learner's profile accepts no source language to search");
-  return { topic: profile.topic, goal: profile.goal, level: profile.diagnostic.level, langs };
+  const level = requestLevel(profile.diagnostic.level);
+  return { topic: profile.topic, goal: profile.goal, level, langs };
 }
 
 export type ScoutRun = {

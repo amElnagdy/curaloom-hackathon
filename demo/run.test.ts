@@ -40,6 +40,10 @@ describe("demoServer", () => {
     expect(served("replay", configEnv({ replayLatency: 0.5 })).config.replayLatency).toBe(0.5);
   });
 
+  it("replays unpaced when the environment sets the pace to 0", () => {
+    expect(served("replay", configEnv({ replayLatency: 0 })).config.replayLatency).toBe(0);
+  });
+
   it("replays the recorded topic whatever topic the environment chose", () => {
     expect(served("replay", configEnv({ demoTopic: "SQL basics" })).config.demoTopic).toBe(
       RECORDED_TOPIC,

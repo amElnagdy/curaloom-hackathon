@@ -3,8 +3,20 @@
 // this text, and a replay matches a request only by its exact text, so in replay the intake and quiz
 // pages offer this text to the presenter (docs/demo.md).
 
+import type { LearnerProfile } from "../contracts/index.ts";
+
 // The sample topic every recording is made on: the demo topic is not decided.
 export const RECORDED_TOPIC = "Excel pivot tables for data analysis";
+
+// The placement levels the recorded run has recordings for (#55). Omar answers «لا أعرف بعد» to all
+// three questions, so every recording is a beginner's. The scout's, the architect's and the lesson
+// builder's requests name the level, so replay plays any other level from the first one here
+// (src/server/agents/recorded-level.ts). Add a level only once its whole presenter path is recorded
+// (docs/demo.md, "When a recording is missing").
+export const RECORDED_LEVELS: readonly [
+  LearnerProfile["diagnostic"]["level"],
+  ...LearnerProfile["diagnostic"]["level"][],
+] = ["beginner"];
 
 // Omar's intake messages, in Gulf dialect, in order. He answers what a first interview asks,
 // whatever the model's wording.

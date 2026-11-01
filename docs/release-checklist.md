@@ -23,7 +23,8 @@ Replay finds each recording by a hash of the full request, the API path and the 
 **Before merging after Nov 3.** For any change under `src/server/`, `src/app/api/`, `contracts/`, `config/` or `demo/`:
 
 1. Run `pnpm check`. Its replay tests read all 88 recordings in `demo/fixtures/responses/` and all 37 in `demo/fixtures/pages/`, and a test fails when its request has no recording. The chain test in `src/server/agents/intake/intake.test.ts` replays the demo's path from the interview to the comeback, with the scout, the lessons, the quizzes and the diagrams.
-2. Walk the presenter steps in `docs/demo.md` on `pnpm demo:replay`, from the intake to lesson 2's diagram. No red banner may name a missing recording. The tests wire each agent themselves, and the app wires it again in its route handlers under `src/app/api/`. Only the walk checks the requests the app makes.
+2. Run `pnpm build`, then `pnpm e2e`. It clicks through the presenter steps in `docs/demo.md`, from the intake to lesson 2's diagram, on its own replay server, once for each level the short check can give: «لا أعرف بعد» three times, two right and all three right. It fails on any request with no recording ("The scripted walk" in `docs/demo.md`). CI runs it too. The tests wire each agent themselves, and the app wires it again in its route handlers under `src/app/api/`. Only a walk checks the requests the app makes.
+3. Walk the presenter steps by hand on `pnpm demo:replay` for what the scripted walk does not check: the voice chip, the pace and how the pages look. No red banner may name a missing recording.
 
 **If a re-record cannot be avoided.** It needs `MODEL_API_KEY`, live calls, and a decision from Ahmed, the owner.
 
@@ -106,7 +107,7 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
 ## Third-party notices
 
 - [x] **`THIRD_PARTY_NOTICES.md` is generated.** `pnpm notices` (`scripts/notices.ts`) writes it from `package.json`, `pnpm licenses list`, `pnpm-lock.yaml`, `src/app/layout.tsx`, the `lucide-react` imports in `src/`, and `demo/fixtures/`. It writes the same file on every system, and CI fails when the committed file is out of date. It lists:
-  - 12 direct dependencies with their versions and licences, the 57 packages pnpm installs on every system by licence, and the 72 platform binaries in the lockfile by family;
+  - 13 direct dependencies with their versions and licences, the 60 packages pnpm installs on every system by licence, and the 72 platform binaries in the lockfile by family;
   - the three Noto fonts, under OFL-1.1;
   - lucide-react under ISC, with the 18 icons in use that Lucide marks as derived from Feather, under MIT;
   - the 11 recorded source pages, each with its licence, its licence statement and the app's credit line.

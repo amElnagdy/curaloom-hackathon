@@ -13,7 +13,7 @@ describe("loadConfig", () => {
       notifierAdapter: "simulated",
       devTools: true,
       dataDir: join(process.cwd(), "data"),
-      replayLatency: 0,
+      replayLatency: undefined,
     });
   });
 

@@ -105,7 +105,7 @@ export function demoServer(mode: DemoMode, env: Env): DemoServer {
       }),
     };
   }
-  const pace = mode === "preview" ? 0 : chosen.replayLatency || DEMO_PACE;
+  const pace = mode === "preview" ? 0 : (chosen.replayLatency ?? DEMO_PACE);
   return {
     mode,
     dataDir: dataOf(mode),
@@ -159,7 +159,7 @@ async function main(command: string | undefined) {
   rmSync(server.dataDir, { recursive: true, force: true });
   const settings = loadConfig(server.env);
   console.log(
-    `${command} demo on http://${DEMO_HOST}:${port}: models ${settings.providerProfile}, pace ${settings.replayLatency}, topic "${settings.demoTopic}", data in ${server.dataDir}`,
+    `${command} demo on http://${DEMO_HOST}:${port}: models ${settings.providerProfile}, pace ${settings.replayLatency ?? 0}, topic "${settings.demoTopic}", data in ${server.dataDir}`,
   );
   const env = { ...process.env, ...server.env, NEXT_DIST_DIR: server.buildDir };
   run("next", ["build"], env);

@@ -21,6 +21,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --exclude \".claude/**\"",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "e2e": "playwright test -c e2e",
     "eval:arabic": "node --env-file-if-exists=.env evals/arabic/run.ts",
     "fixtures:record": "RECORD_FIXTURES=1 vitest run --exclude \".claude/**\" smoke.test intake.test architect.test examiner.test coach.test",
     "fixtures:prune": "node demo/fixtures/prune.ts",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",
+    "@playwright/test": "1.64.1",
     "@types/node": "^24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "^19.3.0",

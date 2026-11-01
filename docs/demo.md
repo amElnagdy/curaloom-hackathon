@@ -53,11 +53,11 @@ To make the clip again, run `say -v Majed -o msg.aiff "<text>"`, then `afconvert
 
 ## Presenter steps
 
-This is the recorded path, walked in a browser at 1440×900 on `pnpm demo:replay`. Answer exactly as written. A different pick or text changes the next request, and that request has no recording.
+This is the recorded path, walked in a browser at 1440×900 on `pnpm demo:replay`. Answer exactly as written. A different pick or text changes the next request, and that request has no recording. The short check in step 3 is the exception: any answers play.
 
 1. Run `pnpm demo:replay` and wait for `Ready`. Open `http://localhost:3107/intake` in a clean browser window at 1440×900.
 2. In the chat, click «استمع إلى الرسالة الصوتية المسجّلة وأرسلها للتفريغ». The clip plays for 9 seconds, then its transcript fills the composer. Click «املأ الرسالة المسجّلة (١ من ٣)», which replaces the transcript with the recorded text, then «أرسل». Wait for the interviewer's reply. For (٢ من ٣) and (٣ من ٣), click the chip, then «أرسل».
-3. In the short check, pick «لا أعرف بعد» in all three questions. Scroll down inside the chat and click «أرسل إجاباتك».
+3. In the short check, pick «لا أعرف بعد» in all three questions, as the recorded run did. Scroll down inside the chat and click «أرسل إجاباتك». Other answers play too, from the same recordings. A note under the interviewer's closing reply, and the same note on the plan page, then says that this recorded demo builds the plan on the beginner's path, and the trace drawer shows the swap once, under the quick check's score.
 4. Scroll down the page and click «اذهب إلى خطتك». The plan page builds the plan, then writes lesson 1, in about 50 seconds. When «ابدأ الدرس الأول» in the activity column turns blue, click it.
 5. Lesson 1 opens with a quiet line after its sections: «يبحث مُعرِّب الرسوم في مصادر هذا الدرس عن رسم…». About 45 seconds later the VisiCalc screenshot appears under the first section, with a two-column table of its labels in Arabic. Its two relabelled samples failed the code check, so the lesson shows the source, and the trace drawer shows both samples and why each failed. You do not have to wait for it. At the end of lesson 1, click «ابدأ الاختبار». While the quiz is still being written, the button reads «إلى الاختبار».
 6. First attempt. Pick these answers, then click «املأ الإجابة المسجّلة» under questions 5 and 6, and click «سلّم الإجابات». The score is 75%.
@@ -88,6 +88,14 @@ Paths off this list:
 - Keep the coach's tone at «لطيف». The coach's request carries the tone.
 - Two other paths have recordings, played by the chain test: «مصدر آخر» in step 10 with the review answered as in step 11, and «جلسات أقصر» with a review of 4 or 5 right. A browser has not walked them.
 
+## The scripted walk
+
+`pnpm e2e` clicks through presenter steps 1 to 13 in Chromium with Playwright, against the built app. Run `pnpm build` first, and `pnpm exec playwright install chromium` once to download the browser.
+
+Each test starts its own replay server on emptied data in a temporary folder, unpaced, as `pnpm preview` runs. The server listens on port 3190, or on `E2E_PORT`, so the walk runs beside `pnpm dev` and `pnpm preview`. The walk answers the short check three ways, in three tests: «لا أعرف بعد» in all three questions (beginner), two right and «لا أعرف بعد» (intermediate), and all three right (advanced). For the last two it also checks the note on the intake and the plan page, and the one trace event for the swap. A request with no recording fails the walk at once with the server's log line for it, and at the end the walk checks the trace for calls and pages that had no recording. The three tests take about 35 seconds together. CI runs the walk after `pnpm build`.
+
+The walk clicks the typed-text chips, not the voice chip in step 2, and it checks what each step shows, not how the pages look. Each test keeps its server's log in `e2e/test-results/`, and a test that fails keeps its Playwright trace there too. When the walk fails, CI uploads that folder as the `e2e-test-results` artifact.
+
 ## When a recording is missing
 
 A request with no recording fails at once. It does not wait for a timeout.
@@ -100,6 +108,16 @@ A request with no recording fails at once. It does not wait for a timeout.
 The banner stays until the next reset. The failed step can still play its recording. In the intake, click the chip and send the recorded text again.
 
 To fix it, record the request as described next. The hash names the file the recording goes in.
+
+The short check never leads here. The scout's, the architect's and the lesson builder's requests carry the learner's level, and every recording is a beginner's. `RECORDED_LEVELS` in `demo/script.ts` lists the levels that have recordings. In replay, `requestLevel()` in `src/server/agents/recorded-level.ts` sends any other level as the first one listed, and the learner's profile keeps their own level. Live and record modes send the learner's level.
+
+To add a level to the recorded demo:
+
+1. Record its whole presenter path: the scout, the architect, lessons 1 and 2 and their diagrams, lesson 1's two quizzes and the comeback review with their grading, the coach's messages and the comeback's re-plan. The lessons and quizzes are written from the plan, so a level with only its plan recorded stops at lesson 1. Add a chain test that answers the check at that level and walks the path, then run `pnpm fixtures:record` and `pnpm fixtures:prune`.
+2. Only then add the level to `RECORDED_LEVELS`. `requestLevel()` swaps a whole level or none of it, so once the level is listed, every request for it carries it.
+3. Change that level's walk in `e2e/replay.e2e.ts` with it: the all-right placement for `advanced`, the mixed one for `intermediate`. It no longer borrows (`borrowed: false`), and its quiz picks in steps 6, 7 and 11 must answer that level's quizzes.
+
+Steps 1 and 2 change `demo/fixtures/` and `demo/script.ts`, which the replay freeze covers from Nov 3.
 
 ## Re-recording
 

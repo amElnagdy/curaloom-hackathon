@@ -130,6 +130,7 @@ For development only, `pnpm dev` runs the Next.js dev server on port 3000. It li
 | `pnpm eval:arabic --model <model>`            | Runs the Arabic quality eval. Needs `MODEL_API_KEY`.                                                |
 | `pnpm fixtures:record`, `pnpm fixtures:prune` | Record the model replies the tests need, then delete the ones no test replays.                      |
 | `pnpm notices`                                | Writes `THIRD_PARTY_NOTICES.md` from the installed packages, the fonts, the icons and the fixtures. |
+| `pnpm e2e`                                    | Clicks the presenter steps in Chromium on a replay server, once per placement level. Build first.   |
 
 ## Replay mode
 

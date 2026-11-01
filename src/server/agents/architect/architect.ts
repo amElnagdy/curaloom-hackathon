@@ -21,6 +21,7 @@ import {
 } from "../../orchestrator/orchestrator.ts";
 import { contentHash, type Store } from "../../store/store.ts";
 import type { Tracer } from "../../trace/trace.ts";
+import { requestLevel } from "../recorded-level.ts";
 import {
   MAX_NOTE,
   noteViolations,
@@ -63,7 +64,7 @@ export function architectBrief(profile: LearnerProfile, resources: Resource[]): 
   return {
     topic: profile.topic,
     goal: profile.goal,
-    level: profile.diagnostic.level,
+    level: requestLevel(profile.diagnostic.level),
     background: profile.background,
     hours_per_week: profile.hours_per_week,
     history_notes: profile.history_notes,

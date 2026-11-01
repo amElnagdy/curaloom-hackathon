@@ -87,6 +87,29 @@
   font-weight: 600;
   color: var(--ink-2);
 }
+/* The app's own note in the thread, in neither speaker's voice: dashed like the replay's chips. */
+.note {
+  align-self: center;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  max-width: 85%;
+  padding: var(--s-2) var(--s-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  animation: var(--motion-arrive);
+}
+.note :global(.lucide) {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-top: 0.3rem;
+  color: var(--ink-3);
+}
 .typing {
   display: inline-flex;
   gap: 0.3rem;
@@ -387,7 +410,8 @@
 }
 @media (max-width: 760px) {
   .from,
-  .mine {
+  .mine,
+  .note {
     max-width: 92%;
   }
   .check {

@@ -25,6 +25,7 @@ import { contentHash, type Store } from "../../store/store.ts";
 import type { FetchOutcome, PageFetcher } from "../../tools/fetch-page.ts";
 import { planFor } from "../architect/architect.ts";
 import { lessonOpen } from "../examiner/rules.ts";
+import { requestLevel } from "../recorded-level.ts";
 import { classifyLicence } from "../scout/licence.ts";
 import {
   excerptOf,
@@ -77,7 +78,7 @@ export function lessonBrief(
   return {
     topic: profile.topic,
     goal: profile.goal,
-    level: profile.diagnostic.level,
+    level: requestLevel(profile.diagnostic.level),
     background: profile.background,
     lesson: {
       id: lesson.id,

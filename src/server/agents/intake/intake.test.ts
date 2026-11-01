@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type CoursePlan,
   contractErrors,
@@ -20,7 +20,7 @@ import {
   SHORT_ANSWERS,
 } from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
-import { loadConfig } from "../../../config.ts";
+import { loadConfig, type ProviderProfile } from "../../../config.ts";
 import { comebackResponse, consentResponse, inboxResponse, simResponse } from "../../clock/http.ts";
 import { sessionSim } from "../../coach/session.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
@@ -141,7 +141,11 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function setup(heard: Heard[] = [EVERYTHING], script: Omit<Script, "heard"> = {}) {
+function setup(
+  heard: Heard[] = [EVERYTHING],
+  script: Omit<Script, "heard"> = {},
+  create: typeof createIntake = createIntake,
+) {
   const dir = mkdtempSync(join(tmpdir(), "intake-"));
   dirs.push(dir);
   const store = createFileStore(dir);
@@ -149,7 +153,7 @@ function setup(heard: Heard[] = [EVERYTHING], script: Omit<Script, "heard"> = {}
   const fake = fakeProvider({ heard, ...script });
   const orchestrator = createOrchestrator({ store, makeProvider: () => fake.provider });
   const intake = (sessionId = "s1") =>
-    createIntake({
+    create({
       orchestrator,
       store,
       cache,
@@ -364,6 +368,87 @@ describe("intake", () => {
     expect(summaries).toMatch(/goal, hours_per_week/);
     expect(summaries).not.toMatch(/٠٥٥١٢٣٤٥٦٧|خمس ساعات/);
   });
+});
+
+// The intake as a server in `mode` runs it: config is read once, when the modules load.
+async function intakeIn(mode: ProviderProfile) {
+  vi.stubEnv("PROVIDER_PROFILE", mode);
+  vi.resetModules();
+  return (await import("./intake.ts")).createIntake;
+}
+
+const ALL_RIGHT = { q1: "صحيح 1", q2: "صحيح 2", q3: "صحيح 3" };
+const NONE_KNOWN = { q1: DONT_KNOW, q2: DONT_KNOW, q3: DONT_KNOW };
+
+describe("intake, in replay (#55)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  // A server in `mode`: one message, then the quick check answered as given. Returns the view and
+  // what the intake traced as it closed.
+  async function closed(mode: ProviderProfile, answers: Record<string, string>) {
+    const { intake, store } = setup([EVERYTHING], {}, await intakeIn(mode));
+    intake().start();
+    await intake().message("أنا محاسب وأبي أصير محلل بيانات");
+    const before = store.readTrace<TraceEvent>("s1").length;
+    const view = await intake().answer(answers);
+    const decisions = store
+      .readTrace<TraceEvent>("s1")
+      .slice(before)
+      // The intake's own decisions, not the orchestrator's start of the step.
+      .filter((e) => e.kind === "decision" && !e.summary_en.startsWith("Starting step"))
+      .map(({ summary_ar, summary_en }) => ({ summary_ar, summary_en }));
+    return { view, decisions, reread: intake().view(), store };
+  }
+
+  it("closes on a level with no recordings with the level alone, and a note of the app's under it", async () => {
+    const { view, reread, store } = await closed("replay", ALL_RIGHT);
+
+    expect(view.turns.at(-1)?.text_ar).toBe("شكرًا يا عمر، اكتملت المقابلة. مستواك الآن: متقدم.");
+    expect(view.level_note_ar).toBe(
+      "تُبنى خطتك في هذا العرض المسجّل على مسار المبتدئ، أما خارج العرض فيبنيها التطبيق على مستواك.",
+    );
+    expect(reread?.level_note_ar).toBe(view.level_note_ar);
+    expect(savedProfile(store, "s1")?.diagnostic.level).toBe("advanced");
+  });
+
+  it("closes the recorded beginner's interview as before, with no note", async () => {
+    const { view } = await closed("replay", NONE_KNOWN);
+
+    expect(view.turns.at(-1)?.text_ar).toBe(
+      "شكرًا يا عمر، اكتملت المقابلة. مستواك الآن: مبتدئ، فتبدأ خطتك من الأساسيات.",
+    );
+    expect(view.level_note_ar).toBeNull();
+  });
+
+  it("traces once that the recorded demo plans a level with no recordings on the beginner's path (#88)", async () => {
+    const { decisions } = await closed("replay", { ...ALL_RIGHT, q3: DONT_KNOW });
+
+    expect(decisions).toEqual([
+      {
+        summary_ar: "الاختبار القصير: 2 من 3، والمستوى متوسط",
+        summary_en: "Quick check: 2 of 3 right; level intermediate",
+      },
+      {
+        summary_ar: "يبني العرض المسجّل خطتك على مسار المبتدئ، لا على مستواك المتوسط",
+        summary_en:
+          "Replay has no recordings for level intermediate, so the recorded demo plans on the beginner path; the profile keeps intermediate",
+      },
+    ]);
+  });
+
+  it.each([
+    ["replay", "a beginner", NONE_KNOWN, "الاختبار القصير: 0 من 3، والمستوى مبتدئ"],
+    ["live", "an advanced learner", ALL_RIGHT, "الاختبار القصير: 3 من 3، والمستوى متقدم"],
+    ["record", "an advanced learner", ALL_RIGHT, "الاختبار القصير: 3 من 3، والمستوى متقدم"],
+  ] as const)(
+    "in %s, plans %s on their own level: no swap traced, and no note",
+    async (mode, _learner, answers, quickCheck) => {
+      const { view, decisions } = await closed(mode, answers);
+
+      expect(decisions.map((d) => d.summary_ar)).toEqual([quickCheck]);
+      expect(view.level_note_ar).toBeNull();
+    },
+  );
 });
 
 // The recorded run's topic and Omar's words come from demo/script.ts, which the replayed pages offer

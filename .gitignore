@@ -32,3 +32,6 @@ evals/**/results-*-partial.*
 
 # Agent worktrees made by Claude Code
 .claude/worktrees/
+
+# Playwright output of `pnpm e2e`
+e2e/test-results/

@@ -10,6 +10,7 @@ import {
   AudioLines,
   Check,
   CircleDashed,
+  History,
   Languages,
   LoaderCircle,
   MessageCircle,
@@ -343,6 +344,12 @@ export function Interview({
                 </Fragment>
               ))}
               {checkAt === turns.length && check}
+              {view?.level_note_ar && (
+                <p className={styles.note} role="note">
+                  <History aria-hidden />
+                  {view.level_note_ar}
+                </p>
+              )}
               {sending && (
                 <>
                   <Message turn={{ role: "learner", text_ar: sending, heard: [] }} />
