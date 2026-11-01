@@ -24,12 +24,12 @@ import Link from "next/link";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import type { GlossaryEntry, Lesson, Quiz, QuizAttempt } from "../../../../contracts/index.ts";
-import { recordedShortAnswers } from "../../../../demo/script.ts";
 import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
 import { config } from "../../../config.ts";
 import { PASS_THRESHOLD, quizView } from "../../../server/agents/examiner/examiner.ts";
 import { type QuizView, withoutKeys } from "../../../server/agents/examiner/rules.ts";
 import { termMarks } from "../../../server/agents/lesson/rules.ts";
+import { replayShortAnswers } from "../../../server/agents/recorded-level.ts";
 import { Callout, MetaItem, Page, PageHead } from "../../_shell/blocks.tsx";
 import {
   ATTEMPTS,
@@ -42,7 +42,7 @@ import {
 } from "../../_shell/format.ts";
 import { type CourseLesson, learnerCourse } from "../../_shell/lessons.ts";
 import { nextStep, type Progress, progressOf } from "../../_shell/next-step.ts";
-import { BidiText, buttonClass, cx, DirIcon, StatusPill } from "../../_shell/ui.tsx";
+import { BidiText, buttonClass, cx, DirIcon, ReplayNote, StatusPill } from "../../_shell/ui.tsx";
 import { LockedBody, MissingLesson } from "../../lesson/states.tsx";
 import {
   FocusOnArrival,
@@ -164,18 +164,22 @@ function ReviewLinks({ item, course }: { item: Item; course: Course }) {
   );
 }
 
+// `own` is the learner's answer when replay graded the recorded one in its place (#55).
 function ReviewCard({
   item,
   index,
   graded,
+  own,
   course,
 }: {
   item: Item;
   index: number;
   graded: Graded;
+  own: string | undefined;
   course: Course;
 }) {
   const full = graded.score >= 1;
+  const theirs = own === undefined ? "إجابتك" : "الإجابة المسجّلة";
   return (
     <li>
       <article className={cx(styles.q, styles.reviewed)} id={`q-${item.id}`}>
@@ -214,7 +218,7 @@ function ReviewCard({
                     {(chosen || correct) && (
                       <span className={styles.optTag}>
                         {correct ? <Check aria-hidden /> : <X aria-hidden />}
-                        {chosen ? "إجابتك" : "الإجابة الصحيحة"}
+                        {chosen ? theirs : "الإجابة الصحيحة"}
                       </span>
                     )}
                   </li>
@@ -223,11 +227,24 @@ function ReviewCard({
             </ul>
           ) : (
             <div className={styles.resp}>
-              <span className={styles.respLabel}>إجابتك</span>
+              <span className={styles.respLabel}>{theirs}</span>
               <p className={styles.respText} dir="rtl">
                 <BidiText text={graded.response} />
               </p>
             </div>
+          )}
+          {own !== undefined && (
+            <ReplayNote>
+              {item.type === "mcq" ? (
+                <>
+                  في العرض المسجّل صُحّحت الإجابة المسجّلة بدل اختيارك «
+                  <BidiText text={own.replace(/\.\s*$/, "")} />
+                  ».
+                </>
+              ) : (
+                "في العرض المسجّل صُحّحت الإجابة المسجّلة بدل إجابتك."
+              )}
+            </ReplayNote>
           )}
           <div className={styles.feedback}>
             <Callout icon={full ? CircleCheck : Info} tone={full ? "ready" : "attention"}>
@@ -249,13 +266,14 @@ function ReviewCard({
   );
 }
 
-// The score against the gate, filled from the right.
-function ScoreBar({ score, gate }: { score: number; gate: number }) {
+// The score against the gate, filled from the right. `whose` names it: the learner's, or in replay
+// the one with the recorded answers (#55).
+function ScoreBar({ score, gate, whose }: { score: number; gate: number; whose: string }) {
   return (
     <div
       className={styles.score}
       role="img"
-      aria-label={`نتيجتك ${percent(score)}، والنجاح عند ${percent(gate)}`}
+      aria-label={`${whose} ${percent(score)}، والنجاح عند ${percent(gate)}`}
     >
       <div className={styles.scoreTrack}>
         <span className={styles.scoreFill} style={{ inlineSize: `${score * 100}%` }} />
@@ -277,6 +295,10 @@ function Result({ shown }: { shown: Extract<Shown, { kind: "result" }> }) {
   });
   const missed = graded.filter((g) => g.answer.score < 1);
   const total = attempt.answers.reduce((sum, a) => sum + a.score, 0);
+  const replaced = shown.view.replaced?.[attempt.id] ?? [];
+  const keyed = replaced.some((r) => quiz.items.find((i) => i.id === r.item_id)?.type === "mcq");
+  // In replay the result is partly the recorded answers', so it is not credited to the learner.
+  const whose = replaced.length > 0 ? "النتيجة مع الإجابات المسجّلة" : "نتيجتك";
   const gate = percent(quiz.pass_threshold);
   const nextName = next && (
     <BidiText text={`الدرس ${ordinal(next.position)}: ${next.planned.title_ar}`} />
@@ -288,16 +310,29 @@ function Result({ shown }: { shown: Extract<Shown, { kind: "result" }> }) {
         aria-labelledby={RESULT_ID}
       >
         <h2 className={styles.resultTitle} id={RESULT_ID} tabIndex={-1}>
-          <span>{attempt.passed ? "اجتزت الاختبار" : "لم تجتز الاختبار بعد"}</span>
-          <span className="sr-only">، نتيجتك </span>
+          <span>
+            {attempt.passed
+              ? replaced.length > 0
+                ? "اجتزت الاختبار في العرض المسجّل"
+                : "اجتزت الاختبار"
+              : "لم تجتز الاختبار بعد"}
+          </span>
+          <span className="sr-only">، {whose} </span>
           <span className={styles.pct}>{percent(attempt.score)}</span>
         </h2>
         {!sample && <FocusOnArrival quizId={quiz.id} />}
-        <ScoreBar score={attempt.score} gate={quiz.pass_threshold} />
+        <ScoreBar score={attempt.score} gate={quiz.pass_threshold} whose={whose} />
         <p className={styles.resultSum}>
-          {`مجموع درجاتك ${arabicNumber(total)} من ${arabicNumber(quiz.items.length)}، والنجاح عند ${gate}.`}
+          {`${replaced.length > 0 ? "مجموع الدرجات مع الإجابات المسجّلة" : "مجموع درجاتك"} ${arabicNumber(total)} من ${arabicNumber(quiz.items.length)}، والنجاح عند ${gate}.`}
           {attempt.passed && missed.length > 0 && " ملاحظة الممتحن على كل سؤال معه أدناه."}
         </p>
+        {replaced.length > 0 && (
+          <ReplayNote>
+            {keyed
+              ? "لا يضم العرض المسجّل اختبارًا بعد هذا، فصُحّحت الإجابات المسجّلة بدل إجاباتك ليُفتح الدرس التالي."
+              : "في العرض المسجّل صُحّحت الإجابات القصيرة المسجّلة بدل إجاباتك، فالعرض لا يصحّح سواها."}
+          </ReplayNote>
+        )}
 
         {attempt.passed ? (
           <div className={styles.next}>
@@ -393,11 +428,18 @@ function Result({ shown }: { shown: Extract<Shown, { kind: "result" }> }) {
 
       <section aria-labelledby="answers-title">
         <h2 className="sr-only" id="answers-title">
-          إجاباتك وملاحظات الممتحن
+          {replaced.length > 0 ? "الإجابات وملاحظات الممتحن" : "إجاباتك وملاحظات الممتحن"}
         </h2>
         <ol className={styles.items}>
           {graded.map(({ item, index, answer }) => (
-            <ReviewCard key={item.id} item={item} index={index} graded={answer} course={shown} />
+            <ReviewCard
+              key={item.id}
+              item={item}
+              index={index}
+              graded={answer}
+              own={replaced.find((r) => r.item_id === item.id)?.response}
+              course={shown}
+            />
           ))}
         </ol>
       </section>
@@ -451,6 +493,7 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[lessonId]">
   const quiz = shown.kind === "writing" ? undefined : shown.quiz;
   const gate = quiz?.pass_threshold ?? PASS_THRESHOLD;
   const tries = view.mastery?.attempts ?? view.attempts.length;
+  const recorded = replayShortAnswers(lesson.id, view.quizzes.length - 1);
   const best = view.mastery?.best_score ?? Math.max(0, ...view.attempts.map((a) => a.score));
   const lede =
     shown.kind === "result" && shown.sample ? (
@@ -510,9 +553,10 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[lessonId]">
             quiz={withoutKeys(shown.quiz)}
             sessionId={DEMO_SESSION_ID}
             lessonId={lesson.id}
-            recorded={
-              config.providerProfile === "replay"
-                ? recordedShortAnswers(lesson.id, view.quizzes.length - 1)
+            recorded={recorded}
+            closed={
+              config.providerProfile === "replay" && !recorded
+                ? "لا يصحّح العرض المسجّل هذا الاختبار، فأسئلته هنا للقراءة فقط."
                 : undefined
             }
             note={

@@ -93,6 +93,9 @@
   max-width: 62rem;
   margin-inline: auto;
 }
+.held {
+  margin-block-end: var(--s-4);
+}
 
 .title {
   font-size: 2.5rem;
@@ -545,6 +548,9 @@
 }
 .editorProblem {
   color: var(--attn-ink);
+}
+.unsaved {
+  flex-basis: 100%;
 }
 .editorProblem > svg {
   color: var(--attn);

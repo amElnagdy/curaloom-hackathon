@@ -20,6 +20,7 @@ import {
 import { readSimNow } from "../../clock/clock.ts";
 import {
   type Agent,
+  type AgentContext,
   type createOrchestrator,
   withFeedback,
 } from "../../orchestrator/orchestrator.ts";
@@ -37,6 +38,7 @@ import {
   type QuizView,
   quizDue,
   quizViolations,
+  type Replaced,
   repeatViolations,
 } from "./rules.ts";
 
@@ -188,7 +190,16 @@ const quizWriter: Agent<QuizBrief, typeof Quiz> = {
   },
 };
 
-export type GradeBrief = { quiz: Quiz; responses: Answer[]; sim_day: number };
+// `responses` are the learner's. In replay (#55), `recorded` holds the recorded run's short answers to
+// this quiz, in the order of its short items, and the judge reads them in place of the learner's,
+// since a replayed reply answers only the request it was recorded for. `last` says no quiz after
+// this one is recorded.
+export type GradeBrief = {
+  quiz: Quiz;
+  responses: Answer[];
+  sim_day: number;
+  recorded?: { shorts: readonly string[]; last: boolean };
+};
 
 // The short answers the judge grades, for the trace: Arabic has its own forms for one and two.
 const SHORTS_AR: Record<number, string> = { 1: "الإجابة القصيرة", 2: "الإجابتين القصيرتين" };
@@ -199,9 +210,20 @@ const halfStep = (score: number) => Math.min(1, Math.max(0, Math.round(score * 2
 const grader: Agent<GradeBrief, typeof QuizAttempt> = {
   name: "examiner",
   output: QuizAttempt,
-  async run(ctx, { quiz, responses, sim_day }) {
-    const responseTo = (id: string) => responses.find((r) => r.item_id === id)?.response ?? "";
+  async run(ctx, { quiz, responses, sim_day, recorded }) {
     const shorts = quiz.items.filter((item) => item.type === "short");
+    const own = (id: string) => responses.find((r) => r.item_id === id)?.response ?? "";
+    const responseTo = (id: string) =>
+      recorded?.shorts[shorts.findIndex((item) => item.id === id)] ?? own(id);
+    const replaced = shorts.filter((item) => responseTo(item.id) !== own(item.id)).length;
+    if (replaced) {
+      ctx.trace({
+        kind: "decision",
+        summary_ar:
+          "في العرض المسجّل يصحّح الممتحن الإجابات القصيرة المسجّلة بدل إجاباتك، فالعرض لا يجيب إلا عنها",
+        summary_en: `Replay: grading the recorded short answers in place of ${replaced} of the learner's, which have no recording`,
+      });
+    }
     const grades = shorts.length
       ? validate(
           ShortGrades,
@@ -241,7 +263,8 @@ const grader: Agent<GradeBrief, typeof QuizAttempt> = {
         feedback_ar: grade.feedback_ar,
       };
     });
-    const attempt = attemptOf(quiz, answers, sim_day);
+    const graded = attemptOf(quiz, answers, sim_day);
+    const attempt = recorded?.last && !graded.passed ? keyed(ctx, quiz, answers, sim_day) : graded;
     const percent = Math.round(attempt.score * 100);
     ctx.trace({
       kind: "decision",
@@ -251,6 +274,30 @@ const grader: Agent<GradeBrief, typeof QuizAttempt> = {
     return attempt;
   },
 };
+
+// Replay only (#55): below the gate on the lesson's last recorded quiz, the next quiz has no
+// recording, so the attempt's wrong multiple-choice answers take their keys.
+function keyed(
+  ctx: Pick<AgentContext, "trace">,
+  quiz: Quiz,
+  answers: QuizAttempt["answers"],
+  simDay: number,
+): QuizAttempt {
+  let count = 0;
+  const fixed = answers.map((a) => {
+    const item = quiz.items.find((i) => i.id === a.item_id);
+    if (item?.type !== "mcq" || a.score === 1) return a;
+    count++;
+    return { item_id: a.item_id, response: item.answer, ...gradeChoice(item, item.answer) };
+  });
+  ctx.trace({
+    kind: "decision",
+    summary_ar:
+      "لا يضم العرض المسجّل اختبارًا بعد هذا، فاحتُسبت الإجابة الصحيحة في كل سؤال اختيار أخطأت فيه",
+    summary_en: `Replay: no quiz after this one is recorded, so ${count} wrong multiple-choice answers were graded as their keys`,
+  });
+  return attemptOf(quiz, fixed, simDay);
+}
 
 // The plan's lessons as the examiner needs them: their ids in plan order, the ones written so far
 // with the course glossary, and the learner's background.
@@ -289,6 +336,7 @@ export type SavedQuizzes = {
   quizzes: Quiz[];
   attempts: QuizAttempt[];
   mastery: Mastery[];
+  replaced?: Replaced;
 };
 
 // The session's quizzes for the plan, none if they were written for another one.
@@ -317,11 +365,21 @@ export function forgetLessonAndQuiz(
   }
 }
 
-export const quizView = (saved: SavedQuizzes, lessonId: string): QuizView => ({
-  quizzes: saved.quizzes.filter((q) => q.lesson_id === lessonId),
-  attempts: saved.attempts.filter((a) => a.lesson_id === lessonId),
-  mastery: saved.mastery.find((m) => m.lesson_id === lessonId),
-});
+export function quizView(saved: SavedQuizzes, lessonId: string): QuizView {
+  const attempts = saved.attempts.filter((a) => a.lesson_id === lessonId);
+  const replaced = Object.fromEntries(
+    attempts.flatMap((a) => {
+      const own = saved.replaced?.[a.id];
+      return own ? [[a.id, own]] : [];
+    }),
+  );
+  return {
+    quizzes: saved.quizzes.filter((q) => q.lesson_id === lessonId),
+    attempts,
+    mastery: saved.mastery.find((m) => m.lesson_id === lessonId),
+    ...(Object.keys(replaced).length > 0 && { replaced }),
+  };
+}
 
 export class QuizNotFound extends Error {}
 // No plan, a lesson not written yet or still locked, or answers to a quiz that is no longer the one
@@ -343,9 +401,11 @@ export type ExaminerDeps = {
   store: Store;
   sessionId: string;
   course(): Course | undefined;
+  // Replay only (#55): the recorded run's short answers to a lesson's `n`th quiz, if it has them.
+  recorded?(lessonId: string, n: number): readonly string[] | undefined;
 };
 
-export function createExaminer({ orchestrator, store, sessionId, course }: ExaminerDeps) {
+export function createExaminer({ orchestrator, store, sessionId, course, recorded }: ExaminerDeps) {
   const read = (c: Course) => savedQuizzes(store, sessionId, c.plan_id);
   const courseFor = (lessonId: string) => {
     const c = course();
@@ -398,13 +458,15 @@ export function createExaminer({ orchestrator, store, sessionId, course }: Exami
     // day answer that attempt again.
     async attempt(lessonId: string, quizId: string, responses: Answer[]) {
       const { c, saved } = courseFor(lessonId);
-      const quiz = quizView(saved, lessonId).quizzes.at(-1);
+      const { quizzes } = quizView(saved, lessonId);
+      const quiz = quizzes.at(-1);
       if (!quiz || quiz.id !== quizId) {
         throw new QuizConflict(`Quiz ${quizId} is not the one to take for lesson ${lessonId}`);
       }
       const problems = answerProblems(quiz, responses);
       if (problems.length) throw new AttemptInvalid(problems.join("; "));
 
+      const shorts = recorded?.(lessonId, quizzes.length - 1);
       const brief: GradeBrief = {
         quiz,
         responses: quiz.items.map((item) => ({
@@ -412,18 +474,26 @@ export function createExaminer({ orchestrator, store, sessionId, course }: Exami
           response: responses.find((r) => r.item_id === item.id)?.response.trim() ?? "",
         })),
         sim_day: readSimNow(store, sessionId).day,
+        ...(shorts && {
+          recorded: { shorts, last: !recorded?.(lessonId, quizzes.length) },
+        }),
       };
       const graded = saved.attempts.find((a) => a.quiz_id === quiz.id);
       if (graded) {
+        const own = saved.replaced?.[graded.id] ?? [];
+        const answered = (id: string) =>
+          (own.find((a) => a.item_id === id) ?? graded.answers.find((a) => a.item_id === id))
+            ?.response;
         const same =
           graded.sim_day === brief.sim_day &&
-          brief.responses.every(
-            (r) => graded.answers.find((a) => a.item_id === r.item_id)?.response === r.response,
-          );
+          brief.responses.every((r) => answered(r.item_id) === r.response);
         if (!same) throw new QuizConflict(`Quiz ${quizId} is graded; the lesson needs a new quiz`);
         return { attempt: graded, ...quizView(saved, lessonId) };
       }
       const attempt = await gradeAnswers(orchestrator, sessionId, brief);
+      const replaced = brief.responses.filter(
+        (r) => attempt.answers.find((a) => a.item_id === r.item_id)?.response !== r.response,
+      );
       // Read again: another call may have saved while the step ran, this attempt too.
       const fresh = read(c);
       const next: SavedQuizzes = fresh.attempts.some((a) => a.id === attempt.id)
@@ -438,6 +508,9 @@ export function createExaminer({ orchestrator, store, sessionId, course }: Exami
                 attempt,
               ),
             ],
+            ...(replaced.length > 0 && {
+              replaced: { ...fresh.replaced, [attempt.id]: replaced },
+            }),
           };
       store.writeDoc(sessionId, QUIZZES_DOC, next);
       return { attempt, ...quizView(next, lessonId) };

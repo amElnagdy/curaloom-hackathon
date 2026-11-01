@@ -39,6 +39,7 @@ import {
   StepFailed,
   withFeedback,
 } from "../orchestrator/orchestrator.ts";
+import type { StructuredCall } from "../providers/provider.ts";
 import { contentHash, type Store } from "../store/store.ts";
 import type { Tracer } from "../trace/trace.ts";
 import {
@@ -60,12 +61,14 @@ export const COACH_DOC = "coach";
 // An answer as the coach keeps it: when it came and the anchor it belongs to.
 export type CheckinAnswer = CheckinReply & { sim_ts: string; anchor: number };
 
-// The recap a comeback took, graded by code, and the lesson it says to review first.
+// The recap a comeback took, graded by code, and the lesson it says to review first. `replaced` when
+// replay graded the recorded run's answers in place of the learner's (#55).
 export type Recap = {
   quiz: Quiz;
   attempt: QuizAttempt;
   below_gate: boolean;
   review_lesson: string | null;
+  replaced?: true;
 };
 // A learner's return after COMEBACK_DAYS or more from the anchor they came back from: how the coach
 // saw them back, and once they finish it, their recap and the plan version it proposed. A finished
@@ -107,7 +110,23 @@ export type CoachDeps = {
   // The recap over the lessons the learner passed, with the plan's quizzes it draws on; undefined
   // before they pass one.
   recap(): { quiz: Quiz; quizzes: Quiz[] } | undefined;
+  // Replay only (#55): the recorded run, which a replayed reply must match. Its coach writes to the
+  // learner's own plan in the gentle tone, and `worded` says whether the coach writer's call has a
+  // recording; a message with none goes as its template. The run re-plans once, on day `day`, from
+  // a «جلسات أقصر» or «مصدر آخر» tap at the check-in of the ladder from day `anchor`, with a lesson
+  // passed; before «مصدر آخر» its recap had `switch_recap_right` items right.
+  recorded?: {
+    anchor: number;
+    day: number;
+    switch_recap_right: number;
+    worded(call: StructuredCall): boolean;
+  };
 };
+
+// Why replay holds the learner's return back (#55): the recording re-plans only from a «جلسات أقصر»
+// or «مصدر آخر» tap at its check-in (`checkin` before an answer, `paused` after «استراحة أسبوع»),
+// and only once, on its day and ladder (`once`).
+export type Held = "checkin" | "paused" | "once";
 
 // An answer to a message that is not a check-in the learner has and can still answer.
 export class CheckinConflict extends Error {}
@@ -120,7 +139,7 @@ export class ComebackConflict extends Error {}
 // will change the plan. `last` is their latest finished comeback, which explains the proposal it
 // made.
 export type ComebackView =
-  | { state: "none"; last: Comeback | null }
+  | { state: "none"; last: Comeback | null; held?: Held }
   | {
       state: "due" | "open";
       away_days: number;
@@ -277,21 +296,26 @@ export function draftViolations(text: string, intensity: Consent["intensity"]): 
   return problems;
 }
 
+// The coach writer's call for `brief`; `input` is the brief's lines, with feedback on a retry.
+const coachCall = (brief: CoachBrief, input = briefLines(brief)) => ({
+  role: "coach",
+  trace: {
+    agent: "coach",
+    summary_ar: `يصوغ المدرب ${RUNG_MESSAGES[brief.rung].name_ar}`,
+    summary_en: `Wording the coach's ${brief.rung} message`,
+  },
+  instructions: WRITE,
+  input,
+  schema: { name: "CoachDraft", schema: CoachDraft },
+});
+
 export const coachWriter: Agent<CoachBrief, typeof CoachDraft> = {
   name: "coach",
   output: CoachDraft,
   async run(ctx, brief) {
-    const { json } = await ctx.provider.structured({
-      role: "coach",
-      trace: {
-        agent: "coach",
-        summary_ar: `يصوغ المدرب ${RUNG_MESSAGES[brief.rung].name_ar}`,
-        summary_en: `Wording the coach's ${brief.rung} message`,
-      },
-      instructions: WRITE,
-      input: withFeedback(ctx, briefLines(brief)),
-      schema: { name: "CoachDraft", schema: CoachDraft },
-    });
+    const { json } = await ctx.provider.structured(
+      coachCall(brief, withFeedback(ctx, briefLines(brief))),
+    );
     const message_ar = validate(CoachDraft, json).message_ar.trim();
     const broken = draftViolations(message_ar, brief.intensity);
     if (broken.length) throw new Error(`The message breaks its rules: ${broken.join("; ")}`);
@@ -340,6 +364,7 @@ export function createCoach({
   study,
   replan,
   recap,
+  recorded,
 }: CoachOptions) {
   // A document saved before comebacks existed has none.
   const doc = (): CoachDoc => ({
@@ -391,16 +416,37 @@ export function createCoach({
       });
       return template;
     }
+    const intensity = recorded && study().own_plan ? "gentle" : consent.intensity;
     const brief: CoachBrief = {
       rung: rung.kind,
       inactive_days: rung.inactive_days,
-      intensity: consent.intensity,
+      intensity,
       lesson_title_ar: lesson?.title_ar ?? null,
       best_percent: message.score ? (lesson?.best_percent ?? null) : null,
       gate_percent: Math.round(PASS_THRESHOLD * 100),
       template_ar: message.template,
       choices_ar: cta?.action === "choose" ? cta.options.map((o) => o.label_ar) : [],
     };
+    if (recorded && !recorded.worded(coachCall(brief))) {
+      tracer.emit({
+        agent: "coach",
+        kind: "decision",
+        at: rung.at,
+        summary_ar:
+          "لا يضم العرض المسجّل صياغة لهذه الرسالة، فتصلك بنصها الجاهز دون استدعاء النموذج",
+        summary_en: `${rung.id}: template, no model call: replay has no recording of its wording`,
+      });
+      return template;
+    }
+    if (intensity !== consent.intensity) {
+      tracer.emit({
+        agent: "coach",
+        kind: "decision",
+        at: rung.at,
+        summary_ar: "في العرض المسجّل يكتب المدرب بالأسلوب اللطيف المسجّل، لا بالأسلوب الذي اخترته",
+        summary_en: `${rung.id}: replay words it in the recorded gentle tone, not the learner's ${consent.intensity}`,
+      });
+    }
     try {
       const { message_ar } = await steps.runStep(sessionId, coachWriter, brief, {
         key: `coach:${rung.id}:${contentHash(brief)}`,
@@ -488,10 +534,23 @@ export function createCoach({
     }
   };
 
+  // Replay only (#55): why the return from `anchor` at `at` waits, if it does. The re-plan's request
+  // carries its day, the recap and the learner's answer, so only the recorded return matches it.
+  const heldAt = (anchor: number, at: SimTime): Held | null => {
+    if (!recorded) return null;
+    const saved = doc();
+    const again = saved.comebacks.some((c) => c.done_at !== null);
+    if (again || anchor !== recorded.anchor || !recap()) return "once";
+    const answer = saved.replies.find((r) => r.anchor === anchor);
+    if (!answer) return "checkin";
+    if (answer.choice === "pause") return "paused";
+    return at.day === recorded.day ? null : "once";
+  };
+
   // Records the learner's return once per anchor, if it is due.
   const detect = (at: SimTime, via: Comeback["via"]): Comeback | null => {
     const anchor = anchorNow();
-    if (!comebackDue(anchor, at, study().own_plan)) return null;
+    if (!comebackDue(anchor, at, study().own_plan) || heldAt(anchor, at)) return null;
     const saved = doc();
     const seen = saved.comebacks.find((c) => c.anchor === anchor);
     if (seen) return seen;
@@ -525,6 +584,8 @@ export function createCoach({
     const last = saved.comebacks.findLast((c) => c.done_at !== null) ?? null;
     const open = saved.comebacks.find((c) => c.anchor === anchor && c.done_at === null);
     if (!open && !comebackDue(anchor, now, study().own_plan)) return { state: "none", last };
+    const held = heldAt(anchor, now);
+    if (held) return { state: "none", last, held };
     const quiz = recap()?.quiz;
     return {
       state: open ? "open" : "due",
@@ -583,9 +644,30 @@ export function createCoach({
       if (!input && quiz)
         throw new ComebackConflict("A lesson is passed, so the recap comes first");
       if (input && !quiz) throw new ComebackConflict("No lesson is passed, so there is no recap");
-      const taken = input && quiz ? graded(quiz.quiz, quiz.quizzes, input, at) : null;
+      const reason = replanReason(comeback.anchor, replies(), sentIds());
+      let taken = input && quiz ? graded(quiz.quiz, quiz.quizzes, input, at) : null;
+      // Replay only (#55): the recording has no «مصدر آخر» after a recap at the gate, and Spark's
+      // pick of the other source, which lesson 2 is rewritten from, comes with the re-plan's note.
+      if (recorded && quiz && taken && reason === "switch" && !taken.below_gate) {
+        const right = recorded.switch_recap_right;
+        tracer.emit({
+          agent: "coach",
+          kind: "decision",
+          at,
+          summary_ar:
+            "في العرض المسجّل صُحّحت إجابات المراجعة المسجّلة بدل إجاباتك، فالعرض لا يقترح مصدرًا آخر إلا بعدها",
+          summary_en: `Replay: graded the recorded recap (${right} right) in place of the learner's, the only one the recorded switch re-plan follows`,
+        });
+        const answers = quiz.quiz.items.map((item, i) => ({
+          item_id: item.id,
+          response:
+            i < right ? item.answer : (item.options_ar.find((o) => o !== item.answer) ?? ""),
+        }));
+        const input = { quiz_id: quiz.quiz.id, answers };
+        taken = { ...graded(quiz.quiz, quiz.quizzes, input, at), replaced: true };
+      }
       const replanned = await replan({
-        reason: replanReason(comeback.anchor, replies(), sentIds()),
+        reason,
         today: at.day,
         away_days: comeback.away_days,
         recap: taken && { below_gate: taken.below_gate, review_lesson: taken.review_lesson },

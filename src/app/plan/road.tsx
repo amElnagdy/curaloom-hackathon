@@ -27,7 +27,7 @@ import { type Session, sessionsOf, simDay } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, ordinalF, WEEKS } from "../_shell/format.ts";
 import { RestartDemoButton, TraceDetailsButton } from "../_shell/missing-recording.tsx";
 import { startDay } from "../_shell/plans.ts";
-import { BidiText, buttonClass, cx, LangBadge, StatusPill } from "../_shell/ui.tsx";
+import { BidiText, buttonClass, cx, LangBadge, ReplayNote, StatusPill } from "../_shell/ui.tsx";
 import { useBuild } from "../_shell/use-build.ts";
 import styles from "./plan.module.css";
 
@@ -149,6 +149,7 @@ export function Road({
   limits,
   sources,
   editable,
+  unsaved,
   openLessons,
 }: {
   sessionId: string;
@@ -157,6 +158,8 @@ export function Road({
   // Each resource's language and original title, to name a session's sources.
   sources: Record<string, Pick<Resource, "lang" | "title">>;
   editable: boolean;
+  // Replay only (#55): why an edit is not saved, in the editor in place of its save button.
+  unsaved?: string;
   // The lessons the quiz gate has opened (#34), whose sessions link to them.
   openLessons: string[];
 }) {
@@ -290,6 +293,7 @@ export function Road({
                               from: Math.max(days.from, from),
                               to: Math.min(days.to, committedDays),
                             }}
+                            unsaved={unsaved}
                             onClose={() => setOpen(null)}
                           />
                         )}
@@ -348,6 +352,7 @@ function Editor({
   session,
   op,
   days,
+  unsaved,
   onClose,
 }: {
   sessionId: string;
@@ -357,6 +362,7 @@ function Editor({
   op: Op;
   // The committed days of the session's module, [from, to).
   days: Days;
+  unsaved: string | undefined;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -445,14 +451,18 @@ function Editor({
         <button type="button" className={buttonClass("ghost", "sm")} onClick={onClose}>
           إلغاء
         </button>
-        <button
-          type="button"
-          className={buttonClass("primary", "sm")}
-          disabled={!result?.ok || busy || refused !== null}
-          onClick={save}
-        >
-          {busy ? "يحفظ…" : "احفظ"}
-        </button>
+        {unsaved ? (
+          <ReplayNote className={styles.unsaved}>{unsaved}.</ReplayNote>
+        ) : (
+          <button
+            type="button"
+            className={buttonClass("primary", "sm")}
+            disabled={!result?.ok || busy || refused !== null}
+            onClick={save}
+          >
+            {busy ? "يحفظ…" : "احفظ"}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -31,13 +31,14 @@ import {
   architectBrief,
   limitsOf,
   planFor,
+  REPLAY_EDIT,
   stuckBuild,
 } from "../../server/agents/architect/architect.ts";
 import { lighterWeek } from "../../server/agents/architect/replan.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
 import { levelName, recordedLevelNote, savedProfile } from "../../server/agents/intake/intake.ts";
 import { parseSimTime } from "../../server/clock/time.ts";
-import type { CheckinAnswer, ComebackView } from "../../server/coach/coach.ts";
+import type { CheckinAnswer, ComebackView, Held } from "../../server/coach/coach.ts";
 import { sessionSim } from "../../server/coach/session.ts";
 import { contentHash, createFileStore } from "../../server/store/store.ts";
 import { ActivityFeed, LiveStatusPill } from "../_shell/activity-feed.tsx";
@@ -64,6 +65,7 @@ import {
   DirIcon,
   LangBadge,
   Meta,
+  ReplayNote,
   Sep,
   SourceRow,
   StatusPill,
@@ -197,6 +199,16 @@ function comebackStage(
   };
 }
 
+// Replay only (#55): why the learner's return shows no recap or re-plan. «إعادة» on the demo bar
+// starts the session over.
+const HELD: Record<Held, string> = {
+  checkin:
+    "في العرض المسجّل تبدأ عودتك من سؤال المدرب في اليوم العاشر، حين تختار «جلسات أقصر» أو «مصدر آخر».",
+  paused:
+    "اخترت «استراحة أسبوع»، والعرض المسجّل لا يضم عودة إلا بعد «جلسات أقصر» أو «مصدر آخر» في سؤال اليوم العاشر. لتجربتها من البداية اضغط «إعادة» في أداة العرض، ثم اختر أحدهما.",
+  once: "يضم العرض المسجّل عودة واحدة فقط، فلا تُقترح هنا خطة جديدة. لتجربتها من البداية اضغط «إعادة» في أداة العرض.",
+};
+
 // The check-in answer a comeback builds on, «جلسات أقصر» or «مصدر آخر»: the learner's latest of its
 // kind.
 function askOf(reason: CoursePlan["reason"] | undefined, replies: CheckinAnswer[]): Ask | null {
@@ -286,6 +298,11 @@ export default async function PlanPage({ searchParams }: PageProps<"/plan">) {
             ask={ask}
             stage={stage}
           />
+        )}
+        {!stage && view?.state === "none" && view.held && (
+          <ReplayNote className={styles.held} data-held={view.held}>
+            {HELD[view.held]}
+          </ReplayNote>
         )}
         <header>
           <h1 className={styles.title} id="plan-title" tabIndex={-1}>
@@ -420,6 +437,7 @@ export default async function PlanPage({ searchParams }: PageProps<"/plan">) {
                   resources.map((r) => [r.id, { lang: r.lang, title: r.title }]),
                 )}
                 editable={shown.editable && !stage}
+                unsaved={config.providerProfile === "replay" ? REPLAY_EDIT.ar : undefined}
                 openLessons={states.filter((l) => l.open).map((l) => l.planned.id)}
               />
             </section>

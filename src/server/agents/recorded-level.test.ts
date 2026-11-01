@@ -3,9 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LearnerProfile } from "../../../contracts/index.ts";
-import { RECORDED_TOPIC } from "../../../demo/script.ts";
+import { RECORDED_TOPIC, SHORT_ANSWERS } from "../../../demo/script.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
 import type { ProviderProfile } from "../../config.ts";
+import { replayShortAnswers } from "./recorded-level.ts";
 
 type Level = LearnerProfile["diagnostic"]["level"];
 
@@ -99,5 +100,16 @@ describe("the level the model requests carry", () => {
     expect(await sent("replay")).toEqual(["beginner", "beginner", "beginner"]);
     expect(await sent("live")).toEqual(["advanced", "advanced", "advanced"]);
     expect(await sent("record")).toEqual(["advanced", "advanced", "advanced"]);
+  });
+});
+
+describe("the short answers replay grades and offers", () => {
+  it("are the recorded run's in replay, for the quizzes it answered, and none in live or record mode", () => {
+    expect(replayShortAnswers("L1", 0, "replay")).toEqual(SHORT_ANSWERS.L1[0]);
+    expect(replayShortAnswers("L1", 1, "replay")).toEqual(SHORT_ANSWERS.L1[1]);
+    expect(replayShortAnswers("L1", 2, "replay")).toBeUndefined();
+    expect(replayShortAnswers("L2", 0, "replay")).toBeUndefined();
+    expect(replayShortAnswers("L1", 0, "live")).toBeUndefined();
+    expect(replayShortAnswers("L1", 0, "record")).toBeUndefined();
   });
 });

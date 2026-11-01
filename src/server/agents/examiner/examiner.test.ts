@@ -8,7 +8,7 @@ import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig } from "../../../config.ts";
 import { createOrchestrator } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
-import { createProvider, type Provider } from "../../providers/provider.ts";
+import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
 import { createFileStore } from "../../store/store.ts";
 import type { TraceEvent } from "../../trace/trace.ts";
 import {
@@ -352,4 +352,165 @@ describe("grading", () => {
     expect(right.length).toBeGreaterThanOrEqual(4);
     for (const answer of attempt.answers) expect(answer.feedback_ar).toMatch(/\p{Script=Arabic}/u);
   }, 300_000);
+});
+
+// A six-item quiz, four multiple choice then two short answers, written and checked by a fake model
+// whose judge gives every short answer full credit. `graded` holds what the judge was sent.
+const DRAFT = {
+  items: [
+    ...[1, 2, 3, 4].map((n) => ({
+      type: "mcq" as const,
+      prompt_ar: `سؤال اختيار ${n}`,
+      options_ar: [`صحيح ${n}`, `خطأ ${n}أ`, `خطأ ${n}ب`, `خطأ ${n}ج`],
+      answer: `صحيح ${n}`,
+      rubric_ar: "لأن الدرس يقوله.",
+      glossary_ids: [],
+    })),
+    ...[5, 6].map((n) => ({
+      type: "short" as const,
+      prompt_ar: `سؤال قصير ${n}`,
+      options_ar: [],
+      answer: `إجابة نموذجية ${n}`,
+      rubric_ar: "درجة كاملة لمن يذكر الفكرة.",
+      glossary_ids: [],
+    })),
+  ],
+};
+
+function judged(recorded?: ExaminerDeps["recorded"]) {
+  const store = freshStore();
+  const graded: string[] = [];
+  const reply = (schema: string, input: unknown) => {
+    if (schema === "QuizDraft") return DRAFT;
+    if (schema === "KeyCheck") {
+      return { choices: [1, 2, 3, 4].map((n) => ({ item_id: `i${n}`, choice: `صحيح ${n}` })) };
+    }
+    graded.push(String(input));
+    return {
+      grades: ["i5", "i6"].map((item_id) => ({ item_id, score: 1, feedback_ar: "أحسنت." })),
+    };
+  };
+  const orchestrator = createOrchestrator({
+    store,
+    makeProvider: (onTrace) => ({
+      ...createProvider({ models: loadModels(), profile: "replay", onTrace }),
+      structured: async (call) =>
+        ({
+          text: "",
+          json: reply(call.schema.name, call.input),
+          tool_calls: [],
+          citations: [],
+          image: null,
+          usage: { in: 0, out: 0, cost_usd: 0 },
+          latency_ms: 1,
+          model: "fake",
+        }) as unknown as ModelResult<never>,
+    }),
+  });
+  const examiner = createExaminer({
+    orchestrator,
+    store,
+    sessionId: "s1",
+    course: () => COURSE,
+    recorded,
+  });
+  const decisions = () =>
+    store
+      .readTrace<TraceEvent>("s1")
+      .filter((e) => e.kind === "decision" && e.summary_en.startsWith("Replay:"))
+      .map((e) => e.summary_en);
+  return { examiner, graded, decisions };
+}
+
+const RECORDED = ["إجابة مسجّلة أولى", "إجابة مسجّلة ثانية"];
+const MINE = ["إجابتي الأولى", "إجابتي الثانية"];
+// Recorded short answers to lesson 1's first quiz and its retry, as demo/script.ts has them.
+const withRetry = (lessonId: string, n: number) =>
+  lessonId === "L1" && n < 2 ? RECORDED : undefined;
+// Recorded short answers to lesson 1's first quiz only, so no quiz after it is recorded.
+const firstOnly = (lessonId: string, n: number) =>
+  lessonId === "L1" && n === 0 ? RECORDED : undefined;
+
+// The learner's answers: their own short answers, and the first `wrong` multiple-choice items missed.
+function mine(quiz: Quiz, wrong = 0) {
+  const shorts = [...MINE];
+  let left = wrong;
+  return quiz.items.map((item) => ({
+    item_id: item.id,
+    response:
+      item.type === "short"
+        ? (shorts.shift() as string)
+        : left-- > 0
+          ? (item.options_ar.find((o) => o !== item.answer) as string)
+          : item.answer,
+  }));
+}
+
+describe("grading in replay, which answers only the recorded short answers (#55)", () => {
+  it("sends the judge the recorded short answers in place of the learner's, and keeps theirs aside", async () => {
+    const { examiner, graded, decisions } = judged(withRetry);
+    const quiz = (await examiner.quiz("L1")).quizzes[0] as Quiz;
+
+    const view = await examiner.attempt("L1", quiz.id, mine(quiz));
+
+    expect(graded).toHaveLength(1);
+    for (const text of RECORDED) expect(graded[0]).toContain(JSON.stringify(text));
+    for (const text of MINE) expect(graded[0]).not.toContain(text);
+    expect(view.attempt.answers.slice(4).map((a) => a.response)).toEqual(RECORDED);
+    expect(view.replaced).toEqual({
+      [view.attempt.id]: [
+        { item_id: "i5", response: MINE[0] },
+        { item_id: "i6", response: MINE[1] },
+      ],
+    });
+    expect(decisions()).toEqual([
+      "Replay: grading the recorded short answers in place of 2 of the learner's, which have no recording",
+    ]);
+    // The same answers again answer the same attempt.
+    expect((await examiner.attempt("L1", quiz.id, mine(quiz))).attempt).toEqual(view.attempt);
+  });
+
+  it("sends the learner's own short answers outside replay", async () => {
+    const { examiner, graded } = judged();
+    const quiz = (await examiner.quiz("L1")).quizzes[0] as Quiz;
+
+    const view = await examiner.attempt("L1", quiz.id, mine(quiz));
+
+    for (const text of MINE) expect(graded[0]).toContain(JSON.stringify(text));
+    expect(view.replaced).toBeUndefined();
+  });
+
+  it("grades wrong choices as their keys below the gate on the last recorded quiz", async () => {
+    const { examiner, decisions } = judged(firstOnly);
+    const quiz = (await examiner.quiz("L1")).quizzes[0] as Quiz;
+
+    const view = await examiner.attempt("L1", quiz.id, mine(quiz, 2));
+
+    expect(view.attempt).toMatchObject({ score: 1, passed: true });
+    expect(view.attempt.answers.slice(0, 2).map((a) => a.response)).toEqual(["صحيح 1", "صحيح 2"]);
+    expect(view.replaced?.[view.attempt.id]?.map((a) => a.item_id)).toEqual([
+      "i1",
+      "i2",
+      "i5",
+      "i6",
+    ]);
+    expect(decisions()).toContain(
+      "Replay: no quiz after this one is recorded, so 2 wrong multiple-choice answers were graded as their keys",
+    );
+  });
+
+  it("leaves wrong choices wrong when the attempt passes anyway, or a recorded retry follows", async () => {
+    const last = judged(firstOnly);
+    const lastQuiz = (await last.examiner.quiz("L1")).quizzes[0] as Quiz;
+    const retried = judged(withRetry);
+    const firstQuiz = (await retried.examiner.quiz("L1")).quizzes[0] as Quiz;
+
+    const passing = await last.examiner.attempt("L1", lastQuiz.id, mine(lastQuiz, 1));
+    const below = await retried.examiner.attempt("L1", firstQuiz.id, mine(firstQuiz, 2));
+
+    expect(passing.attempt.passed).toBe(true);
+    expect(passing.attempt.answers[0]).toMatchObject({ item_id: "i1", score: 0 });
+    expect(below.attempt.passed).toBe(false);
+    expect(below.attempt.answers.slice(0, 2).map((a) => a.score)).toEqual([0, 0]);
+  });
 });

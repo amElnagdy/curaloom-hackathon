@@ -269,6 +269,15 @@ export type PlannerDeps = {
   // Forgets what was written from a lesson's resources, once an accepted switch makes it stale. The
   // route passes forgetLessonAndQuiz: the lesson and its quiz not yet taken.
   forgetLesson(planId: string, lessonId: string): void;
+  // Replay only (#55): the recorded run never edited its plan, and an edit changes the lesson and
+  // re-plan requests after it, so the planner refuses edits.
+  replay?: boolean;
+};
+
+// Why replay refuses an edit, as the editor shows it.
+export const REPLAY_EDIT: Violation = {
+  en: "the recorded demo keeps the plan as it was built",
+  ar: "العرض المسجّل يُبقي خطتك كما بُنيت، فلا تُحفظ فيه التعديلات",
 };
 
 export function createPlanner({
@@ -279,6 +288,7 @@ export function createPlanner({
   profile,
   findResources,
   forgetLesson,
+  replay = false,
 }: PlannerDeps) {
   const save = (plan: SavedPlan) => {
     store.writeDoc(sessionId, PLAN_DOC, plan);
@@ -341,8 +351,15 @@ export function createPlanner({
           `Version ${saved.pending.version} is proposed; it takes an accept or a reject before an edit`,
         );
       }
-      const result = applyEdit(latest, edit, saved.limits);
       const what = describeEdit(latest, edit);
+      if (replay) {
+        report(
+          `لم يُحفظ تعديلك: ${REPLAY_EDIT.ar}`,
+          `Learner edit refused (${what.en}): ${REPLAY_EDIT.en}`,
+        );
+        throw new PlanEditRejected([REPLAY_EDIT]);
+      }
+      const result = applyEdit(latest, edit, saved.limits);
       if (!result.ok) {
         report(
           `لم يُقبل تعديلك: ${result.violations.map((v) => v.ar).join("، ")}`,

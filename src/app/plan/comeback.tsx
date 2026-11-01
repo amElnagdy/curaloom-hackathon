@@ -35,7 +35,7 @@ import {
   SESSIONS,
 } from "../_shell/format.ts";
 import { changeTally, REASON_LABEL, sessionChanges, startDay } from "../_shell/plans.ts";
-import { BidiText, StatusPill } from "../_shell/ui.tsx";
+import { BidiText, ReplayNote, StatusPill } from "../_shell/ui.tsx";
 import { FocusOnArrival, QuizPaper } from "../quiz/paper.tsx";
 import styles from "./comeback.module.css";
 import { missedSessions, proposalStats, type Timeline, timeline } from "./compare.ts";
@@ -246,16 +246,18 @@ function TimelineView({
   );
 }
 
-// «مراجعتك ٣ من ٥ (٦٠٪)، أقل من ٨٠٪، فتبدأ الخطة بجلسة مراجعة للدرس الأول.»
+// «مراجعتك ٣ من ٥ (٦٠٪)، أقل من ٨٠٪، فتبدأ الخطة بجلسة مراجعة للدرس الأول.» In replay, a recap
+// graded from the recorded answers is «المراجعة المسجّلة» (#55).
 function recapText(recap: Recap, lessons: CoursePlan["committed"]["lessons"]) {
   const right = recap.attempt.answers.filter((a) => a.score === 1).length;
   const score = `${arabicNumber(right)} من ${arabicNumber(recap.quiz.items.length)} (${percent(recap.attempt.score)})`;
   const gate = percent(recap.quiz.pass_threshold);
   const review = lessons.findIndex((l) => l.id === recap.review_lesson);
+  const whose = recap.replaced ? "المراجعة المسجّلة" : "مراجعتك";
   const line =
     recap.below_gate && review >= 0
-      ? `مراجعتك ${score}، أقل من ${gate}، فتبدأ الخطة بجلسة مراجعة للدرس ${ordinal(review)}.`
-      : `مراجعتك ${score}، عند ${gate} أو فوقها، فلا مراجعة قبل درسك التالي.`;
+      ? `${whose} ${score}، أقل من ${gate}، فتبدأ الخطة بجلسة مراجعة للدرس ${ordinal(review)}.`
+      : `${whose} ${score}، عند ${gate} أو فوقها، فلا مراجعة قبل درسك التالي.`;
   return { score, line };
 }
 
@@ -265,6 +267,12 @@ const MISSED_TITLE = (n: number) =>
     : n === 2
       ? "السؤالان اللذان أخطأت فيهما"
       : `الأسئلة التي أخطأت فيها (${arabicNumber(n)})`;
+const RECORDED_MISSED_TITLE = (n: number) =>
+  n === 1
+    ? "الإجابة الخاطئة في المراجعة المسجّلة"
+    : n === 2
+      ? "الإجابتان الخاطئتان في المراجعة المسجّلة"
+      : `الإجابات الخاطئة في المراجعة المسجّلة (${arabicNumber(n)})`;
 
 function RecapResult({
   recap,
@@ -281,11 +289,17 @@ function RecapResult({
   return (
     <div className={styles.recapDone}>
       <p>{line}</p>
+      {recap.replaced && (
+        <ReplayNote>
+          في العرض المسجّل صُحّحت إجابات المراجعة المسجّلة بدل إجاباتك، فالعرض لا يقترح مصدرًا آخر إلا
+          بعدها.
+        </ReplayNote>
+      )}
       {missed.length > 0 && (
         <details className={styles.fold}>
           <summary>
             <ChevronDown aria-hidden className={styles.chev} />
-            <span>{MISSED_TITLE(missed.length)}</span>
+            <span>{(recap.replaced ? RECORDED_MISSED_TITLE : MISSED_TITLE)(missed.length)}</span>
           </summary>
           <ul className={styles.missList}>
             {missed.map(({ a, item }) => (
@@ -294,7 +308,7 @@ function RecapResult({
                   <BidiText text={item.prompt_ar} />
                 </span>
                 <span className={styles.missMine}>
-                  إجابتك: <BidiText text={a.response} />
+                  {recap.replaced ? "الإجابة المسجّلة" : "إجابتك"}: <BidiText text={a.response} />
                 </span>
                 <span className={styles.missRight}>
                   الصحيحة: <BidiText text={item.answer} />

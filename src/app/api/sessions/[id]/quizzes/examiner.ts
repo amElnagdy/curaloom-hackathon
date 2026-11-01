@@ -2,13 +2,15 @@ import { loadOmarSeed } from "../../../../../../demo/seed.ts";
 import { config } from "../../../../../config.ts";
 import { courseOf, createExaminer } from "../../../../../server/agents/examiner/examiner.ts";
 import { savedProfile } from "../../../../../server/agents/intake/intake.ts";
+import { replayShortAnswers } from "../../../../../server/agents/recorded-level.ts";
 import { createOrchestrator } from "../../../../../server/orchestrator/orchestrator.ts";
 import { loadModels } from "../../../../../server/providers/models.ts";
 import { createProvider } from "../../../../../server/providers/provider.ts";
 import { createFileStore } from "../../../../../server/store/store.ts";
 
 // The session's examiner (#20), on the plan built for the intake's profile, the seed's until the
-// intake is done, and the lessons written for it.
+// intake is done, and the lessons written for it. In replay it grades the recorded run's short
+// answers (#55).
 export function examinerFor(sessionId: string) {
   const store = createFileStore();
   const orchestrator = createOrchestrator({
@@ -28,5 +30,6 @@ export function examinerFor(sessionId: string) {
     store,
     sessionId,
     course: () => courseOf(store, sessionId, profile()),
+    recorded: replayShortAnswers,
   });
 }

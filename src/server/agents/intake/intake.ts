@@ -32,8 +32,9 @@ type Heard = IntakeReply["heard"];
 export type Field = keyof Heard;
 export type Turn =
   | { role: "interviewer"; text_ar: string }
-  // `heard` names the fields this message gave, as the line under it shows.
-  | { role: "learner"; text_ar: string; heard: Field[] };
+  // `heard` names the fields this message gave, as the line under it shows. `replaced` marks a
+  // message replay sent in place of the learner's own text (IntakeDeps.recorded).
+  | { role: "learner"; text_ar: string; heard: Field[]; replaced?: true };
 type Dialect = LearnerProfile["dialect"];
 type Result = LearnerProfile["diagnostic"];
 type Level = Result["level"];
@@ -82,6 +83,9 @@ export type IntakeDeps = {
   sessionId: string;
   learner: { id: string; name: string };
   topic: string;
+  // Replay only (#55): the recorded run's messages, in order. Replay answers a message only by its
+  // exact text, so any other text at a message's place is sent as the recorded one.
+  recorded?: readonly string[];
 };
 
 const STATE_DOC = "intake";
@@ -173,12 +177,22 @@ type InterviewInput = {
   turns: Turn[];
   text: string;
   missing: Field[];
+  // `text` is the recorded message replay sent in place of the learner's (IntakeDeps.recorded).
+  replaced: boolean;
 };
 
 const interviewer: Agent<InterviewInput, typeof IntakeReply> = {
   name: "intake",
   output: IntakeReply,
-  async run(ctx, { name, topic, turns, text, missing }) {
+  async run(ctx, { name, topic, turns, text, missing, replaced }) {
+    if (replaced) {
+      const n = turns.filter((t) => t.role === "learner").length + 1;
+      ctx.trace({
+        kind: "decision",
+        summary_ar: `أُرسلت الرسالة المسجّلة رقم ${n} بدل رسالتك، فالعرض المسجّل لا يجيب إلا عنها`,
+        summary_en: `Replay: sent recorded message ${n} in place of the learner's, which has no recording`,
+      });
+    }
     const conversation = [
       ...turns.map((t) => `${t.role === "learner" ? "Learner" : "Interviewer"}: ${t.text_ar}`),
       `Learner: ${text}`,
@@ -370,6 +384,7 @@ export function createIntake({
   sessionId,
   learner,
   topic,
+  recorded,
 }: IntakeDeps) {
   const read = () => store.readDoc<IntakeState>(sessionId, STATE_DOC);
   const save = (state: IntakeState) => store.writeDoc(sessionId, STATE_DOC, state);
@@ -391,18 +406,21 @@ export function createIntake({
       return viewOf(state);
     },
 
-    async message(text: string): Promise<IntakeView> {
+    async message(written: string): Promise<IntakeView> {
       const state = read();
       if (state?.status !== "interview") {
         throw new IntakeConflict("The interview is not waiting for a message");
       }
       const sent = state.turns.filter((t) => t.role === "learner").length + 1;
       const missing = missingFrom(state.heard);
+      const standIn = recorded?.[sent - 1];
+      const replaced = standIn !== undefined && standIn !== written;
+      const text = replaced ? standIn : written;
       // The text is in the key: after a failed step, a different message is a new step.
       const reply = await orchestrator.runStep(
         sessionId,
         interviewer,
-        { name: learner.name, topic, turns: state.turns, text, missing },
+        { name: learner.name, topic, turns: state.turns, text, missing, replaced },
         { key: `intake:${state.run}:message:${sent}:${contentHash(text)}` },
       );
       const heard = Object.fromEntries(
@@ -415,7 +433,12 @@ export function createIntake({
         ...state,
         turns: [
           ...state.turns,
-          { role: "learner", text_ar: text, heard: missing.filter((f) => heard[f] !== null) },
+          {
+            role: "learner",
+            text_ar: text,
+            heard: missing.filter((f) => heard[f] !== null),
+            ...(replaced && { replaced: true as const }),
+          },
           { role: "interviewer", text_ar: `${sentence(reply.ack_ar)} ${ask}` },
         ] satisfies Turn[],
         heard,

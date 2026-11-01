@@ -1,3 +1,4 @@
+import { INTAKE_MESSAGES } from "../../../../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../../../../demo/seed.ts";
 import { config } from "../../../../../../config.ts";
 import { intakeResponse } from "../../../../../../server/agents/intake/http.ts";
@@ -9,7 +10,8 @@ import { createFileCache, createFileStore } from "../../../../../../server/store
 
 // POST /api/sessions/:id/intake/{start,message,answers,reset} — the intake chat (#16): start
 // greets, message takes {text}, answers takes {answers: {q1: "<option>", …}}, reset starts over.
-// Each answers {view}. The session's learner is the seed's until accounts exist.
+// Each answers {view}. The session's learner is the seed's until accounts exist. In replay, a
+// message sends the recorded run's text at its place (#55).
 export async function POST(
   request: Request,
   ctx: RouteContext<"/api/sessions/[id]/intake/[action]">,
@@ -35,6 +37,7 @@ export async function POST(
     sessionId: id,
     learner: { id: profile.id, name: profile.name },
     topic: config.demoTopic,
+    recorded: config.providerProfile === "replay" ? INTAKE_MESSAGES : undefined,
   });
   return intakeResponse(request, id, action, intake);
 }

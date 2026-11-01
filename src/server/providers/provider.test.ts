@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { parseModels } from "./models";
 import {
   createProvider,
+  hasRecording,
   MissingRecording,
   type ProviderOptions,
   type ProviderTraceEvent,
@@ -574,6 +575,19 @@ describe("record and replay", () => {
     expect(slept).toEqual([]);
     expect(events).toMatchObject([{ ok: false, attempt: 1, missing_recording: hash }]);
     expect(logged).toEqual([expect.stringContaining(hash)]);
+  });
+
+  it("says whether replay has a recording of a structured call, named as the call names it", async () => {
+    const fixturesDir = mkdtempSync(join(tmpdir(), "fixtures-"));
+    const { p: recorder } = provider([{ status: 200, body: spike("json_schema", "/responses") }], {
+      profile: "record",
+      fixturesDir,
+    });
+    await recorder.structured(call);
+
+    expect(hasRecording(MODELS, call, fixturesDir)).toBe(true);
+    expect(hasRecording(MODELS, { ...call, input: "y" }, fixturesDir)).toBe(false);
+    expect(hasRecording(MODELS, { ...call, role: "curriculum" }, fixturesDir)).toBe(false);
   });
 
   it("needs a key outside replay", async () => {

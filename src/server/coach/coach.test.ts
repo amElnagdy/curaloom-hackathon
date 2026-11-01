@@ -15,7 +15,12 @@ import { readInbox } from "../notifier/adapters";
 import { isStopWord } from "../notifier/notifier";
 import { createOrchestrator, StepFailed } from "../orchestrator/orchestrator";
 import { loadModels } from "../providers/models";
-import { createProvider, type ModelResult, type Provider } from "../providers/provider";
+import {
+  createProvider,
+  type ModelResult,
+  type Provider,
+  type StructuredCall,
+} from "../providers/provider";
 import { contentHash, createFileStore, type Store } from "../store/store";
 import { arabicLineProblems } from "../trace/arabic-line";
 import type { TraceEvent } from "../trace/trace";
@@ -708,8 +713,17 @@ describe("answers to the day-10 check-in", () => {
 const V2: Replanned = { ok: true, version: 2, lighter: { minutes: 55, cap: 84 } };
 
 // A learner on a plan of their own, with messages on and no quiet hours, who passed L1 on day 0
-// and studied no more. The re-planner is faked: it keeps each request and proposes v2.
-function returning({ recap = true } = {}) {
+// and studied no more. The re-planner is faked: it keeps each request and proposes v2. `recorded`
+// is the replayed run's, `steps` writes the messages.
+function returning({
+  recap = true,
+  recorded,
+  steps = () => null,
+}: {
+  recap?: boolean;
+  recorded?: CoachDeps["recorded"];
+  steps?: (store: Store) => CoachDeps["steps"];
+} = {}) {
   const store = createFileStore(mkdtempSync(join(tmpdir(), "coach-")));
   const requests: ReplanRequest[] = [];
   const study: Study = {
@@ -717,19 +731,21 @@ function returning({ recap = true } = {}) {
     lesson: { id: "L2", title_ar: "الدرس الثاني", best_percent: null },
     own_plan: true,
   };
+  const writer = steps(store);
   const sim = () =>
     createSim({
       store,
       sessionId: "s_1",
       seed,
       coach: {
-        steps: null,
+        steps: writer,
         study: () => study,
         replan: async (request) => {
           requests.push(request);
           return V2;
         },
         recap: () => (recap ? { quiz: RECAP, quizzes: [QUIZ_L1] } : undefined),
+        recorded,
       },
     });
   sim().setConsent({ messages: true, quiet_hours: null, intensity: "gentle" });
@@ -947,6 +963,135 @@ describe("a learner's comeback (#27)", () => {
     const pending = savedPlan(store, "s_1")?.pending;
     expect(pending).toMatchObject({ version: 2, reason: "shrink", committed: { start: "day10" } });
     expect(pending?.diff[0]).toMatchObject({ op: "review", lesson: "L1", day: 10, minutes: 15 });
+  });
+});
+
+// The replayed run (#55): one comeback on day 10, from «جلسات أقصر» or «مصدر آخر» at the check-in of
+// the ladder from day 0, with three of five recap items right before «مصدر آخر», and gentle messages
+// whose wording is recorded.
+const RECORDED = { anchor: 0, day: 10, switch_recap_right: 3, worded: () => true };
+
+describe("a comeback in replay, which keeps to the recorded one (#55)", () => {
+  it("holds the return back until «جلسات أقصر» or «مصدر آخر» at the check-in, and for good after «استراحة أسبوع»", async () => {
+    const early = returning({ recorded: RECORDED });
+    const paused = returning({ recorded: RECORDED });
+    const asked = returning({ recorded: RECORDED });
+    await early.sim().set(5);
+    for (const t of [paused, asked]) await t.sim().set(10);
+
+    early.sim().reply("رجعت");
+    await paused.sim().answer(reply("pause"));
+    await asked.sim().answer(reply("switch"));
+    await paused.sim().set(17);
+
+    for (const [t, held] of [
+      [early, "checkin"],
+      [paused, "paused"],
+    ] as const) {
+      expect(t.sim().detectComeback()).toEqual({ state: "none", last: null, held });
+      expect(t.coachSaid().filter((s) => s.startsWith("comeback_detected"))).toEqual([]);
+      await expect(t.sim().finishComeback(recapAnswers(3))).rejects.toThrow(ComebackConflict);
+    }
+    expect(asked.sim().comeback()).toMatchObject({ state: "open", away_days: 10 });
+  });
+
+  it("holds a return finished after the recorded day, and one with no lesson passed", async () => {
+    const late = returning({ recorded: RECORDED });
+    const unpassed = returning({ recorded: RECORDED, recap: false });
+    for (const t of [late, unpassed]) {
+      await t.sim().set(10);
+      await t.sim().answer(reply("shrink"));
+    }
+
+    await late.sim().set(11);
+
+    for (const t of [late, unpassed]) {
+      expect(t.sim().detectComeback()).toMatchObject({ state: "none", held: "once" });
+      await expect(t.sim().finishComeback(null)).rejects.toThrow(ComebackConflict);
+      expect(t.requests).toEqual([]);
+    }
+  });
+
+  it("holds a second return back, and one from a ladder the run did not start", async () => {
+    const again = returning({ recorded: RECORDED });
+    const later = returning({ recorded: { ...RECORDED, anchor: 3 } });
+    for (const t of [again, later]) await t.sim().set(10);
+    await again.sim().answer(reply("shrink"));
+    await again.sim().finishComeback(recapAnswers(3));
+
+    await again.sim().set(14);
+    await later.sim().answer(reply("shrink"));
+
+    expect(again.sim().comeback()).toMatchObject({ state: "none", held: "once" });
+    expect(later.sim().comeback()).toMatchObject({ state: "none", held: "once" });
+  });
+
+  it("grades the recorded recap in place of one at the gate before «مصدر آخر»", async () => {
+    const switched = returning({ recorded: RECORDED });
+    const shrunk = returning({ recorded: RECORDED });
+    for (const t of [switched, shrunk]) await t.sim().set(10);
+    await switched.sim().answer(reply("switch"));
+    await shrunk.sim().answer(reply("shrink"));
+
+    const { comeback } = await switched.sim().finishComeback(recapAnswers(5));
+    await shrunk.sim().finishComeback(recapAnswers(5));
+
+    expect(switched.requests.map((r) => r.recap)).toEqual([
+      { below_gate: true, review_lesson: "L1" },
+    ]);
+    expect(comeback.last?.recap).toMatchObject({
+      replaced: true,
+      attempt: { score: 0.6, passed: false },
+    });
+    expect(switched.coachSaid()).toContain(
+      "Replay: graded the recorded recap (3 right) in place of the learner's, the only one the recorded switch re-plan follows",
+    );
+    expect(shrunk.requests.map((r) => r.recap)).toEqual([
+      { below_gate: false, review_lesson: null },
+    ]);
+  });
+
+  it("sends a message whose wording has no recording as its template, and asks the model only for the recorded ones", async () => {
+    const model = fakeCoachModel(() => "{name}، خطوة صغيرة اليوم تكفي.");
+    const asked: string[] = [];
+    const worded = (call: StructuredCall) => {
+      asked.push(`${call.instructions ?? ""}\n${String(call.input)}`);
+      return String(call.input).includes("Days since their last quiz: 2\n");
+    };
+    const { sim, phone, coachSaid } = returning({
+      recorded: { ...RECORDED, worded },
+      steps: model.steps,
+    });
+    sim().setConsent({ messages: true, quiet_hours: null, intensity: "normal" });
+
+    await sim().set(5);
+
+    expect(asked).toHaveLength(2);
+    expect(model.calls.map((c) => c.prompt)).toEqual(asked.slice(0, 1));
+    expect(phone().map((m) => m.text)).toEqual([
+      "عمر، خطوة صغيرة اليوم تكفي.",
+      "عمر، يبدو أن أسبوعك مزدحم. يمكن أن نجعله أخف: جلسات أقصر والهدف نفسه. افتح خطتك واختر ما يناسبك.",
+    ]);
+    expect(coachSaid().filter((s) => s.startsWith("replan_a0_d5"))).toEqual([
+      "replan_a0_d5: template, no model call: replay has no recording of its wording",
+    ]);
+  });
+
+  it("words the messages to the learner's own plan in the recorded gentle tone", async () => {
+    const model = fakeCoachModel(() => "{name}، خطوة صغيرة اليوم تكفي.");
+    const { sim, coachSaid } = returning({ recorded: RECORDED, steps: model.steps });
+    sim().setConsent({ messages: true, quiet_hours: null, intensity: "normal" });
+
+    await sim().set(2);
+
+    expect(model.calls.map((c) => c.prompt.match(/^Tone: .*$/m)?.[0])).toEqual([
+      "Tone: gentle: one or two short, soft sentences, at most 160 characters",
+    ]);
+    expect(coachSaid()).toContainEqual(
+      expect.stringMatching(
+        /: replay words it in the recorded gentle tone, not the learner's normal$/,
+      ),
+    );
   });
 });
 

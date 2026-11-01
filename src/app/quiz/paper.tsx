@@ -22,7 +22,15 @@ import {
 import type { KeylessQuiz } from "../../server/agents/examiner/rules.ts";
 import { Callout } from "../_shell/blocks.tsx";
 import { arabicNumber } from "../_shell/format.ts";
-import { BidiText, buttonClass, cx, Meta, RecordedFill, StatusPill } from "../_shell/ui.tsx";
+import {
+  BidiText,
+  buttonClass,
+  cx,
+  Meta,
+  RecordedFill,
+  ReplayNote,
+  StatusPill,
+} from "../_shell/ui.tsx";
 import { useBuild } from "../_shell/use-build.ts";
 import styles from "./quiz.module.css";
 
@@ -252,6 +260,7 @@ export function QuizPaper({
   intro,
   grading,
   recorded,
+  closed,
 }: {
   quiz: KeylessQuiz;
   sessionId: string;
@@ -265,6 +274,9 @@ export function QuizPaper({
   grading?: GradingText;
   // Replay only: the recorded run's short answers, in the order of the short items (#30).
   recorded?: readonly string[];
+  // Replay only (#55): why a quiz the recorded run never graded takes no answers; it stands in for
+  // the submit button.
+  closed?: string;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -293,7 +305,8 @@ export function QuizPaper({
   const count = quiz.items.length - left.length;
   const shortItems = quiz.items.filter((item) => item.type === "short");
   const shorts = shortItems.length;
-  const locked = phase !== "answering";
+  // A closed quiz shows its questions to read, with no answers to give.
+  const locked = phase !== "answering" || closed !== undefined;
 
   const answer = (id: string, value: string) => {
     const next = { ...answers, [id]: value };
@@ -556,21 +569,30 @@ export function QuizPaper({
               </p>
             )}
             <div className={styles.barRow}>
-              <div className={styles.progress}>
-                <p className={styles.progressText}>
-                  {count === 0
-                    ? "لم تُجب عن أي سؤال بعد"
-                    : `${arabicNumber(count)} من ${arabicNumber(quiz.items.length)} أُجيبت`}
-                </p>
-                <span className={styles.ticks} aria-hidden>
-                  {quiz.items.map((item) => (
-                    <span key={item.id} className={answered(item.id) ? styles.tickOn : undefined} />
-                  ))}
-                </span>
-              </div>
-              <button type="submit" className={buttonClass("primary")}>
-                سلّم الإجابات
-              </button>
+              {closed ? (
+                <ReplayNote className={styles.closed}>{closed}</ReplayNote>
+              ) : (
+                <>
+                  <div className={styles.progress}>
+                    <p className={styles.progressText}>
+                      {count === 0
+                        ? "لم تُجب عن أي سؤال بعد"
+                        : `${arabicNumber(count)} من ${arabicNumber(quiz.items.length)} أُجيبت`}
+                    </p>
+                    <span className={styles.ticks} aria-hidden>
+                      {quiz.items.map((item) => (
+                        <span
+                          key={item.id}
+                          className={answered(item.id) ? styles.tickOn : undefined}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                  <button type="submit" className={buttonClass("primary")}>
+                    سلّم الإجابات
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

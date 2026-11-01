@@ -63,12 +63,13 @@ export type ProviderTraceEvent = TraceContext & {
 
 type CallBase = { role: string; trace: TraceContext };
 type TextInput = CallBase & { instructions?: string; input: string | unknown[] };
+export type StructuredCall<S extends object = object> = TextInput & { schema: ResponseFormat<S> };
 
 export type Provider = {
   chat(call: TextInput & { tools?: FunctionTool[] }): Promise<ModelResult<null>>;
   // Pass a contract (ADR-006) and `json` is typed as it; a plain JSON Schema gives `unknown`.
   structured<S extends object>(
-    call: TextInput & { schema: ResponseFormat<S> },
+    call: StructuredCall<S>,
   ): Promise<ModelResult<S extends TSchema ? Static<S> : unknown>>;
   webSearch(call: TextInput): Promise<ModelResult<null>>;
   transcribe(
@@ -146,6 +147,27 @@ function fixtureKey(req: WireRequest): { material: unknown; hash: string; name: 
     hash,
     name: `${req.path.replace(/\W+/g, "_").slice(1)}-${model}-${hash}.json`,
   };
+}
+
+const responsesCall =
+  (c: TextInput, tools?: unknown[], format?: ResponseFormat) => (role: RoleConfig) =>
+    responsesRequest(role, { instructions: c.instructions, input: c.input, tools, format });
+
+const roleOf = (models: Models, name: string) => {
+  const role = models.roles[name];
+  if (!role) throw new Error(`Unknown model role "${name}"; add it to config/models.yaml`);
+  return role;
+};
+
+// Whether replay has a recording for `structured(call)`, so a caller can take another path before
+// it asks (#55). The request is built and named as `structured` builds and names it.
+export function hasRecording(
+  models: Models,
+  call: StructuredCall,
+  fixturesDir = FIXTURES_DIR,
+): boolean {
+  const request = responsesCall(call, undefined, call.schema)(roleOf(models, call.role));
+  return existsSync(join(fixturesDir, fixtureKey(request).name));
 }
 
 export function createProvider(options: ProviderOptions): Provider {
@@ -271,8 +293,7 @@ export function createProvider(options: ProviderOptions): Provider {
     normalize: (body: unknown) => Normalized,
     parseJson = false,
   ): Promise<ModelResult<J>> {
-    const role = models.roles[base.role];
-    if (!role) throw new Error(`Unknown model role "${base.role}"; add it to config/models.yaml`);
+    const role = roleOf(models, base.role);
     type Outcome = Pick<ProviderTraceEvent, "attempt" | "ok" | "latency_ms" | "cost_usd"> &
       Partial<Pick<ProviderTraceEvent, "usage" | "error" | "missing_recording">>;
     const trace = (outcome: Outcome) =>
@@ -334,10 +355,6 @@ export function createProvider(options: ProviderOptions): Provider {
       model: role.model,
     };
   }
-
-  const responsesCall =
-    (c: TextInput, tools?: unknown[], format?: ResponseFormat) => (role: RoleConfig) =>
-      responsesRequest(role, { instructions: c.instructions, input: c.input, tools, format });
 
   return {
     chat: (c) => call(c, responsesCall(c, c.tools && functionTools(c.tools)), normalizeResponses),

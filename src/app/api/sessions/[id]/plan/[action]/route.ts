@@ -16,7 +16,8 @@ import { createTracer } from "../../../../../../server/trace/trace.ts";
 // runs the scout and the architect for the intake's profile (the seed's until the intake is done, a
 // plan the page never shows), edit takes
 // {op: "move", session_id, day} or {op: "shorten", session_id, minutes}, accept and reject take the
-// {version} the re-planner proposed (#26), reset forgets the plan. Each answers {plan}.
+// {version} the re-planner proposed (#26), reset forgets the plan. Each answers {plan}. Replay
+// refuses edits (#55).
 export async function POST(
   request: Request,
   ctx: RouteContext<"/api/sessions/[id]/plan/[action]">,
@@ -49,6 +50,7 @@ export async function POST(
       (await runScout({ orchestrator, sessionId: id, brief: scoutBrief(profile), pages, cache }))
         .resources,
     forgetLesson: (planId, lessonId) => forgetLessonAndQuiz(store, id, planId, lessonId),
+    replay: config.providerProfile === "replay",
   });
   return planResponse(request, id, action, planner);
 }

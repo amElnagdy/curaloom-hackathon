@@ -68,6 +68,8 @@ flowchart LR
 | Clock          | #23              | Simulated time per session, the only reader of system time. Moving it fires due coach rules in time order, exactly once.     |
 | Evals          | #8               | Arabic quality eval in `evals/arabic`, reused as a regression test.                                                          |
 
+Replay answers only a request it has a recording of, so in replay the agents keep the learner on the recorded run before they call a model (#55). The routes pass a `recorded` (or `replay`) dependency, read from `demo/script.ts`, that is empty unless `config.providerProfile` is `replay`. The quiz page and the examiner read the recorded short answers through one function, `replayShortAnswers()` in `src/server/agents/recorded-level.ts`. The intake sends the recorded message at its place, the examiner grades the recorded short answers and passes the last recorded quiz on its keys, the coach writes in the recorded tone, sends a message whose wording has no recording as its template and holds back a comeback the run did not make, and the planner refuses edits. Whether the coach's wording has a recording, `hasRecording()` in the provider module says, from the recordings and the request the call would send. Each traces a decision and the page says so in one line. Nothing catches a missing recording to try again. `docs/demo.md` lists these paths.
+
 ## Layout
 
 ```

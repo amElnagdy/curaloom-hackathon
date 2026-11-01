@@ -4,6 +4,7 @@
 // the quizzes of the plan built for them, which their comeback (#27) recaps and re-plans.
 
 import type { CoursePlan, Mastery, QuizAttempt } from "../../../contracts/index.ts";
+import { SWITCH_RECAP_RIGHT } from "../../../demo/script.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config } from "../../config.ts";
 import { planFor, proposeReplan } from "../agents/architect/architect.ts";
@@ -17,7 +18,7 @@ import { INBOX_DOC } from "../notifier/adapters.ts";
 import { CONSENT_DOC, OUTBOX_DOC } from "../notifier/notifier.ts";
 import { createOrchestrator } from "../orchestrator/orchestrator.ts";
 import { loadModels } from "../providers/models.ts";
-import { createProvider } from "../providers/provider.ts";
+import { createProvider, hasRecording } from "../providers/provider.ts";
 import { contentHash, type Store } from "../store/store.ts";
 import { createTracer } from "../trace/trace.ts";
 import { COACH_DOC, type CoachDeps, type Study } from "./coach.ts";
@@ -153,6 +154,16 @@ export const coachSteps = (store: Store) =>
       }),
   });
 
+// The run the coach keeps to in replay (#55). It took its quizzes on the first day and came back on
+// the tenth. Whether a message's wording is recorded, the recordings themselves say.
+export const recordedCoach = (): NonNullable<CoachDeps["recorded"]> => ({
+  anchor: 0,
+  day: 10,
+  switch_recap_right: SWITCH_RECAP_RIGHT,
+  worded: (call) => hasRecording(loadModels(), call),
+});
+const RECORDED_COACH = config.providerProfile === "replay" ? recordedCoach() : undefined;
+
 // The session's simulated coach and the learner it follows, as the pages read them. Only a clock
 // move writes coach messages and only a finished comeback proposes a re-plan, so only the sim and
 // comeback routes pass `steps` (coachSteps); without it each message and each explanation is its
@@ -162,6 +173,7 @@ export function sessionSim(
   sessionId: string,
   seed: CoachSeed,
   steps: CoachDeps["steps"] = null,
+  recorded = RECORDED_COACH,
 ) {
   const simSeed = sessionSimSeed(store, sessionId, seed);
   return {
@@ -175,6 +187,7 @@ export function sessionSim(
         study: () => studyOf(store, sessionId, seed),
         replan: (request) => replanFor(store, sessionId, seed, steps, request),
         recap: () => recapOf(store, sessionId),
+        recorded,
       },
     }),
   };

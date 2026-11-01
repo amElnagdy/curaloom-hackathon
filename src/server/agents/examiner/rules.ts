@@ -11,8 +11,17 @@ export type Answer = { item_id: string; response: string };
 
 export const QUIZ_ITEMS = { min: 5, max: 8 };
 
+// Replay only (#55): by attempt id, the learner's own answers to the items whose recorded answers
+// were graded in their place.
+export type Replaced = Record<string, Answer[]>;
+
 // A lesson's quizzes and attempts, oldest first, and its mastery. The last quiz is the one to take.
-export type QuizView = { quizzes: Quiz[]; attempts: QuizAttempt[]; mastery: Mastery | undefined };
+export type QuizView = {
+  quizzes: Quiz[];
+  attempts: QuizAttempt[];
+  mastery: Mastery | undefined;
+  replaced?: Replaced;
+};
 
 // Whether the lesson needs a quiz written: it has none, or its last one has an attempt below the
 // gate and the lesson is not passed.

@@ -337,6 +337,9 @@
   flex-direction: column;
   gap: 0.45rem;
 }
+.closed {
+  max-width: 22rem;
+}
 .progressText {
   font-size: var(--text-sm);
   font-weight: 600;

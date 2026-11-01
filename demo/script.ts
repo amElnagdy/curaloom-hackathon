@@ -50,3 +50,8 @@ export const SHORT_ANSWERS = { L1: [FIRST_QUIZ, RETRY_QUIZ] } as const;
 // The recorded short answers to the `n`th quiz of a lesson (0 for its first), if the run has them.
 export const recordedShortAnswers = (lessonId: string, n: number): readonly string[] | undefined =>
   (SHORT_ANSWERS as Record<string, readonly (readonly string[])[]>)[lessonId]?.[n];
+
+// How many of his five recap items he gets right, the first ones, before «مصدر آخر» re-plans his
+// course: below the gate, so the plan starts with a review. The run has no «مصدر آخر» after a recap
+// at the gate, so replay grades these answers in its place (#55).
+export const SWITCH_RECAP_RIGHT = 3;

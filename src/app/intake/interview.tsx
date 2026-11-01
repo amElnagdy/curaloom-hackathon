@@ -43,6 +43,7 @@ import {
   DirIcon,
   LangBadge,
   RecordedFill,
+  ReplayNote,
   Sep,
   type Status,
   StatusPill,
@@ -487,6 +488,11 @@ function Message({ turn }: { turn: Turn }) {
         <span className="sr-only">أنت: </span>
         <BidiText text={turn.text_ar} />
       </p>
+      {turn.replaced && (
+        <ReplayNote className={styles.replaced}>
+          في العرض المسجّل أُرسلت الرسالة المسجّلة بدل رسالتك.
+        </ReplayNote>
+      )}
       {turn.heard.length > 0 && (
         <p className={styles.heard}>
           <Sparkles aria-hidden />

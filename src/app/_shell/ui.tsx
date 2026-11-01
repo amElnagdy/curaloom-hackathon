@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { Fragment, type ReactNode } from "react";
+import { type ComponentPropsWithoutRef, Fragment, type ReactNode } from "react";
 import type { Resource } from "../../../contracts/index.ts";
 import type { ProviderProfile } from "../../config.ts";
 import { hhmm, type SimTime } from "../../server/clock/time.ts";
@@ -293,6 +293,17 @@ export function RecordedFill({
       <Icon aria-hidden />
       {label}
     </button>
+  );
+}
+
+// Replay only (#55): one quiet line, next to where it happened, saying the recorded run's words or
+// answers were used in place of the learner's. It carries the REPLAY badge's icon.
+export function ReplayNote({ children, className, ...rest }: ComponentPropsWithoutRef<"p">) {
+  return (
+    <p role="note" className={cx(styles.replayNote, className)} {...rest}>
+      <History aria-hidden />
+      <span>{children}</span>
+    </p>
   );
 }
 

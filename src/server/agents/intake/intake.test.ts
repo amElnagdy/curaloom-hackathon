@@ -12,17 +12,20 @@ import {
   LearnerProfile,
   type Lesson,
   type Quiz,
+  type QuizAttempt,
 } from "../../../../contracts/index.ts";
 import {
   INTAKE_MESSAGES,
   INTAKE_VOICE_CLIP,
   RECORDED_TOPIC,
+  recordedShortAnswers,
   SHORT_ANSWERS,
 } from "../../../../demo/script.ts";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { loadConfig, type ProviderProfile } from "../../../config.ts";
 import { comebackResponse, consentResponse, inboxResponse, simResponse } from "../../clock/http.ts";
-import { sessionSim } from "../../coach/session.ts";
+import type { CoachDeps } from "../../coach/coach.ts";
+import { recordedCoach, sessionSim } from "../../coach/session.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
 import {
@@ -45,6 +48,7 @@ import { glossaryProblems } from "../diagrams/rules.ts";
 import {
   courseOf,
   createExaminer,
+  type ExaminerDeps,
   forgetLessonAndQuiz,
   QuizConflict,
   savedQuizzes,
@@ -147,7 +151,7 @@ afterEach(() => {
 
 function setup(
   heard: Heard[] = [EVERYTHING],
-  script: Omit<Script, "heard"> = {},
+  { recorded, ...script }: Omit<Script, "heard"> & { recorded?: readonly string[] } = {},
   create: typeof createIntake = createIntake,
 ) {
   const dir = mkdtempSync(join(tmpdir(), "intake-"));
@@ -164,6 +168,7 @@ function setup(
       sessionId,
       learner: LEARNER,
       topic: RECORDED_TOPIC,
+      recorded,
     });
   return { intake, fake, store };
 }
@@ -249,6 +254,44 @@ describe("intake", () => {
     expect(view?.turns.filter((t) => t.role === "interviewer")).toHaveLength(5);
     expect(view?.turns.at(-1)?.text_ar).toMatch(/ثلاثة أسئلة سريعة/);
     expect(view?.turns.at(-1)?.text_ar).not.toContain(MODEL_ASK);
+  });
+
+  // Replay answers only the recorded text, so the route passes the recorded messages in replay.
+  it("sends the recorded message in place of other text at its place, and marks the turn", async () => {
+    const { intake, fake, store } = setup([{ ...NOTHING, goal: "محلل بيانات" }, EVERYTHING], {
+      recorded: ["الرسالة المسجّلة الأولى", "الرسالة المسجّلة الثانية"],
+    });
+    intake().start();
+
+    await intake().message("نص آخر كتبه المتعلم");
+    const view = await intake().message("الرسالة المسجّلة الثانية");
+
+    expect(fake.inputs.IntakeReply?.[0]).toContain("Learner: الرسالة المسجّلة الأولى");
+    expect(fake.inputs.IntakeReply?.join("\n")).not.toContain("نص آخر كتبه المتعلم");
+    expect(view.turns.filter((t) => t.role === "learner")).toEqual([
+      { role: "learner", text_ar: "الرسالة المسجّلة الأولى", heard: ["goal"], replaced: true },
+      expect.not.objectContaining({ replaced: true }),
+    ]);
+    const decisions = store
+      .readTrace<TraceEvent>("s1")
+      .filter((e) => /^Replay: sent recorded message/.test(e.summary_en));
+    expect(decisions.map((e) => e.summary_en)).toEqual([
+      "Replay: sent recorded message 1 in place of the learner's, which has no recording",
+    ]);
+  });
+
+  it("sends the learner's own text outside replay", async () => {
+    const { intake, fake } = setup([EVERYTHING]);
+    intake().start();
+
+    const view = await intake().message("نص آخر كتبه المتعلم");
+
+    expect(fake.inputs.IntakeReply?.[0]).toContain("Learner: نص آخر كتبه المتعلم");
+    expect(view.turns[1]).toEqual({
+      role: "learner",
+      text_ar: "نص آخر كتبه المتعلم",
+      heard: expect.any(Array),
+    });
   });
 
   it("asks the model afresh when a different message follows a failed quick check", async () => {
@@ -461,8 +504,9 @@ describe("intake, in replay (#55)", () => {
 const recording = process.env.RECORD_FIXTURES === "1";
 if (recording) process.loadEnvFile(".env");
 
-// Omar's recorded interview, up to the profile it saves.
-async function interview() {
+// Omar's recorded interview, up to the profile it saves. With `say`, the learner types other words
+// and the intake stands the recorded ones in, as the replay route does.
+async function interview(say: readonly string[] = INTAKE_MESSAGES) {
   const dir = mkdtempSync(join(tmpdir(), "intake-replay-"));
   dirs.push(dir);
   const store = createFileStore(dir);
@@ -484,10 +528,11 @@ async function interview() {
     sessionId: "s1",
     learner: LEARNER,
     topic: RECORDED_TOPIC,
+    recorded: say === INTAKE_MESSAGES ? undefined : INTAKE_MESSAGES,
   });
 
   let view = intake.start();
-  for (const text of INTAKE_MESSAGES) {
+  for (const text of say) {
     if (view.status !== "interview") break;
     view = await intake.message(text);
   }
@@ -511,6 +556,15 @@ describe("intake, replaying Omar's recorded interview", () => {
       diagnostic: { level: "beginner" },
     });
     expect(profile?.history_notes).toMatch(/صباح/);
+  }, 300_000);
+
+  it("profiles him the same way when he types other words, which have no recording", async () => {
+    const { store, view } = await interview(INTAKE_MESSAGES.map((_, i) => `كلام آخر ${i + 1}`));
+
+    expect(savedProfile(store, "s1")?.diagnostic).toMatchObject({ level: "beginner" });
+    const learner = view.turns.filter((t) => t.role === "learner");
+    expect(learner.map((t) => t.text_ar)).toEqual(INTAKE_MESSAGES.slice(0, learner.length));
+    expect(learner.every((t) => t.replaced)).toBe(true);
   }, 300_000);
 
   // The demo's path: the plan page builds on the profile the interview saved, not on the seed's.
@@ -640,6 +694,41 @@ describe("intake, replaying Omar's recorded interview", () => {
     }
   }, 600_000);
 
+  it("grades the recorded short answers when he writes his own, and passes a retry he got wrong", async () => {
+    const { examiner, builder, first, second } = await quizzed(recordedShortAnswers);
+    const own = ["كتبتها بكلماتي", "وهذه أيضًا"];
+    const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+    const missed = quiz.items.filter((i) => i.type === "mcq")[1];
+
+    const below = await examiner.attempt(first, quiz.id, answersTo(quiz, own, missed?.id));
+    const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
+    const wrong = new Set(
+      retry.items
+        .filter((i) => i.type === "mcq")
+        .slice(0, 2)
+        .map((i) => i.id),
+    );
+    const passed = await examiner.attempt(
+      first,
+      retry.id,
+      answersTo(retry, own).map((a) => {
+        const item = retry.items.find((i) => i.id === a.item_id);
+        const other = item?.options_ar.find((o) => o !== item.answer);
+        return wrong.has(a.item_id) && other ? { ...a, response: other } : a;
+      }),
+    );
+
+    const shortsOf = (attempt: QuizAttempt, q: Quiz) =>
+      attempt.answers
+        .filter((a) => q.items.find((i) => i.id === a.item_id)?.type === "short")
+        .map((a) => a.response);
+    expect(shortsOf(below.attempt, quiz)).toEqual(OMAR_FIRST);
+    expect(below.attempt.passed).toBe(false);
+    expect(shortsOf(passed.attempt, retry)).toEqual(OMAR_RETRY);
+    expect(passed.attempt).toMatchObject({ passed: true, score: 1 });
+    expect((await builder.build(second)).lessons[second]).toBeDefined();
+  }, 600_000);
+
   // The plan page starts the first lesson once the plan is ready; the second opens once he passes the
   // first's quiz, and shares its glossary.
   it("writes his second lesson once he passes the first, one glossary for both", async () => {
@@ -749,6 +838,62 @@ describe("intake, replaying Omar's recorded interview", () => {
   }, 600_000);
 });
 
+// In replay the coach asks the model only for a wording the recordings have (#55): his recorded
+// day-0 run's three messages, in the recorded gentle tone whatever tone he picks. Any other message
+// is its template, with no request that replay could not answer.
+describe("the coach in replay, which words only the recorded messages", () => {
+  const coachTrace = (store: Store) =>
+    store.readTrace<TraceEvent>("s1").filter((e) => e.agent === "coach");
+  const templated = (store: Store) =>
+    coachTrace(store)
+      .filter((e) =>
+        e.summary_en.endsWith("template, no model call: replay has no recording of its wording"),
+      )
+      .map((e) => e.summary_en.split(":")[0]);
+  const missing = (store: Store) =>
+    store.readTrace<TraceEvent>("s1").filter((e) => e.missing_recording);
+
+  it("plays his recorded messages to the check-in, then sends the weekly one after «استراحة أسبوع» as its template", async () => {
+    const { store, orchestrator } = await passedFirst();
+    const sim = () =>
+      sessionSim(store, "s1", loadOmarSeed(RECORDED_TOPIC), orchestrator, recordedCoach()).sim;
+    sim().setConsent({ messages: true, quiet_hours: null, intensity: "normal" });
+
+    const fired = [];
+    for (const day of [2, 5, 10]) fired.push(...(await sim().set(day)).events);
+    await sim().answer({ event_id: "checkin_a0_d10", choice: "pause", pause_days: 7 });
+    fired.push(...(await sim().set(17)).events);
+
+    expect(fired.map((e) => [e.id, e.status])).toEqual([
+      ["nudge_a0_d2", "sent"],
+      ["replan_a0_d5", "sent"],
+      ["checkin_a0_d10", "sent"],
+      ["weekly_a0_d17", "sent"],
+    ]);
+    expect(coachTrace(store).filter((e) => e.kind === "model_call")).toHaveLength(3);
+    expect(templated(store)).toEqual(["weekly_a0_d17"]);
+    expect(missing(store)).toEqual([]);
+    expect(sim().comeback()).toMatchObject({ state: "none", held: "paused" });
+  }, 600_000);
+
+  it("sends lesson 1's messages as their templates when the clock moves before he passes it", async () => {
+    const { store, orchestrator } = await quizzed();
+    const sim = () =>
+      sessionSim(store, "s1", loadOmarSeed(RECORDED_TOPIC), orchestrator, recordedCoach()).sim;
+    sim().setConsent({ messages: true, quiet_hours: null, intensity: "gentle" });
+
+    const { events } = await sim().set(5);
+
+    expect(events.map((e) => [e.id, e.status])).toEqual([
+      ["nudge_a0_d2", "sent"],
+      ["replan_a0_d5", "sent"],
+    ]);
+    expect(coachTrace(store).filter((e) => e.kind === "model_call")).toEqual([]);
+    expect(templated(store)).toEqual(["nudge_a0_d2", "replan_a0_d5"]);
+    expect(missing(store)).toEqual([]);
+  }, 600_000);
+});
+
 // The demo's path through the HTTP API (#26, #27), as the coach and plan pages post it: Omar, who
 // passed lesson 1 on day 0 and has lesson 2 written (unless `secondWritten` is false), gets the
 // day-10 check-in and taps `choice`, «جلسات أقصر» or «مصدر آخر»; the plan page sees him back and he
@@ -756,13 +901,16 @@ describe("intake, replaying Omar's recorded interview", () => {
 async function cameBack(
   right: number,
   choice: "shrink" | "switch" = "shrink",
-  { secondWritten = true } = {},
+  {
+    secondWritten = true,
+    recorded,
+  }: { secondWritten?: boolean; recorded?: CoachDeps["recorded"] } = {},
 ) {
   const course = await passedFirst();
   const { store, orchestrator, builder, second } = course;
   if (secondWritten) await builder.build(second);
   const seed = loadOmarSeed(RECORDED_TOPIC);
-  const deps = { sim: (id: string) => sessionSim(store, id, seed, orchestrator).sim };
+  const deps = { sim: (id: string) => sessionSim(store, id, seed, orchestrator, recorded).sim };
   const post = (body: unknown) =>
     new Request("http://localhost/x", {
       method: "POST",
@@ -1006,6 +1154,35 @@ describe("the demo's comeback, replaying the recorded course through the HTTP AP
     );
   }, 600_000);
 
+  // The run has no «مصدر آخر» after a recap at the gate: replay grades the recorded recap in its
+  // place, so Spark's recorded note picks the source lesson 2 is written again from (#55).
+  it("in replay, re-plans «مصدر آخر» after a 5-of-5 recap from the recorded 3-of-5 one", async () => {
+    const came = await cameBack(5, "switch", {
+      recorded: recordedCoach(),
+    });
+    const { store, planner, post, ok, builder, finished, second } = came;
+    await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+
+    const rewritten = (await builder.build(second)).lessons[second] as Lesson;
+
+    expect(finished.comeback.last.recap).toMatchObject({
+      replaced: true,
+      below_gate: true,
+      attempt: { score: 0.6 },
+    });
+    expect(
+      store
+        .readTrace<TraceEvent>("s1")
+        .filter((e) => e.agent === "replanner")
+        .map((e) => e.summary_en),
+    ).toContain(
+      `replan v2: L2 moves to ${SPARK_PICK}, Spark's pick of 6 candidates; code ranked r_43e79caf first`,
+    );
+    expect(new Set(rewritten.sections.map((s) => s.source_excerpt.resource_id))).toEqual(
+      new Set([SPARK_PICK]),
+    );
+  }, 600_000);
+
   // The lesson page asks for the quiz of lesson 2 as written again from Spark's pick.
   it("writes the quiz for lesson 2 as written again from Spark's pick", async () => {
     const { store, planner, post, ok, builder, examiner, second } = await cameBack(3, "switch");
@@ -1078,8 +1255,9 @@ function answersTo(quiz: Quiz, shorts: readonly string[], miss?: string) {
   }));
 }
 
-// Omar's plan with his first lesson written, and the examiner the lesson page asks.
-async function quizzed() {
+// Omar's plan with his first lesson written, and the examiner the lesson page asks. With `recorded`,
+// the examiner grades the recorded short answers, as the replay route's does.
+async function quizzed(recorded?: ExaminerDeps["recorded"]) {
   const { store, orchestrator, pages, saved } = await planned();
   const profile = () => savedProfile(store, "s1") as LearnerProfile;
   const builder = createLessonBuilder({
@@ -1099,6 +1277,7 @@ async function quizzed() {
     store,
     sessionId: "s1",
     course: () => courseOf(store, "s1", profile()),
+    recorded,
   });
   return { store, orchestrator, pages, saved, builder, examiner, first, second, lesson, lessonIds };
 }

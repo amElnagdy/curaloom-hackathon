@@ -29,6 +29,7 @@ import {
   type Planner,
   planFor,
   proposeReplan,
+  REPLAY_EDIT,
   runArchitect,
   type SavedPlan,
   savedPlan,
@@ -277,7 +278,7 @@ describe("architect", () => {
 
 // `notes` are the re-planner's answers to its explanation calls; with none it explains by the
 // template, as a route with no model would.
-function plannerSetup(notes: ReplanNote[] = []) {
+function plannerSetup(notes: ReplanNote[] = [], { replay = false } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "planner-"));
   dirs.push(dir);
   const store = createFileStore(dir);
@@ -303,6 +304,7 @@ function plannerSetup(notes: ReplanNote[] = []) {
     forgetLesson: (planId, lessonId) => {
       forgotten.push([planId, lessonId]);
     },
+    replay,
   });
   return {
     planner,
@@ -409,6 +411,21 @@ describe("planner", () => {
       { en: expect.stringMatching(/s2.*day 9/), ar: expect.stringMatching(/\p{Script=Arabic}/u) },
     ]);
     expect(saved()).toEqual(built);
+  });
+
+  // The recorded run never edited its plan, and an edit changes the requests after it (#55).
+  it("refuses every edit in replay, saying so in Arabic, and keeps the plan", async () => {
+    const { planner, saved, events } = plannerSetup([], { replay: true });
+    const built = await planner.build();
+
+    const error = refusal(() => planner.edit({ op: "move", session_id: "s2", day: 6 }));
+
+    expect(error).toBeInstanceOf(PlanEditRejected);
+    expect((error as PlanEditRejected).violations).toEqual([REPLAY_EDIT]);
+    expect(saved()).toEqual(built);
+    expect(events().at(-1)?.summary_en).toMatch(
+      /^Learner edit refused .*: the recorded demo keeps/,
+    );
   });
 
   it("refuses an edit before there is a plan", () => {

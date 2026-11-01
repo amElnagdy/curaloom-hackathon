@@ -87,6 +87,11 @@
   font-weight: 600;
   color: var(--ink-2);
 }
+.replaced {
+  align-self: flex-end;
+  max-width: 85%;
+  margin-top: calc(-1 * var(--s-1));
+}
 /* The app's own note in the thread, in neither speaker's voice: dashed like the replay's chips. */
 .note {
   align-self: center;
