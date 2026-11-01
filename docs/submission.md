@@ -42,7 +42,8 @@ Every model call and decision shows in a live trace with its cost. The demo runs
 
 These figures are worked out from token counts and the prices in `config/models.yaml`. They are not billing records, so check them against the Meta console.
 
-- **Recorded demo answers:** 88 recordings, 80 Spark, 4 Wonder, 3 Muse Image and 1 Voice Transcribe calls, plus 32 web searches. Together about $2.05.
+- **Recorded demo answers:** 153 recordings, about $4.17 together. The beginner path's 88 (80 Spark, 4 Wonder, 3 Muse Image and 1 Voice Transcribe calls, plus 32 web searches) cost about $2.05. The advanced and intermediate paths' 65 (62 Spark and 3 Wonder calls, #98) cost about $2.12.
+- **Recording the advanced and intermediate paths:** $2.57 of live calls, including $0.46 of advanced recordings discarded because the first plan was off-topic.
 - **Building voice input:** about $0.004 of Voice Transcribe calls.
 - **Diagram relabelling:** about $1.27 for spike #9, and about $0.41 of live calls while building it.
 - **The #8 Arabic eval:** $1.49, including one discarded run.

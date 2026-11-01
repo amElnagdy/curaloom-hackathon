@@ -63,6 +63,8 @@ import { createIntake, IntakeConflict, savedProfile, transcribeVoice } from "./i
 
 const LEARNER = { id: "l_omar", name: "عمر" };
 
+type Level = LearnerProfile["diagnostic"]["level"];
+
 type Heard = IntakeReply["heard"];
 const NOTHING: Heard = {
   goal: null,
@@ -504,9 +506,8 @@ describe("intake, in replay (#55)", () => {
 const recording = process.env.RECORD_FIXTURES === "1";
 if (recording) process.loadEnvFile(".env");
 
-// Omar's recorded interview, up to the profile it saves. With `say`, the learner types other words
-// and the intake stands the recorded ones in, as the replay route does.
-async function interview(say: readonly string[] = INTAKE_MESSAGES) {
+// A new session for the recorded chain: its store, cache and orchestrator.
+function chain() {
   const dir = mkdtempSync(join(tmpdir(), "intake-replay-"));
   dirs.push(dir);
   const store = createFileStore(dir);
@@ -521,6 +522,26 @@ async function interview(say: readonly string[] = INTAKE_MESSAGES) {
         onTrace,
       }),
   });
+  return { store, cache, orchestrator };
+}
+type Chain = ReturnType<typeof chain>;
+
+// How many of the quick check's three questions he gets right, the first ones, to land on each
+// level. He answers «لا أعرف بعد» to the others.
+const PLACED: Record<Level, number> = { beginner: 0, intermediate: 2, advanced: 3 };
+
+// Omar's recorded interview, up to the profile it saves, with the quick check answered to place him
+// at `level`. With `say`, the learner types other words and the intake stands the recorded ones in,
+// as the replay route does.
+async function interview({
+  level = "beginner",
+  say = INTAKE_MESSAGES,
+  into: { store, cache, orchestrator } = chain(),
+}: {
+  level?: Level;
+  say?: readonly string[];
+  into?: Chain;
+} = {}) {
   const intake = createIntake({
     orchestrator,
     store,
@@ -537,8 +558,13 @@ async function interview(say: readonly string[] = INTAKE_MESSAGES) {
     view = await intake.message(text);
   }
   expect(view.status).toBe("diagnostic");
-  view = await intake.answer({ q1: DONT_KNOW, q2: DONT_KNOW, q3: DONT_KNOW });
-  return { store, cache, orchestrator, view };
+  // The interview keeps each question's answer; the page never sees it.
+  const state = store.readDoc<{ questions: { id: string; answer: string }[] }>("s1", "intake");
+  const questions = state?.questions ?? [];
+  view = await intake.answer(
+    Object.fromEntries(questions.map((q, i) => [q.id, i < PLACED[level] ? q.answer : DONT_KNOW])),
+  );
+  return { store, cache, orchestrator, view, intake };
 }
 
 describe("intake, replaying Omar's recorded interview", () => {
@@ -559,7 +585,9 @@ describe("intake, replaying Omar's recorded interview", () => {
   }, 300_000);
 
   it("profiles him the same way when he types other words, which have no recording", async () => {
-    const { store, view } = await interview(INTAKE_MESSAGES.map((_, i) => `كلام آخر ${i + 1}`));
+    const { store, view } = await interview({
+      say: INTAKE_MESSAGES.map((_, i) => `كلام آخر ${i + 1}`),
+    });
 
     expect(savedProfile(store, "s1")?.diagnostic).toMatchObject({ level: "beginner" });
     const learner = view.turns.filter((t) => t.role === "learner");
@@ -695,7 +723,7 @@ describe("intake, replaying Omar's recorded interview", () => {
   }, 600_000);
 
   it("grades the recorded short answers when he writes his own, and passes a retry he got wrong", async () => {
-    const { examiner, builder, first, second } = await quizzed(recordedShortAnswers);
+    const { examiner, builder, first, second } = await quizzed("beginner", recordedShortAnswers);
     const own = ["كتبتها بكلماتي", "وهذه أيضًا"];
     const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
     const missed = quiz.items.filter((i) => i.type === "mcq")[1];
@@ -903,10 +931,11 @@ async function cameBack(
   choice: "shrink" | "switch" = "shrink",
   {
     secondWritten = true,
+    level = "beginner",
     recorded,
-  }: { secondWritten?: boolean; recorded?: CoachDeps["recorded"] } = {},
+  }: { secondWritten?: boolean; level?: Level; recorded?: CoachDeps["recorded"] } = {},
 ) {
-  const course = await passedFirst();
+  const course = await passedFirst(level);
   const { store, orchestrator, builder, second } = course;
   if (secondWritten) await builder.build(second);
   const seed = loadOmarSeed(RECORDED_TOPIC);
@@ -977,7 +1006,9 @@ function explainedBySpark(
   const profile = savedProfile(store, "s1") as LearnerProfile;
   const saved = planFor(store, "s1", profile) as SavedPlan;
   const [v1] = saved.versions as [CoursePlan];
-  const brief = replanBrief(v1, v2, v1, request, new Set(["L1"]), {
+  const { mastery } = savedQuizzes(store, "s1", v1.id);
+  const passed = new Set(mastery.filter((m) => m.passed).map((m) => m.lesson_id));
+  const brief = replanBrief(v1, v2, v1, request, passed, {
     resources: saved.resources,
     history_notes: profile.history_notes,
   });
@@ -1232,6 +1263,266 @@ describe("the demo's comeback, replaying the recorded course through the HTTP AP
   }, 600_000);
 });
 
+// The other placement levels' presenter paths (#98), each replayed from its own recordings: the
+// beginner's steps above, checked by shape, since each level has its own plan, lessons and quizzes.
+// Every short answer is the quiz's own model answer (recordedShortAnswers in demo/script.ts).
+describe.each(["advanced", "intermediate"] as const)(
+  "the %s presenter path, replaying its own recordings (#98)",
+  (level) => {
+    it("places him at the level and plans a course of its own, within the plan's rules", async () => {
+      const { store, saved } = await planned(level);
+      const beginner = await planned("beginner");
+
+      const [plan] = saved.versions as [CoursePlan];
+      expect(savedProfile(store, "s1")?.diagnostic.level).toBe(level);
+      expect(saved.resources).not.toEqual(beginner.saved.resources);
+      expect(planViolations(plan, saved.limits)).toEqual([]);
+      const found = new Set(saved.resources.map((r) => r.id));
+      for (const session of plan.committed.sessions) {
+        expect(session.resource_ids.length).toBeGreaterThan(0);
+        for (const id of session.resource_ids) expect(found).toContain(id);
+      }
+      expect(new Set(modelsOf(store, "architect"))).toEqual(new Set(["muse-wonder-1.0"]));
+      expect(unrecorded(store)).toEqual([]);
+    }, 600_000);
+
+    it("writes lesson 1 from its resources, and its quiz", async () => {
+      const { store, examiner, saved, first, lesson } = await quizzed(level);
+
+      const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+
+      expectQuotes(saved.versions[0] as CoursePlan, lesson);
+      expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
+      expect(new Set(modelsOf(store, "examiner"))).toEqual(new Set(["muse-spark-1.3"]));
+      expect(unrecorded(store)).toEqual([]);
+    }, 600_000);
+
+    it("shows lesson 1's diagram, or none, with no call or page left unrecorded", async () => {
+      const course = await quizzed(level);
+
+      const diagrams = await diagramsOf(course).build(course.first);
+
+      expectDiagramsShaped(course, course.first, diagrams);
+    }, 600_000);
+
+    it("keeps lesson 2 shut below 80%, then opens it once he passes a quiz with other questions", async () => {
+      const { store, examiner, builder, first, second, lesson, lessonIds } = await quizzed(level);
+      const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+
+      const below = await examiner.attempt(first, quiz.id, lessonOneAnswers(level, quiz, 0));
+      const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
+
+      expect(below.attempt.passed).toBe(false);
+      expect(below.attempt.score).toBeLessThan(0.8);
+      expect(lessonOpen(lessonIds, below.mastery ? [below.mastery] : [], second)).toBe(false);
+      await expect(builder.build(second)).rejects.toThrow(LessonLocked);
+      expect(quizViolations(retry, lesson.glossary_ids)).toEqual([]);
+      const asked = new Set(quiz.items.map((i) => i.prompt_ar));
+      expect(retry.items.filter((i) => asked.has(i.prompt_ar))).toEqual([]);
+
+      const passed = await examiner.attempt(first, retry.id, lessonOneAnswers(level, retry, 1));
+
+      expect(passed.attempt.passed).toBe(true);
+      expect(passed.mastery).toMatchObject({ passed: true, attempts: 2 });
+      expect(lessonOpen(lessonIds, passed.mastery ? [passed.mastery] : [], second)).toBe(true);
+      for (const answer of passed.attempt.answers) {
+        expect(answer.feedback_ar).toMatch(/\p{Script=Arabic}/u);
+      }
+      expect(unrecorded(store)).toEqual([]);
+    }, 600_000);
+
+    it("writes lesson 2 once he passes lesson 1, one glossary for both, and its quiz", async () => {
+      const { store, builder, examiner, saved, first, second } = await passedFirst(level);
+
+      const afterFirst = await builder.build(first);
+      const afterSecond = await builder.build(second);
+      const quiz = (await examiner.quiz(second)).quizzes[0] as Quiz;
+
+      const lesson = afterSecond.lessons[second] as Lesson;
+      expectQuotes(saved.versions[0] as CoursePlan, lesson);
+      expect(afterSecond.glossary.slice(0, afterFirst.glossary.length)).toEqual(
+        afterFirst.glossary,
+      );
+      expect(afterSecond.glossary.map((e) => e.id)).toEqual(
+        expect.arrayContaining(lesson.glossary_ids),
+      );
+      expect(quiz.lesson_id).toBe(second);
+      expect(quizViolations(quiz, lesson.glossary_ids)).toEqual([]);
+      expect(unrecorded(store)).toEqual([]);
+    }, 600_000);
+
+    it("shows lesson 2's diagram, or none, once it opens, with no call or page left unrecorded", async () => {
+      const course = await passedFirst(level);
+      await course.builder.build(course.second);
+
+      const diagrams = await diagramsOf(course).build(course.second);
+
+      expectDiagramsShaped(course, course.second, diagrams);
+    }, 600_000);
+
+    it("chases him in Spark's words to the day-10 check-in, where «جلسات أقصر» is recorded", async () => {
+      const { store, orchestrator } = await passedFirst(level);
+      const sim = () => sessionSim(store, "s1", loadOmarSeed(RECORDED_TOPIC), orchestrator).sim;
+      sim().setConsent({
+        messages: true,
+        quiet_hours: { start: "22:00", end: "08:00" },
+        intensity: "gentle",
+      });
+
+      const fired = [];
+      for (const day of [2, 5, 10]) fired.push(...(await sim().set(day)).events);
+      const answer = await sim().answer({
+        event_id: "checkin_a0_d10",
+        choice: "shrink",
+        pause_days: 7,
+      });
+
+      expect(fired.map((e) => [e.id, e.status])).toEqual([
+        ["nudge_a0_d2", "sent"],
+        ["replan_a0_d5", "sent"],
+        ["checkin_a0_d10", "sent"],
+      ]);
+      for (const { message_ar } of fired) expect(message_ar.length).toBeLessThanOrEqual(160);
+      expect(new Set(modelsOf(store, "coach"))).toEqual(new Set(["muse-spark-1.3"]));
+      const fallbacks = store
+        .readTrace<TraceEvent>("s1")
+        .filter((e) => e.agent === "coach" && /template/.test(e.summary_en));
+      expect(fallbacks).toEqual([]);
+      expect(answer).toEqual({ choice: "shrink", paused_until: null });
+      expect(unrecorded(store)).toEqual([]);
+    }, 600_000);
+
+    it.each([3, 5])(
+      "proposes v2 in Spark's words after «جلسات أقصر» and a recap of %i out of 5",
+      async (right) => {
+        const { store, v1, comeback, finished, first } = await cameBack(right, "shrink", { level });
+        const proposal = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile);
+        const v2 = proposal?.pending as CoursePlan;
+        const recap = { below_gate: right < 4, review_lesson: right < 4 ? first : null };
+
+        expect(comeback.recap.items).toHaveLength(5);
+        expect(finished.comeback.last.recap).toMatchObject(recap);
+        expect(finished.replanned).toMatchObject({ ok: true, version: 2 });
+        expect(v2).toMatchObject({ id: v1?.versions[0]?.id, version: 2, reason: "shrink" });
+        expect(v2.diff.some((c) => c.op === "review")).toBe(recap.below_gate);
+        expect(planViolations(v2, proposal?.limits as SavedPlan["limits"])).toEqual([]);
+        expect(
+          explainedBySpark(store, v2, { reason: "shrink", today: 10, away_days: 10, recap }),
+        ).toEqual({ models: ["muse-spark-1.3"], fallbacks: [], violations: [] });
+        expect(unrecorded(store)).toEqual([]);
+      },
+      600_000,
+    );
+
+    it("keeps that v2 on accept after a recap of 3 out of 5, then opens lesson 2 and its diagram", async () => {
+      const came = await cameBack(3, "shrink", { level });
+      const { store, planner, post, ok, builder, second } = came;
+      const v2 = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile)?.pending;
+
+      const { plan } = await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+      const lessons = await builder.build(second);
+      const diagrams = await diagramsOf(came).build(second);
+
+      expect(plan.versions.map((v: CoursePlan) => v.version)).toEqual([1, 2]);
+      expect(plan.versions[1]).toEqual(v2);
+      expect(lessons.lessons[second]).toBeDefined();
+      expectDiagramsShaped(came, second, diagrams);
+    }, 600_000);
+
+    it("proposes v2 after «مصدر آخر» with lesson 2 on Spark's pick, then writes lesson 2 and its quiz again from it", async () => {
+      const came = await cameBack(3, "switch", { level });
+      const { store, finished, planner, post, ok, builder, examiner, first, second } = came;
+      const v2 = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile)
+        ?.pending as CoursePlan;
+      const switched = v2.diff.flatMap((c) => (c.op === "switch" ? [c] : []));
+      const pick = switched[0]?.to[0] ?? null;
+
+      const { plan } = await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+      const rewritten = (await builder.build(second)).lessons[second] as Lesson;
+      const quiz = (await examiner.quiz(second)).quizzes[0] as Quiz;
+      const diagrams = await diagramsOf(came).build(second);
+
+      expect(finished.replanned).toMatchObject({ ok: true, version: 2 });
+      expect(v2).toMatchObject({ version: 2, reason: "switch" });
+      expect(switched.map((c) => c.to)).toEqual(switched.map(() => [pick]));
+      expect(
+        explainedBySpark(
+          store,
+          v2,
+          {
+            reason: "switch",
+            today: 10,
+            away_days: 10,
+            recap: { below_gate: true, review_lesson: first },
+          },
+          pick,
+        ),
+      ).toEqual({ models: ["muse-spark-1.3"], fallbacks: [], violations: [] });
+      expect(plan.versions.map((v: CoursePlan) => v.version)).toEqual([1, 2]);
+      expect(new Set(rewritten.sections.map((s) => s.source_excerpt.resource_id))).toEqual(
+        new Set([pick]),
+      );
+      expect(quiz.lesson_id).toBe(second);
+      expect(quizViolations(quiz, rewritten.glossary_ids)).toEqual([]);
+      expectDiagramsShaped(came, second, diagrams);
+    }, 600_000);
+
+    // The intake's «ابدأ من جديد» keeps the session's steps and the scout's cache, so a scout keyed
+    // without the level would hand the new level the first one's resources, and its plan request
+    // would have no recording.
+    it("plans at the level after he restarts the interview he first finished as a beginner", async () => {
+      const first = await planned("beginner");
+      first.intake.reset();
+
+      const restarted = await planned(level, first);
+      const fresh = await planned(level);
+
+      expect(savedProfile(first.store, "s1")?.diagnostic.level).toBe(level);
+      expect(restarted.saved.resources).toEqual(fresh.saved.resources);
+      expect(restarted.saved.versions.map((v) => v.committed)).toEqual(
+        fresh.saved.versions.map((v) => v.committed),
+      );
+      expect(unrecorded(first.store)).toEqual([]);
+    }, 600_000);
+  },
+);
+
+// The calls and page reads in the session's trace that replay had no recording of. Most fail their
+// step, but a coach message falls back to a template, a lesson leaves an unread page out, and the
+// diagrams step moves on to the next image.
+const unrecorded = (store: Store) =>
+  store
+    .readTrace<TraceEvent>("s1")
+    .filter((e) => e.missing_recording || e.summary_en.includes("No recorded page"))
+    .map((e) => e.summary_en);
+
+// What the beginner's lesson tests check of a lesson on another level's run: each section quotes one
+// of the resources its sessions name, in at most 300 words, and it has at least five glossary terms.
+function expectQuotes(plan: CoursePlan, lesson: Lesson) {
+  const resources = new Set(
+    plan.committed.sessions.filter((s) => s.lesson_id === lesson.id).flatMap((s) => s.resource_ids),
+  );
+  expect(lesson.sections.length).toBeGreaterThanOrEqual(3);
+  for (const { source_excerpt: excerpt } of lesson.sections) {
+    expect(resources).toContain(excerpt.resource_id);
+    expect(wordCount(excerpt.text)).toBeLessThanOrEqual(300);
+  }
+  expect(lesson.glossary_ids.length).toBeGreaterThanOrEqual(5);
+}
+
+// A lesson's diagrams on another level's run, whatever its pages hold: at most one, labelled in the
+// course glossary's words, and no call or page without a recording.
+function expectDiagramsShaped({ store }: { store: Store }, lessonId: string, diagrams: Diagram[]) {
+  const course = writtenCourse(store, "s1", savedProfile(store, "s1") as LearnerProfile);
+  const brief = course && lessonDiagramsBrief(course, lessonId);
+
+  expect(diagrams.length).toBeLessThanOrEqual(1);
+  for (const diagram of diagrams) {
+    expect(glossaryProblems(diagram.labels, brief?.glossary ?? [])).toEqual([]);
+  }
+  expect(unrecorded(store)).toEqual([]);
+}
+
 // The resource Spark picked for lesson 2 in the recorded switch: the English step-by-step
 // «Microsoft Office/Create a Pivot Table», over the French encyclopedia article code ranks first.
 const SPARK_PICK = "r_8f7bbb8e";
@@ -1240,25 +1531,37 @@ const SPARK_PICK = "r_8f7bbb8e";
 // credit twice).
 const [OMAR_FIRST, OMAR_RETRY] = SHORT_ANSWERS.L1;
 
-// His answers to a quiz: each multiple-choice key, except a wrong option on `miss`, and the given
-// short answers in order.
-function answersTo(quiz: Quiz, shorts: readonly string[], miss?: string) {
+// His answers to a quiz: each multiple-choice key, except a wrong option on each of `missed`, and the
+// given short answers in order.
+function answersTo(quiz: Quiz, shorts: readonly string[], ...missed: (string | undefined)[]) {
   const left = [...shorts];
   return quiz.items.map((item) => ({
     item_id: item.id,
     response:
       item.type === "short"
         ? (left.shift() ?? "")
-        : item.id === miss
+        : missed.includes(item.id)
           ? (item.options_ar.find((o) => o !== item.answer) as string)
           : item.answer,
   }));
 }
 
+// His answers to the `n`th quiz of lesson 1 on the recorded run at `level`: the first below the gate,
+// the retry all right. On the beginner's run his own words explain half of one short answer, so he
+// misses one multiple-choice item; on another level's every short answer is the model answer, so he
+// misses two.
+function lessonOneAnswers(level: Level, quiz: Quiz, n: 0 | 1) {
+  const shorts = recordedShortAnswers(quiz.lesson_id, n, { level, quiz });
+  if (!shorts) throw new Error(`The run at ${level} has no short answers to quiz ${n} of lesson 1`);
+  const choices = quiz.items.filter((i) => i.type === "mcq").map((i) => i.id);
+  const missed = n === 1 ? [] : level === "beginner" ? choices.slice(1, 2) : choices.slice(0, 2);
+  return answersTo(quiz, shorts, ...missed);
+}
+
 // Omar's plan with his first lesson written, and the examiner the lesson page asks. With `recorded`,
 // the examiner grades the recorded short answers, as the replay route's does.
-async function quizzed(recorded?: ExaminerDeps["recorded"]) {
-  const { store, orchestrator, pages, saved } = await planned();
+async function quizzed(level: Level = "beginner", recorded?: ExaminerDeps["recorded"]) {
+  const { store, orchestrator, pages, saved } = await planned(level);
   const profile = () => savedProfile(store, "s1") as LearnerProfile;
   const builder = createLessonBuilder({
     orchestrator,
@@ -1356,14 +1659,13 @@ const overridesTraced = (store: Store) =>
     .map((e) => e.summary_en);
 
 // Omar's plan once he passed lesson 1's quiz on his second try, the way the quiz page leaves it.
-async function passedFirst() {
-  const course = await quizzed();
+async function passedFirst(level: Level = "beginner") {
+  const course = await quizzed(level);
   const { examiner, first } = course;
   const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
-  const missed = quiz.items.filter((i) => i.type === "mcq")[1];
-  await examiner.attempt(first, quiz.id, answersTo(quiz, OMAR_FIRST, missed?.id));
+  await examiner.attempt(first, quiz.id, lessonOneAnswers(level, quiz, 0));
   const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
-  await examiner.attempt(first, retry.id, answersTo(retry, OMAR_RETRY));
+  await examiner.attempt(first, retry.id, lessonOneAnswers(level, retry, 1));
   return course;
 }
 
@@ -1374,8 +1676,8 @@ const modelsOf = (store: Store, agent: string) =>
     .map((e) => e.model);
 
 // Omar's interview, then his plan, as the plan page builds it.
-async function planned() {
-  const { store, cache, orchestrator } = await interview();
+async function planned(level: Level = "beginner", into: Chain = chain()) {
+  const { store, cache, orchestrator, intake } = await interview({ level, into });
   const pages = createPageFetcher({
     profile: recording ? "record" : "replay",
     userAgent: `${loadConfig(process.env).appName}-scout/0.1 (checks the licence of open learning resources)`,
@@ -1409,7 +1711,7 @@ async function planned() {
       throw new Error("a build accepts no version");
     },
   });
-  return { store, orchestrator, pages, saved: await planner.build() };
+  return { store, cache, orchestrator, intake, pages, saved: await planner.build() };
 }
 
 // Omar's first message, spoken (#37). In replay the intake page posts this clip as it is, so its

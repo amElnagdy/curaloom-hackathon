@@ -1,0 +1,248 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-wonder-1.0",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: intermediate\nBackground: accountant, excel\nWeekly time: 5 hours (300 minutes)\nNotes from the interview: ترك كورسات كورسيرا لأنها طويلة ويمل بسرعة، ويفضل عدم مراسلته في الصباح\n\nResources (id | language | type | title | why it suits the learner):\nr_8babb86b | ru | article | Сводная таблица | هذه المقالة تناسبك لأنها تشرح بنية الجدول المحوري في إكسل من صفوف وأعمدة وتلخيص للقيم بما يدعم هدفك في التحول إلى محلل بيانات.\nr_8f7bbb8e | en | article | Microsoft Office/Create a Pivot Table | هذه الصفحة تساعدك كمتعلم متوسط على بناء جدول محوري بسيط عبر حقلي الصفوف والبيانات لتحليل البيانات.\nr_43e79caf | fr | article | Tableau croisé dynamique — Wikipédia | هذه المقالة تناسبك لأنها تشرح مبدأ الجداول المحورية وطريقة إنشائها في إكسل كأساس ضروري في طريقك نحو محلل بيانات.\nr_9109c80f | en | article | Pivot table - Wikipedia | هذه الصفحة تمنحك الأساس النظري لفهم الجداول المحورية كأداة لتجميع البيانات التفصيلية.",
+      "instructions": "You design a personal course for an adult Arabic-speaking learner, taught from the openly licensed resources listed. Plan the whole road to the learner's goal as modules in teaching order, each taking whole weeks; the first module starts on day 0, and each next one starts the day the one before it ends. Commit only to the first 2 weeks, days 0 to 13: give lessons only to the modules that fall in them, and leave lessons empty for later modules. Every session of a lesson falls within its module's weeks. Each lesson draws on one or more of the listed resources, by id copied exactly, and takes one or more sessions of 20 to 45 minutes. In each week the sessions together take no more than the learner's weekly minutes; a learner who dropped long courses before is better served by short sessions and time to spare. Spread a week's sessions over different days. Write the titles and the rationale in clear Modern Standard Arabic. The rationale tells the learner, in two to four sentences addressed to them, why the plan is shaped this way.",
+      "max_output_tokens": 12000,
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "PlanDraft",
+          "schema": {
+            "type": "object",
+            "required": [
+              "road",
+              "rationale_ar"
+            ],
+            "properties": {
+              "road": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "title_ar",
+                    "weeks",
+                    "lessons"
+                  ],
+                  "properties": {
+                    "title_ar": {
+                      "type": "string",
+                      "description": "the module's name in Arabic, a few words"
+                    },
+                    "weeks": {
+                      "type": "integer",
+                      "description": "whole weeks the module takes, at least 1"
+                    },
+                    "lessons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "title_ar",
+                          "resource_ids",
+                          "sessions"
+                        ],
+                        "properties": {
+                          "title_ar": {
+                            "type": "string",
+                            "description": "what the lesson teaches, in Arabic, a few words"
+                          },
+                          "resource_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "ids of the resources the lesson draws on, copied exactly"
+                          },
+                          "sessions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "day",
+                                "minutes"
+                              ],
+                              "properties": {
+                                "day": {
+                                  "type": "integer",
+                                  "description": "day of the course, from 0"
+                                },
+                                "minutes": {
+                                  "type": "integer"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "description": "only lessons in the first two weeks; empty for a module that starts later"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "rationale_ar": {
+                "type": "string",
+                "description": "why this plan suits the learner, two to four Arabic sentences addressed to them"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-wonder-1.0",
+    "reasoning": {
+      "effort": "max"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "PlanDraft",
+        "schema": {
+          "additionalProperties": false,
+          "required": [
+            "road",
+            "rationale_ar"
+          ],
+          "properties": {
+            "rationale_ar": {
+              "description": "why this plan suits the learner, two to four Arabic sentences addressed to them",
+              "type": "string"
+            },
+            "road": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lessons": {
+                    "description": "only lessons in the first two weeks; empty for a module that starts later",
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "resource_ids": {
+                          "description": "ids of the resources the lesson draws on, copied exactly",
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "sessions": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "day": {
+                                "description": "day of the course, from 0",
+                                "type": "integer"
+                              },
+                              "minutes": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "day",
+                              "minutes"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "title_ar": {
+                          "description": "what the lesson teaches, in Arabic, a few words",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title_ar",
+                        "resource_ids",
+                        "sessions"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "title_ar": {
+                    "description": "the module's name in Arabic, a few words",
+                    "type": "string"
+                  },
+                  "weeks": {
+                    "description": "whole weeks the module takes, at least 1",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "title_ar",
+                  "weeks",
+                  "lessons"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79cd3a1cd318d1878461a",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793563859,
+    "completed_at": 1793563859,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79cd3a1cd318d1878461a:rs_7681a49d-46c7-45d6-b0d4-30a01703a389",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_a457c054-b3bb-4048-aac7-3402fa919a41",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\n  \"rationale_ar\": \"صممتُ لكَ هذه الخطةَ بخطواتٍ قصيرةٍ ومتدرّجةٍ، من فهم الجدولِ المحوريِّ إلى تطبيقِه على بياناتٍ محاسبيّةٍ قريبةٍ من خبرتِك، حتّى تتقدّمَ بثقةٍ نحو هدفِك في التحوّلِ إلى محلّلِ بياناتٍ. قسّمتُ أوّلَ أسبوعينِ إلى جلساتٍ من 25 إلى 30 دقيقةً موزّعةً على أيّامٍ مختلفةٍ وبمجموعٍ أقلَّ بكثيرٍ من خمسِ ساعاتٍ أسبوعيًّا، حتّى لا تشعرَ بالمللِ الّذي واجهتَه في الدوراتِ الطويلةِ ويبقى لديكَ وقتٌ للمراجعةِ. يمكنك تنفيذُ الجلساتِ في الوقتِ المسائيِّ الّذي تفضّلُه، وسنُكملُ بقيّةَ الوحداتِ لاحقًا بعد تثبيتِ هذه الأساسيّاتِ.\",\n  \"road\": [\n    {\n      \"lessons\": [\n        {\n          \"resource_ids\": [\n            \"r_9109c80f\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 0,\n              \"minutes\": 25\n            },\n            {\n              \"day\": 1,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"ما الجدولُ المحوريُّ وما دورُه في تجميعِ البياناتِ؟\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_8babb86b\",\n            \"r_9109c80f\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 2,\n              \"minutes\": 30\n            },\n            {\n              \"day\": 3,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"مكوّناتُ الجدولِ المحوريِّ من صفوفٍ وأعمدةٍ وقِيَمٍ\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_8f7bbb8e\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 4,\n              \"minutes\": 30\n            },\n            {\n              \"day\": 5,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"إنشاءُ أوّلِ جدولٍ محوريٍّ بسيطٍ خطوةً بخطوةٍ\"\n        }\n      ],\n      \"title_ar\": \"فهمُ أساسيّاتِ الجداولِ المحوريّةِ وبنيتِها\",\n      \"weeks\": 1\n    },\n    {\n      \"lessons\": [\n        {\n          \"resource_ids\": [\n            \"r_8f7bbb8e\",\n            \"r_43e79caf\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 7,\n              \"minutes\": 30\n            },\n            {\n              \"day\": 8,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"إعدادُ جدولٍ محوريٍّ من بياناتٍ محاسبيّةٍ باستخدامِ حقولِ الصفوفِ والبياناتِ\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_43e79caf\",\n            \"r_9109c80f\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 9,\n              \"minutes\": 30\n            },\n            {\n              \"day\": 10,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"قراءةُ قِيَمِ التلخيصِ وتفسيرُ نتائجِ التجميعِ\"\n        },\n        {\n          \"resource_ids\": [\n            \"r_8f7bbb8e\",\n            \"r_8babb86b\"\n          ],\n          \"sessions\": [\n            {\n              \"day\": 11,\n              \"minutes\": 30\n            },\n            {\n              \"day\": 12,\n              \"minutes\": 25\n            }\n          ],\n          \"title_ar\": \"تطبيقٌ مصغّرٌ لتلخيصِ الإيراداتِ والمصروفاتِ\"\n        }\n      ],\n      \"title_ar\": \"بناءُ الجداولِ المحوريّةِ وتحليلُ بياناتٍ محاسبيّةٍ بسيطةٍ\",\n      \"weeks\": 1\n    },\n    {\n      \"lessons\": [],\n      \"title_ar\": \"فرزُ البياناتِ وتصفيتُها وتجميعُها داخلَ الجداولِ المحوريّةِ\",\n      \"weeks\": 2\n    },\n    {\n      \"lessons\": [],\n      \"title_ar\": \"الحساباتُ المتقدّمةُ ومقارنةُ القِيَمِ داخلَ الجداولِ المحوريّةِ\",\n      \"weeks\": 2\n    },\n    {\n      \"lessons\": [],\n      \"title_ar\": \"تحويلُ نتائجِ الجداولِ المحوريّةِ إلى رسومٍ ولوحاتِ متابعةٍ\",\n      \"weeks\": 2\n    },\n    {\n      \"lessons\": [],\n      \"title_ar\": \"مشروعٌ تطبيقيٌّ متكاملٌ للانتقالِ نحو عملِ محلّلِ البياناتِ\",\n      \"weeks\": 2\n    }\n  ]\n}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You design a personal course for an adult Arabic-speaking learner, taught from the openly licensed resources listed. Plan the whole road to the learner's goal as modules in teaching order, each taking whole weeks; the first module starts on day 0, and each next one starts the day the one before it ends. Commit only to the first 2 weeks, days 0 to 13: give lessons only to the modules that fall in them, and leave lessons empty for later modules. Every session of a lesson falls within its module's weeks. Each lesson draws on one or more of the listed resources, by id copied exactly, and takes one or more sessions of 20 to 45 minutes. In each week the sessions together take no more than the learner's weekly minutes; a learner who dropped long courses before is better served by short sessions and time to spare. Spread a week's sessions over different days. Write the titles and the rationale in clear Modern Standard Arabic. The rationale tells the learner, in two to four sentences addressed to them, why the plan is shaped this way.",
+    "usage": {
+      "input_tokens": 545,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 4581,
+      "output_tokens_details": {
+        "reasoning_tokens": 3412
+      },
+      "total_tokens": 5126
+    },
+    "parallel_tool_calls": true,
+    "store": true,
+    "max_output_tokens": 12000
+  },
+  "latency_ms": 30657
+}

@@ -1,0 +1,11 @@
+{
+  "url": "http://oss0.changxianggu.com/robots.txt",
+  "latency_ms": 1015,
+  "response": {
+    "kind": "page",
+    "status": 400,
+    "content_type": "application/xml",
+    "truncated": false,
+    "text": ""
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: intermediate\nLanguage searched: fr\n\nSearch answer:\n**Ressources libres en français — tableaux croisés dynamiques pour l'analyse de données**\n\n1. **Tableau croisé dynamique — Wikipédia**\n   - URL : https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique\n   - Enseigne le principe du tableau croisé dynamique comme regroupement de valeurs avec agrégation.\n   - Enseigne aussi la création dans Excel via le bouton « Tableau croisé dynamique » de l'onglet Insertion.\n\n2. **Tableur EXCEL/Données — Wikiversité**\n   - URL : https://fr.wikiversity.org/wiki/Tableur_EXCEL/Donn%C3%A9es\n   - Enseigne l'import, le tri, le filtre et la consolidation préalables à l'analyse par TCD.\n   - Mentionne la création d'un tableau croisé dynamique à partir de plusieurs plages de consolidation.\n\n3. **Tableur EXCEL/PowerPivot — Wikiversité**\n   - URL : https://fr.wikiversity.org/wiki/Tableur_EXCEL/PowerPivot\n   - Enseigne l'extension PowerPivot pour renforcer la puissance des TCD sur de grands volumes de données.\n   - Enseigne l'intégration de grandes quantités de données dans un classeur pour les exploiter en TCD.\n\n\nCited pages:\n1. https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique | Tableau croisé dynamique — Wikipédia",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "required": [
+            "candidates"
+          ],
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79c7c38c3185bb040439b",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793563772,
+    "completed_at": 1793563772,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c7c38c3185bb040439b:rs_f8f264d6-fae9-4a93-b4cc-36f75a18ba3a",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_1da908ab-61f3-42bd-9b37-89962fc0cb14",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": [{\"lang\": \"fr\", \"level_fit\": 0.7, \"relevance\": 0.9, \"title\": \"Tableau crois\\u00e9 dynamique \\u2014 Wikip\\u00e9dia\", \"type\": \"article\", \"url\": \"https://fr.wikipedia.org/wiki/Tableau_crois%C3%A9_dynamique\", \"why_ar\": \"هذه المقالة تناسبك لأنها تشرح مبدأ الجداول المحورية وطريقة إنشائها في إكسل كأساس ضروري في طريقك نحو محلل بيانات.\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 633,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1268,
+      "output_tokens_details": {
+        "reasoning_tokens": 1132
+      },
+      "total_tokens": 1901
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 5244
+}

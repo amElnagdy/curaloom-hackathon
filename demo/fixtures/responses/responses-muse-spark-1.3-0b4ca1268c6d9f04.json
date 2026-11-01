@@ -1,0 +1,297 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Language: Chinese\nTopic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: intermediate\nSearch queries to try: Excel 数据分析 开放课程教材; 电子表格数据分析 维基教科书",
+      "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "tools": [
+        {
+          "type": "web_search"
+        }
+      ]
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "tools": [
+      {
+        "type": "web_search"
+      }
+    ],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79c920923c47cdfe7472d",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793563794,
+    "completed_at": 1793563813,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c920923c47cdfe7472d:rs_3c5742c7-ca08-4eff-8957-dd34e99871fb",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_f46cad55-5ed1-40c1-9dc9-000abea96564",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "正在为您搜集中文的 Excel 数据透视表开放学习资源。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_0af67196-b762-4242-9f44-bfa40c2be4c0",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel 数据分析 开放课程教材"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_d9a6b179-bf6f-4b9c-a5cb-f2e422b0773e",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "电子表格数据分析 维基教科书"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_cf9db754-2824-4ec4-9bfd-ae6e9e5985e9",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "Excel 数据透视表 教程 Wikipedia"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c920923c47cdfe7472d:rs_da96972f-142d-4d7d-9eb9-0fd79810a008",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_4eb06555-f736-41f1-b81f-f49e179291c1",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "前几次搜索结果不够开放，我再来尝试查找维基等开放许可的中文教程。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_4c9d15a9-a732-4605-aef8-2c8a4628840a",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "数据透视表 zh.wikipedia.org LibreOffice Excel"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c920923c47cdfe7472d:rs_4dbc6ca1-e88d-4d33-b5c7-f9ce5421869d",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_db296aa8-421d-4086-997c-95d2fcbc5fec",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "已用完搜索次数，现在直接打开几个中文维基与开放文档页面来确认内容。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_1109297f-711d-489d-9d05-bd662737993c",
+        "status": "failed",
+        "action": {
+          "type": "open_page",
+          "url": "https://zh.wikipedia.org/wiki/数据透视表"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_3b030843-2005-4217-84c7-0cfdb416432a",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://zh.wikipedia.org/wiki/Microsoft_Excel"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_4316bf98-5c2a-4cad-99a0-63426cc67932",
+        "status": "failed",
+        "action": {
+          "type": "open_page",
+          "url": "https://zh.wikibooks.org/wiki/Excel"
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_bfa3749e-f2cd-442b-b72a-ecec60b6fcae",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/01/04060000.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c920923c47cdfe7472d:rs_5e22e207-fb1d-400f-ac66-654b0a6a440c",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "rs_122a5716-986d-40d2-b9c7-dc4b0eb57803",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "已确认两个开放页面，我再打开与数据透视表直接相关的中文文档。",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "phase": "commentary",
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_0c5af9b3-2d39-4b4b-9243-f28d746df568",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/01/04070000.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c920923c47cdfe7472d:rs_5d774595-7b8e-4e30-8c8a-d2deb39b8a36",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_3c58c34c-252d-4dd4-bd39-2ca370e819f4",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/01/03060000.html"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c920923c47cdfe7472d:rs_bc5a5998-26a0-4c4b-8af4-06bbe04351c0",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_call_fdc885eb-fc33-46fd-87ff-5479f8dd88f7",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://zh.wikipedia.org/wiki/数据分析"
+        }
+      },
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c920923c47cdfe7472d:rs_04704a53-7884-4373-b75c-99ce290f358b",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_4f7f7d4c-de9b-4824-bc61-8308faec99e7",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "为 ` التحول إلى محلل بيانات ` 目标精选的中级中文开放资源：\n\n1. **Microsoft Excel - 维基百科，自由的百科全书**\n   - URL: https://zh.wikipedia.org/wiki/Microsoft_Excel\n   - 教你认识 Excel 作为试算表软件的界面、计算和图表功能定位。\n\n2. **数据分析**\n   - URL: https://zh.wikipedia.org/wiki/数据分析\n   - 教你理解数据分析的多维性和描述性特点。\n\n3. **函数向导**\n   - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/01/04060000.html\n   - 教你用函数向导交互式创建公式。\n",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url": "https://zh.wikipedia.org/wiki/Microsoft_Excel",
+                "start_index": 142,
+                "end_index": 176,
+                "title": "Microsoft Excel - 维基百科，自由的百科全书"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://zh.wikipedia.org/wiki/数据分析",
+                "start_index": 238,
+                "end_index": 259,
+                "title": "数据分析"
+              },
+              {
+                "type": "url_citation",
+                "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/01/04060000.html",
+                "start_index": 356,
+                "end_index": 373,
+                "title": "函数向导"
+              }
+            ],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You find free, openly licensed learning resources. Search the web at most 4 times, then open up to 6 promising pages written in the requested language. List only pages you opened, and cite each one with its URL. For each page give its title, its URL and one short sentence on what it teaches; do not summarise the page. Prefer sources that state an open licence on the page, such as Wikipedia, Wikibooks, Wikiversity, open textbooks, open courseware and open-source documentation. Skip vendor help pages and commercial course sites: their content is rarely openly licensed.",
+    "usage": {
+      "input_tokens": 82478,
+      "input_tokens_details": {
+        "cached_tokens": 31255
+      },
+      "output_tokens": 3789,
+      "output_tokens_details": {
+        "reasoning_tokens": 2809
+      },
+      "total_tokens": 86267
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 20227
+}

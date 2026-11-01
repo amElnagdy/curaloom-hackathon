@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: intermediate\nLanguage searched: zh\n\nSearch answer:\n为 ` التحول إلى محلل بيانات ` 目标精选的中级中文开放资源：\n\n1. **Microsoft Excel - 维基百科，自由的百科全书**\n   - URL: https://zh.wikipedia.org/wiki/Microsoft_Excel\n   - 教你认识 Excel 作为试算表软件的界面、计算和图表功能定位。\n\n2. **数据分析**\n   - URL: https://zh.wikipedia.org/wiki/数据分析\n   - 教你理解数据分析的多维性和描述性特点。\n\n3. **函数向导**\n   - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/01/04060000.html\n   - 教你用函数向导交互式创建公式。\n\n\nCited pages:\n1. https://zh.wikipedia.org/wiki/Microsoft_Excel | Microsoft Excel - 维基百科，自由的百科全书\n2. https://zh.wikipedia.org/wiki/数据分析 | 数据分析\n3. https://help.libreoffice.org/latest/zh-CN/text/scalc/01/04060000.html | 函数向导",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "required": [
+            "candidates"
+          ],
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object",
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79caeec1f8c8169014684",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793563822,
+    "completed_at": 1793563822,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79caeec1f8c8169014684:rs_2fbfb86f-550e-4849-89df-1d96701396fd",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_0238c298-0f2c-42ed-98a1-9fd7c38fd506",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": []}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 555,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1828,
+      "output_tokens_details": {
+        "reasoning_tokens": 1814
+      },
+      "total_tokens": 2383
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 8012
+}

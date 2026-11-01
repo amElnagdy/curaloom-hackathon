@@ -1,0 +1,11 @@
+{
+  "url": "http://oss0.changxianggu.com/book/chapter/35_9787121473203.pdf",
+  "latency_ms": 599,
+  "response": {
+    "kind": "page",
+    "status": 403,
+    "content_type": "application/xml",
+    "truncated": false,
+    "text": ""
+  }
+}

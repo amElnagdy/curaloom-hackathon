@@ -72,7 +72,7 @@ Lucide's licence file marks some icons as derived from Feather, under the MIT li
 
 ## Recorded source pages
 
-The replay demo reads web pages from `demo/fixtures/pages/` instead of the network. 11 of those files hold the text of a third-party page. Each licence below is what the scout's checker (`src/server/agents/scout/licence.ts`) finds in the stored text. The recorded lesson-writing calls in `demo/fixtures/responses/` quote excerpts of some of these pages, and the Arabic lessons in their replies are built on those excerpts, with changes.
+The replay demo reads web pages from `demo/fixtures/pages/` instead of the network. 14 of those files hold the text of a third-party page. Each licence below is what the scout's checker (`src/server/agents/scout/licence.ts`) finds in the stored text. The recorded lesson-writing calls in `demo/fixtures/responses/` quote excerpts of some of these pages, and the Arabic lessons in their replies are built on those excerpts, with changes.
 
 | Source                                | Language | Licence         | Use                                                      |
 | ------------------------------------- | -------- | --------------- | -------------------------------------------------------- |
@@ -84,9 +84,12 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 | Tableau croisé dynamique — Wikipédia  | fr       | CC-BY-SA-4.0    | open                                                     |
 | Microsoft Excel                       | fr       | CC-BY-SA-4.0    | open                                                     |
 | Tableau de contingence                | fr       | CC-BY-SA-4.0    | open                                                     |
+| Tableur EXCEL — Wikiversité           | fr       | CC-BY-SA-4.0    | open                                                     |
+| 创建数据透视表                        | zh       | MPL-2.0         | rejected by the checker: MPL-2.0 is not on the allowlist |
 | 数据透视表                            | zh       | MPL-2.0         | rejected by the checker: MPL-2.0 is not on the allowlist |
 | Microsoft Excel — Викиучебник         | ru       | CC-BY-SA-4.0    | open                                                     |
 | Сводная таблица                       | ru       | CC-BY-SA-4.0    | open                                                     |
+| 透视表                                | zh       | CC-BY-SA-4.0    | open                                                     |
 
 ### 8.8: Pivot Tables
 
@@ -114,7 +117,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Text is available under the Creative Commons Attribution-ShareAlike License ;"
 - Stored copy: `demo/fixtures/pages/en.wikibooks.org-8f7bbb8e164629d2.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/en.wikibooks.org-f59bc6af3bf7361a.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 9. Calls that carry its text, as "Recorded model replies" counts them: 3.
+- Recorded model calls that name it: 20. Calls that carry its text, as "Recorded model replies" counts them: 14.
 - Credit line the lesson page copies: «Microsoft Office/Create a Pivot Table»، https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Pivot table - Wikipedia
@@ -125,7 +128,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License ;"
 - Stored copy: `demo/fixtures/pages/en.wikipedia.org-ffbe05d82f77f9ff.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/en.wikipedia.org-1746e7cafeb2b708.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 9. Calls that carry its text, as "Recorded model replies" counts them: 7.
+- Recorded model calls that name it: 14. Calls that carry its text, as "Recorded model replies" counts them: 15.
 - Credit line the lesson page copies: «Pivot table - Wikipedia»، https://en.wikipedia.org/wiki/Pivot_table، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Tableur
@@ -146,7 +149,8 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Droit d'auteur : les textes sont disponibles sous licence Creative Commons attribution, partage dans les mêmes conditions ;"
 - Stored copy: `demo/fixtures/pages/fr.wikipedia.org-43e79caf953f781d.json`, the page's text as fetched.
-- Recorded model calls that name it: 8. Calls that carry its text, as "Recorded model replies" counts them: 0.
+- Stored HTML copy: `demo/fixtures/pages/fr.wikipedia.org-b9b80c791b1ad935.json`, the whole page as fetched, which the diagrams agent reads for its figures.
+- Recorded model calls that name it: 19. Calls that carry its text, as "Recorded model replies" counts them: 8.
 - Credit line the lesson page copies: «Tableau croisé dynamique — Wikipédia»، https://fr.wikipedia.org/wiki/Tableau_croisé_dynamique، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Microsoft Excel
@@ -170,6 +174,24 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Recorded model calls that name it: 7. Calls that carry its text, as "Recorded model replies" counts them: 0.
 - Credit line the lesson page copies: «Tableau de contingence»، https://fr.wikipedia.org/wiki/Tableau_de_contingence، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
+### Tableur EXCEL — Wikiversité
+
+- URL: https://fr.wikiversity.org/wiki/Tableur_EXCEL
+- Authors: Wikiversity contributors
+- Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
+- Licence statement on the page: "Les textes sont disponibles sous licence Creative Commons Attribution-partage dans les mêmes conditions ;"
+- Stored copy: `demo/fixtures/pages/fr.wikiversity.org-167243dec5a83636.json`, the page's text as fetched.
+- Recorded model calls that name it: 8. Calls that carry its text, as "Recorded model replies" counts them: 0.
+- Credit line the lesson page copies: «Tableur EXCEL — Wikiversité»، https://fr.wikiversity.org/wiki/Tableur_EXCEL، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
+
+### 创建数据透视表
+
+- URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_createtable.html
+- Licence: MPL-2.0, https://spdx.org/licenses/MPL-2.0.html. Use: rejected by the checker: MPL-2.0 is not on the allowlist.
+- Licence statement on the page: "…ersion) | Copyright information: Unless otherwise specified, all text and images on this website are licensed under the Mozilla Public License v2.0 ."
+- Stored copy: `demo/fixtures/pages/help.libreoffice.org-22d14c88dab83348.json`, the page's text as fetched.
+- Recorded model calls that name it: 6. Calls that carry its text, as "Recorded model replies" counts them: 0.
+
 ### 数据透视表
 
 - URL: https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot.html
@@ -186,7 +208,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Текст доступен по лицензии Creative Commons «С указанием авторства — С сохранением условий» (CC BY-SA) ;"
 - Stored copy: `demo/fixtures/pages/ru.wikibooks.org-c167a21689c8b115.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/ru.wikibooks.org-f3034505a977db30.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 8. Calls that carry its text, as "Recorded model replies" counts them: 1.
+- Recorded model calls that name it: 17. Calls that carry its text, as "Recorded model replies" counts them: 2.
 - Credit line the lesson page copies: «Microsoft Excel — Викиучебник»، https://ru.wikibooks.org/wiki/Microsoft_Excel، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Сводная таблица
@@ -197,19 +219,43 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Текст доступен по лицензии Creative Commons «С указанием авторства — С сохранением условий» (CC BY-SA) ;"
 - Stored copy: `demo/fixtures/pages/ru.wikipedia.org-a475aa23cd43123a.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/ru.wikipedia.org-238ca6821bf528c4.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 9. Calls that carry its text, as "Recorded model replies" counts them: 4.
+- Recorded model calls that name it: 20. Calls that carry its text, as "Recorded model replies" counts them: 5.
 - Credit line the lesson page copies: «Сводная таблица»، https://ru.wikipedia.org/wiki/Сводная_таблица، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
+
+### 透视表
+
+- URL: https://zh.wikipedia.org/wiki/透视表
+- Authors: Wikipedia contributors
+- Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
+- Licence statement on the page: "本站的全部文字在 知识共享 署名-相同方式共享 4.0协议 之条款下提供，附加条款亦可能应用。"
+- Stored copy: `demo/fixtures/pages/zh.wikipedia.org-a04c24a28d7b0f02.json`, the page's text as fetched.
+- Recorded model calls that name it: 5. Calls that carry its text, as "Recorded model replies" counts them: 0.
+- Credit line the lesson page copies: «透视表»، https://zh.wikipedia.org/wiki/透视表، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 The other files in that folder hold no page text:
 
-- 10 robots.txt files, read to check that a site allows the fetch.
+- 18 robots.txt files, read to check that a site allows the fetch.
 - 3 redirects, URL to URL.
+- https://openoregon.pressbooks.pub/introductiontoexcel/chapter/3-4-introduction-to-pivottables-2/: HTTP 403, no text stored.
+- https://openoregon.pressbooks.pub/introductiontoexcel/?p=479: HTTP 403, no text stored.
 - https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/: HTTP 403, no text stored.
-- 5 files for the images below.
+- http://oss0.changxianggu.com/book/chapter/35_9787121473203.pdf: HTTP 403, no text stored.
+- https://pengshizhe.github.io/files/DMD/第2章 数据分类汇总分析.pdf: HTTP 200, no text stored.
+- https://spscc.pressbooks.pub/begtointermedexcel/?p=226: HTTP 403, no text stored.
+- https://uhlibraries.pressbooks.pub/mis3300excel/chapter/6-1-creating-pivot-tables/figure6-2/: HTTP 403, no text stored.
+- https://uta.pressbooks.pub/datanotebook/chapter/4-1-microsoft-excel/: HTTP 403, no text stored.
+- 7 files for the images below.
 
 ## Recorded images
 
 The diagrams agent reads each image's licence and author from its file page, and code decides whether the app may relabel it. The replay demo reads these file pages and images from `demo/fixtures/pages/`.
+
+### TabCroisDyn.jpg
+
+- File page: https://commons.wikimedia.org/wiki/File:TabCroisDyn.jpg
+- Author, as the file page names it: Nono64
+- Not used: its file page states GFDL, which is not on the allowlist.
+- Stored copies: `demo/fixtures/pages/commons.wikimedia.org-707701f07752d8cc.json`, the file page's HTML.
 
 ### Visicalc.png
 
@@ -219,13 +265,20 @@ The diagrams agent reads each image's licence and author from its file page, and
 - Stored copies: `demo/fixtures/pages/commons.wikimedia.org-9bb19ab237b5a43a.json`, the file page's HTML, and `demo/fixtures/pages/upload.wikimedia.org-3c609a7b117d1c8c.json`, the image.
 - Recorded model calls that send the image: 4. Muse Image edits among them: 2, and each edit's reply holds a relabelled copy of the image.
 
+### Pivot table example.svg
+
+- File page: https://commons.wikimedia.org/wiki/File:Pivot_table_example.svg
+- Author, as the file page names it: cmglee, Software: The Document Foundation and contributors
+- Not used: its file page states MPL 2, which is not on the allowlist.
+- Stored copies: `demo/fixtures/pages/commons.wikimedia.org-d67551636115329a.json`, the file page's HTML.
+
 ### Pivottable-Pivoted.PNG
 
 - File page: https://commons.wikimedia.org/wiki/File:Pivottable-Pivoted.PNG
 - Author, as the file page names it: Wikidan829 at English Wikipedia / Later version(s) were uploaded by Jbarta at English Wikipedia.
 - Licence: Public domain. The app may relabel it.
 - Stored copies: `demo/fixtures/pages/commons.wikimedia.org-eaaf395e9e80c0e2.json`, the file page's HTML, and `demo/fixtures/pages/upload.wikimedia.org-0f640d0271e8a8d9.json`, the image.
-- Recorded model calls that send the image: 3. Muse Image edits among them: 1, and each edit's reply holds a relabelled copy of the image.
+- Recorded model calls that send the image: 4. Muse Image edits among them: 1, and each edit's reply holds a relabelled copy of the image.
 
 ### Excel pivot.gif
 
@@ -235,28 +288,50 @@ The diagrams agent reads each image's licence and author from its file page, and
 
 ## Recorded model replies
 
-`demo/fixtures/responses/` holds 88 recorded Meta Model API calls: 3 from muse-image-1.0, 80 from muse-spark-1.3, 1 from muse-voice-transcribe-1.0, 4 from muse-wonder-1.0. Each file keeps the request and the model's reply.
+`demo/fixtures/responses/` holds 153 recorded Meta Model API calls: 3 from muse-image-1.0, 142 from muse-spark-1.3, 1 from muse-voice-transcribe-1.0, 7 from muse-wonder-1.0. Each file keeps the request and the model's reply.
 
 The repository's code licence does not cover these files, as [`demo/fixtures/LICENSE.md`](demo/fixtures/LICENSE.md) explains. A file that carries the text of a recorded page keeps that page's licence. Its request holds the text, and the model wrote its reply from it. A call carries a page's text when it holds a run of 15 words that this page holds and no other recorded page does, counting a Chinese character as one word. The check reads every request, and every web search's reply too, since a search opens pages its request does not hold. Each page's entry under "Recorded source pages" names its authors and its licence statement.
 
-15 calls carry page text:
+37 calls carry page text:
 
 - `responses-muse-spark-1.3-147a130a79bde83e.json` (QuizDraft): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-1a300c7687e7a17f.json` (QuizDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-1f68a93f78d4bc8d.json` (LessonDraft): Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-25a4c7d76082f5a4.json` (KeyCheck): Pivot table - Wikipedia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-4a9aefb8cbea28c3.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-4c39e67a9c107b2a.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-4c67e775c9b9a185.json` (LessonDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0), Microsoft Excel — Викиучебник (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-5146c0f51b6051f7.json` (KeyCheck): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-595181fa10e6005c.json` (KeyCheck): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-5f6a3da62c532de2.json` (QuizDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-66fe40175f1a11be.json` (LessonDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-691d445a1df1486d.json` (QuizDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-6fbe2fd3c8d0a578.json` (KeyCheck): Pivot table - Wikipedia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-70099d585cbdd8b1.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-75dfbcc19cc29c76.json` (KeyCheck): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0), Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-78502000ba4ea6d2.json` (LessonDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0), Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-79219bd06faf7200.json` (LessonDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-86458239391f2bbf.json` (QuizDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-93962d07ab2e08e1.json` (KeyCheck): Pivot table - Wikipedia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-94b2b44f883b07e4.json` (LessonDraft): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0), Microsoft Excel — Викиучебник (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-96c6a75f7a285e56.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-9780694944164172.json` (KeyCheck): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-a92d5421e5a34100.json` (KeyCheck): Pivot table - Wikipedia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-b297d4e1e8cdfe7a.json` (QuizDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-bd1bf60258a939ec.json` (QuizDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-d10ff3ec52669da8.json` (QuizDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0), Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-d595190e98856883.json` (QuizDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0), Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-d80eeb2750de05ed.json` (KeyCheck): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-d89951a555502623.json` (KeyCheck): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0), Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-e99574003b128c18.json` (KeyCheck): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-ec42071aa2a3c526.json` (QuizDraft): Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-ed65e6c405f30a06.json` (QuizDraft): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-ee7e92f79afe1b9f.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-f0210f575f4d7c89.json` (KeyCheck): Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-f1261f9754b9e9da.json` (KeyCheck): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-f73c6af2164f76f5.json` (QuizDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
 - `responses-muse-spark-1.3-f973e451cfc13976.json` (QuizDraft): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
 
-No call carries the text of 8.8: Pivot Tables (CC-BY-4.0), 7.2: PivotTables for Data Analysis (CC-BY-NC-SA-4.0), Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0), Tableau de contingence (CC-BY-SA-4.0), 数据透视表 (MPL-2.0).
+No call carries the text of 8.8: Pivot Tables (CC-BY-4.0), 7.2: PivotTables for Data Analysis (CC-BY-NC-SA-4.0), Tableau de contingence (CC-BY-SA-4.0), Tableur EXCEL — Wikiversité (CC-BY-SA-4.0), 创建数据透视表 (MPL-2.0), 数据透视表 (MPL-2.0), 透视表 (CC-BY-SA-4.0).
 
-The other 73 calls carry no page text, so no page licence applies to them.
+The other 116 calls carry no page text, so no page licence applies to them.

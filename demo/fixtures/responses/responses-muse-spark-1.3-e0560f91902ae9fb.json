@@ -1,0 +1,213 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: intermediate\nLanguage searched: en\n\nSearch answer:\nHere are open resources for your goal:\n\n- **Microsoft Office/Create a Pivot Table — Wikibooks**\n  https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table\n  It teaches how to build a simple pivot table by arranging Row and Data fields.\n\n- **Pivot table — Wikipedia**\n  http://en.wikipedia.org/wiki/Pivot_table\n  It teaches what a pivot table is as an aggregation of detailed tabular data.\n\n- **Chapter 18: Pivot Tables – MS Excel Bootcamp**\n  https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/\n  It teaches pivot-table concepts using Rows, Columns, Values, and Filters areas.\n\n- **6.1 Creating PivotTables – Excel For Decision Making**\n  https://uhlibraries.pressbooks.pub/mis3300excel/chapter/6-1-creating-pivot-tables/figure6-2/\n  It teaches how to create a PivotTable to organize large data into summary functions.\n\n- **3.4 Introduction to PivotTables – Introduction to Excel for Business Data**\n  https://openoregon.pressbooks.pub/introductiontoexcel/?p=479\n  It teaches how PivotTables summarize a dataset while leaving the original data unchanged.\n\n- **4.1 Microsoft Excel – The Data Notebook**\n  https://uta.pressbooks.pub/datanotebook/chapter/4-1-microsoft-excel/\n  It teaches how to insert a pivot table from a dataset via the Insert tab.\n\nCited pages:\n1. https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table | Microsoft Office/Create a Pivot Table\n2. http://en.wikipedia.org/wiki/Pivot_table | Pivot table - Wikipedia\n3. https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/ | Chapter 18: Pivot Tables – MS Excel Bootcamp\n4. https://uhlibraries.pressbooks.pub/mis3300excel/chapter/6-1-creating-pivot-tables/figure6-2/ | 6.1 Creating PivotTables – Excel For Decision Making\n5. https://openoregon.pressbooks.pub/introductiontoexcel/?p=479 | 3.4 Introduction to PivotTables – Introduction to Excel for Business Data\n6. https://uta.pressbooks.pub/datanotebook/chapter/4-1-microsoft-excel/ | 4.1 Microsoft Excel – The Data Notebook",
+      "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "Candidates",
+          "schema": {
+            "type": "object",
+            "required": [
+              "candidates"
+            ],
+            "properties": {
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "title",
+                    "lang",
+                    "type",
+                    "why_ar",
+                    "relevance",
+                    "level_fit"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "one of the cited page URLs, copied exactly"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "article",
+                        "video",
+                        "book",
+                        "course"
+                      ]
+                    },
+                    "why_ar": {
+                      "type": "string",
+                      "description": "one Arabic sentence on why this page suits the learner"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "description": "how closely the page teaches the topic, 0 to 1"
+                    },
+                    "level_fit": {
+                      "type": "number",
+                      "description": "how well the page suits the learner's level, 0 to 1"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "Candidates",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "candidates": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "level_fit": {
+                    "description": "how well the page suits the learner's level, 0 to 1",
+                    "type": "number"
+                  },
+                  "relevance": {
+                    "description": "how closely the page teaches the topic, 0 to 1",
+                    "type": "number"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "article",
+                      "video",
+                      "book",
+                      "course"
+                    ],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "one of the cited page URLs, copied exactly",
+                    "type": "string"
+                  },
+                  "why_ar": {
+                    "description": "one Arabic sentence on why this page suits the learner",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "title",
+                  "lang",
+                  "type",
+                  "why_ar",
+                  "relevance",
+                  "level_fit"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "candidates"
+          ],
+          "type": "object"
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79c7e3284d81c247a4e8f",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793563774,
+    "completed_at": 1793563774,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c7e3284d81c247a4e8f:rs_36d67cfb-8f5c-401e-9efc-a826b3a95712",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_b127b9e7-9489-47c6-a522-d8a1694dcb6c",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"candidates\": [{\"lang\": \"en\", \"level_fit\": 0.8, \"relevance\": 0.9, \"title\": \"Microsoft Office/Create a Pivot Table\", \"type\": \"article\", \"url\": \"https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table\", \"why_ar\": \"هذه الصفحة تساعدك كمتعلم متوسط على بناء جدول محوري بسيط عبر حقلي الصفوف والبيانات لتحليل البيانات.\"}, {\"lang\": \"en\", \"level_fit\": 0.7, \"relevance\": 0.75, \"title\": \"Pivot table - Wikipedia\", \"type\": \"article\", \"url\": \"http://en.wikipedia.org/wiki/Pivot_table\", \"why_ar\": \"هذه الصفحة تمنحك الأساس النظري لفهم الجداول المحورية كأداة لتجميع البيانات التفصيلية.\"}, {\"lang\": \"en\", \"level_fit\": 0.9, \"relevance\": 0.95, \"title\": \"Chapter 18: Pivot Tables \\u2013 MS Excel Bootcamp\", \"type\": \"book\", \"url\": \"https://openwa.pressbooks.pub/msexcelbootcamp/chapter/chapter-18-pivot-tables/\", \"why_ar\": \"هذا الفصل يناسب مستواك المتوسط لأنه يشرح مناطق الصفوف والأعمدة والقيم والفلاتر بشكل عملي.\"}, {\"lang\": \"en\", \"level_fit\": 0.85, \"relevance\": 0.9, \"title\": \"6.1 Creating PivotTables \\u2013 Excel For Decision Making\", \"type\": \"book\", \"url\": \"https://uhlibraries.pressbooks.pub/mis3300excel/chapter/6-1-creating-pivot-tables/figure6-2/\", \"why_ar\": \"هذه الصفحة تدربك على تنظيم البيانات الكبيرة بدوال التلخيص لاتخاذ القرار كمحلل بيانات.\"}, {\"lang\": \"en\", \"level_fit\": 0.85, \"relevance\": 0.9, \"title\": \"3.4 Introduction to PivotTables \\u2013 Introduction to Excel for Business Data\", \"type\": \"book\", \"url\": \"https://openoregon.pressbooks.pub/introductiontoexcel/?p=479\", \"why_ar\": \"هذا الدرس يوضح لك كيف تلخص مجموعات البيانات دون تغيير البيانات الأصلية وهي مهارة تحليلية أساسية.\"}, {\"lang\": \"en\", \"level_fit\": 0.75, \"relevance\": 0.7, \"title\": \"4.1 Microsoft Excel \\u2013 The Data Notebook\", \"type\": \"book\", \"url\": \"https://uta.pressbooks.pub/datanotebook/chapter/4-1-microsoft-excel/\", \"why_ar\": \"هذه الصفحة تناسب هدفك المهني لأنها تعلمك إدراج جدول محوري من تبويب إدراج لتحليل البيانات.\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You describe learning resources that a web search cited. Return one candidate for each cited page that teaches the topic, and leave out pages that do not. Copy each url exactly from the cited pages. Give the language the page is written in. why_ar is one Arabic sentence telling the learner why this page suits them. relevance is how closely the page teaches the topic, and level_fit how well it suits the learner's level, each from 0 to 1.",
+    "usage": {
+      "input_tokens": 844,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1985,
+      "output_tokens_details": {
+        "reasoning_tokens": 1329
+      },
+      "total_tokens": 2829
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 6873
+}

@@ -1,0 +1,11 @@
+{
+  "url": "https://pengshizhe.github.io/robots.txt",
+  "latency_ms": 451,
+  "response": {
+    "kind": "page",
+    "status": 200,
+    "content_type": "text/plain; charset=utf-8",
+    "truncated": false,
+    "text": "Sitemap: https://pengshizhe.github.io/sitemap.xml\n"
+  }
+}

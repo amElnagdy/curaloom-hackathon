@@ -55,8 +55,10 @@ export type ScoutRun = {
   cache: Cache;
 };
 
-// The topic and the sorted languages name a result, both as the step key in the session and in the
-// cache, so a second run with the same pair returns it without a model call, in any session.
+// The topic, the sorted languages and the level name a result, both as the step key in the session
+// and in the cache, so a second run with the same three returns it without a model call, in any
+// session. The queries are written for the level, so an interview restarted at another level
+// searches again.
 export function runScout({
   orchestrator,
   sessionId,
@@ -64,7 +66,7 @@ export function runScout({
   pages,
   cache,
 }: ScoutRun): Promise<ScoutResult> {
-  const key = contentHash([brief.topic, [...brief.langs].sort()]);
+  const key = contentHash([brief.topic, [...brief.langs].sort(), brief.level]);
   const agent = scoutAgent(pages, cache, `result_${key}`);
   return orchestrator.runStep(sessionId, agent, brief, { key: `scout:${key}` });
 }

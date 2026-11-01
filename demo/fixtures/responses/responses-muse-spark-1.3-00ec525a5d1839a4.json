@@ -1,0 +1,161 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Topic: Excel pivot tables for data analysis\nThe learner's goal: التحول إلى محلل بيانات\nLevel: intermediate\nLanguages: en, ru, zh, fr",
+      "instructions": "You plan web searches for free, openly licensed learning resources. For each language listed, write two short search queries in that language that find pages teaching the topic at the learner's level, from open sources such as Wikipedia, Wikibooks, Wikiversity, open textbooks and open courseware. Give each language once, by its code.",
+      "reasoning": {
+        "effort": "medium"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "ScoutQueries",
+          "schema": {
+            "type": "object",
+            "required": [
+              "queries"
+            ],
+            "properties": {
+              "queries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "lang",
+                    "queries"
+                  ],
+                  "properties": {
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "ru",
+                        "zh",
+                        "fr"
+                      ]
+                    },
+                    "queries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "two short web search queries, written in that language"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "medium"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "ScoutQueries",
+        "schema": {
+          "additionalProperties": false,
+          "required": [
+            "queries"
+          ],
+          "properties": {
+            "queries": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "lang": {
+                    "enum": [
+                      "en",
+                      "ru",
+                      "zh",
+                      "fr"
+                    ],
+                    "type": "string"
+                  },
+                  "queries": {
+                    "description": "two short web search queries, written in that language",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "lang",
+                  "queries"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79c6667b1033fdafc4e9e",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793563750,
+    "completed_at": 1793563750,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79c6667b1033fdafc4e9e:rs_d92368fd-a9f0-4bdf-824b-e9d830ac4b41",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_b787ede5-cab5-4fd7-876d-003795da3a10",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"queries\": [{\"lang\": \"en\", \"queries\": [\"intermediate Excel pivot tables tutorial wikibooks\", \"Excel pivot tables data analysis open courseware\"]}, {\"lang\": \"ru\", \"queries\": [\"\\u0441\\u0432\\u043e\\u0434\\u043d\\u044b\\u0435 \\u0442\\u0430\\u0431\\u043b\\u0438\\u0446\\u044b Excel \\u0443\\u0447\\u0435\\u0431\\u043d\\u0438\\u043a \\u0441\\u0440\\u0435\\u0434\\u043d\\u0438\\u0439 \\u0443\\u0440\\u043e\\u0432\\u0435\\u043d\\u044c\", \"\\u0441\\u0432\\u043e\\u0434\\u043d\\u044b\\u0435 \\u0442\\u0430\\u0431\\u043b\\u0438\\u0446\\u044b \\u0430\\u043d\\u0430\\u043b\\u0438\\u0437 \\u0434\\u0430\\u043d\\u043d\\u044b\\u0445 \\u043e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044b\\u0439 \\u043a\\u0443\\u0440\\u0441\"]}, {\"lang\": \"zh\", \"queries\": [\"Excel \\u6570\\u636e\\u900f\\u89c6\\u8868 \\u4e2d\\u7ea7\\u6559\\u7a0b \\u7ef4\\u57fa\\u6559\\u79d1\\u4e66\", \"\\u6570\\u636e\\u900f\\u89c6\\u8868 \\u6570\\u636e\\u5206\\u6790 \\u516c\\u5f00\\u8bfe\\u6559\\u6750\"]}, {\"lang\": \"fr\", \"queries\": [\"tableaux crois\\u00e9s dynamiques Excel tutoriel interm\\u00e9diaire\", \"TCD Excel analyse donn\\u00e9es cours ouvert wikibooks\"]}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You plan web searches for free, openly licensed learning resources. For each language listed, write two short search queries in that language that find pages teaching the topic at the learner's level, from open sources such as Wikipedia, Wikibooks, Wikiversity, open textbooks and open courseware. Give each language once, by its code.",
+    "usage": {
+      "input_tokens": 214,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 2003,
+      "output_tokens_details": {
+        "reasoning_tokens": 1551
+      },
+      "total_tokens": 2217
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 8885
+}

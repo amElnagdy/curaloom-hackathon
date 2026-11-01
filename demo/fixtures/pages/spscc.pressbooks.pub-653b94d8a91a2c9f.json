@@ -1,0 +1,11 @@
+{
+  "url": "https://spscc.pressbooks.pub/robots.txt",
+  "latency_ms": 328,
+  "response": {
+    "kind": "page",
+    "status": 403,
+    "content_type": "text/html",
+    "truncated": false,
+    "text": ""
+  }
+}

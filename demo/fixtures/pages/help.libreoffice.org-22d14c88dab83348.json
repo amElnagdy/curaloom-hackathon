@@ -1,0 +1,11 @@
+{
+  "url": "https://help.libreoffice.org/latest/zh-CN/text/scalc/guide/datapilot_createtable.html",
+  "latency_ms": 464,
+  "response": {
+    "kind": "page",
+    "status": 200,
+    "content_type": "text/html",
+    "truncated": false,
+    "text": "创建数据透视表 LibreOffice 26.8 帮助 模块 语言 目录 创建数据透视表 在一个工作表中选择一个数据区域，连同行标题和列标题。 Choose Insert - Pivot Table . The Select Source dialog appears. Choose Current selection and confirm with OK . The table headings are shown as buttons in the Pivot Table dialog. Drag these buttons as required and drop them into the layout areas \"Filters\", \"Column Fields\", \"Row Fields\" and \"Data Fields\". 将需要的按钮拖动到这四个区域之一。 Drag a button to the Filters area to create a button and a listbox on top of the generated pivot table. The listbox can be used to filter the pivot table by the contents of the selected item. You can use drag-and-drop within the generated pivot table to use another page field as a filter. 如果将按钮拖放到「 数据字段 」区域中后，它便会获得一个标题，用来显示在数据区域中计算数据所使用的公式。 双击「 数据字段 」区域中的一个字段，便会出现 数据字段 对话框。 使用「 数据字段 」对话框可选择要对数据进行的计算。要多选，请在点击所需计算的同时按下 命令 Ctrl 键。 可以随时更改按钮顺序 (只要用鼠标将它们在区域内移动即可)。 您也可以将一个字段按钮重新放回原处，方法是用鼠标将它从一个区域内移到其他位置。 要打开 数据字段 对话框，请双击「 行字段 」或「 列字段 」区域的任一按钮。使用该对话框可选择「 LibreOffice 」是否计算显示分类汇总及其范围。 Exit the Pivot Table dialog by pressing OK. A Filter button will now be inserted, or a page button for every data field that you dropped in the Filters area. The pivot table is inserted further down. 打开文件示例: 相关主题 数据透视表 编辑透视表 Formatting Pivot Tables 筛选数据透视表 更新数据透视表 组合数据透视表 选择数据透视表输出区域 删除数据透视表 数据透视图 请支持我们! 请支持我们! LibreOffice Books Writer Icon Calc Icon Impress Icon Draw Icon Base Icon Math Icon Getting Started Icon Impressum (Legal Info) | Privacy Policy | Statutes (non-binding English translation) - Satzung (binding German version) | Copyright information: Unless otherwise specified, all text and images on this website are licensed under the Mozilla Public License v2.0 . “LibreOffice” and “The Document Foundation” are registered trademarks of their corresponding registered owners or are in actual use as trademarks in one or more countries. Their respective logos and icons are also subject to international copyright laws. Use thereof is explained in our trademark policy . LibreOffice was based on OpenOffice.org. Help content debug info: This page is: /text/scalc/guide/datapilot_createtable.xhp Title is: 创建数据透视表"
+  }
+}

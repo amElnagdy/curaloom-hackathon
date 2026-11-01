@@ -1,0 +1,135 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": "Why the plan changed: they asked for shorter sessions\nDays away: 10\nRecap quiz on their return: below the pass mark, so a short review of a lesson they half forgot comes first\nReview first: «مراجعة مركزة: إنشاء جدول محوري وبنيته الأساسية» on day 10, 15 minutes\nCurrent lesson: «تنظيم الحقول والصفوف والأعمدة والقيم»\nFirst week back, from day 10: 65 minutes, at most 108 (60% of 180, the lightest week of their first plan)\nSessions missed while away: 7; moved: 10; shortened: 10; given another resource: 0\nWeeks to their goal: 8 before, 10 now\nModules that grew: «الوحدة الأولى: ترسيخ أساسيات الجداول المحورية» from 1 to 3 weeks\nNotes from the interview: ترك كورسات كورسيرا لأنها طويلة ويمل بسرعة، ويفضل عدم مراسلته في الصباح\n\nCandidates for the switch: none",
+      "instructions": "You explain to an Arabic-speaking adult learner, back after some days away, why their study plan changed. Code has already changed the plan and lists each change under your text; you write the short explanation above that list.\nWrite two or three sentences in Modern Standard Arabic, addressed to the learner: warm and respectful, with no guilt, blame or pressure. Never reproach them for the days away.\nSay why the plan changed and what the lighter first week, and the review if there is one, mean for them. Do not list the changes one by one.\nUse only the facts and numbers the brief gives; make no other offer, promise or number. Write numbers in Arabic-Indic digits. The recap is a band only: give it no score or percentage.\nThe notes from the interview are for your tone; do not quote them.\nWrite no name, no braces, no links, no web or email addresses and no emoji, in at most 400 characters.\nWhen the brief lists candidates for a switch, set resource_id to the id of the one that suits the learner best, copied exactly; otherwise set it to null.",
+      "reasoning": {
+        "effort": "low"
+      },
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "ReplanNote",
+          "schema": {
+            "type": "object",
+            "required": [
+              "explanation_ar",
+              "resource_id"
+            ],
+            "properties": {
+              "explanation_ar": {
+                "type": "string",
+                "description": "two or three Modern Standard Arabic sentences to the learner on why the plan changed"
+              },
+              "resource_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "for a switch, the id of the candidate you pick, copied exactly; otherwise null"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "low"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "ReplanNote",
+        "schema": {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "explanation_ar": {
+              "description": "two or three Modern Standard Arabic sentences to the learner on why the plan changed",
+              "type": "string"
+            },
+            "resource_id": {
+              "anyOf": [
+                {
+                  "description": "for a switch, the id of the candidate you pick, copied exactly; otherwise null",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "explanation_ar",
+            "resource_id"
+          ]
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79f52facd8d9c8a854aee",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793564498,
+    "completed_at": 1793564498,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79f52facd8d9c8a854aee:rs_e46e7c3b-046a-404a-bdbe-103c3a4c4363",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_8fbbaa7e-dc77-48e0-b517-28f37780aedf",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"explanation_ar\": \"أهلاً بعودتك، وقد عدّلنا خطتك بناءً على طلبك لجلسات أقصر لتناسب إيقاعك. ستبدأ بمراجعة مركزة قصيرة تساعدك على استعادة الأساس بثقة قبل الدرس الحالي، ثم يكون أسبوعك الأول خفيفاً بما لا يتجاوز ١٠٨ دقائق. هذا التدرج يمنحك عودة مريحة، مع امتداد المدة إلى ١٠ أسابيع بدلاً من ٨ لدعم تقدمك بهدوء.\", \"resource_id\": null}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": "You explain to an Arabic-speaking adult learner, back after some days away, why their study plan changed. Code has already changed the plan and lists each change under your text; you write the short explanation above that list.\nWrite two or three sentences in Modern Standard Arabic, addressed to the learner: warm and respectful, with no guilt, blame or pressure. Never reproach them for the days away.\nSay why the plan changed and what the lighter first week, and the review if there is one, mean for them. Do not list the changes one by one.\nUse only the facts and numbers the brief gives; make no other offer, promise or number. Write numbers in Arabic-Indic digits. The recap is a band only: give it no score or percentage.\nThe notes from the interview are for your tone; do not quote them.\nWrite no name, no braces, no links, no web or email addresses and no emoji, in at most 400 characters.\nWhen the brief lists candidates for a switch, set resource_id to the id of the one that suits the learner best, copied exactly; otherwise set it to null.",
+    "usage": {
+      "input_tokens": 568,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 1212,
+      "output_tokens_details": {
+        "reasoning_tokens": 1070
+      },
+      "total_tokens": 1780
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 5795
+}

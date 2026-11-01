@@ -1,0 +1,181 @@
+{
+  "request": {
+    "path": "/responses",
+    "json": {
+      "model": "muse-spark-1.3",
+      "input": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "You are an object grounding expert and a technical translator for Arabic-speaking learners.\nThe image is a diagram. List every piece of text in it that a learner needs in Arabic: words and phrases in any language.\nSkip text that stays as written: numbers, dates, single column letters, row numbers, and acronyms such as ETL, ERP, ODS, SCM or GDP.\nGive one entry per separate text block (one table cell, one shape caption, one title line), in reading order. Include repeats: a word that appears in five cells gets five entries.\nFor each entry:\n- src: the text exactly as written.\n- ar: a short Modern Standard Arabic translation that fits the same space. Keep any acronym inside the text in Latin letters.\n- box: [x_min, y_min, x_max, y_max] tight around the text only, on a normalized 0-1000 grid with (0,0) at the top-left.\nDo not miss any text. Then give caption_ar: one short Arabic line that says what the diagram shows.\nUse these glossary terms where they apply: pivot table = الجدول المحوري; aggregations = تجميعات; row = صف; column = عمود; sum = مجموع; Values = قيم; Filters = مرشحات."
+            },
+            {
+              "type": "input_image",
+              "image_url": "data-url-sha256:e4a9b07a4389b84a519a80c4d888a8ff2999ab2a197f3475f4f836a88303ae53"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "strict": true,
+          "name": "DiagramLabels",
+          "schema": {
+            "type": "object",
+            "required": [
+              "caption_ar",
+              "labels"
+            ],
+            "properties": {
+              "caption_ar": {
+                "type": "string",
+                "description": "a short Arabic caption that says what the diagram shows, for a learner"
+              },
+              "labels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "src",
+                    "ar",
+                    "box"
+                  ],
+                  "properties": {
+                    "src": {
+                      "type": "string",
+                      "description": "the text exactly as written"
+                    },
+                    "ar": {
+                      "type": "string",
+                      "description": "a short Modern Standard Arabic translation that fits the same space"
+                    },
+                    "box": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "description": "[x_min, y_min, x_max, y_max] tight around the text, on a 0-1000 grid with (0,0) at the top left"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "body": {
+    "top_logprobs": 0,
+    "temperature": 1,
+    "top_p": 1,
+    "service_tier": "auto",
+    "model": "muse-spark-1.3",
+    "reasoning": {
+      "effort": "high"
+    },
+    "background": false,
+    "text": {
+      "format": {
+        "type": "json_schema",
+        "name": "DiagramLabels",
+        "schema": {
+          "properties": {
+            "caption_ar": {
+              "description": "a short Arabic caption that says what the diagram shows, for a learner",
+              "type": "string"
+            },
+            "labels": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "ar": {
+                    "description": "a short Modern Standard Arabic translation that fits the same space",
+                    "type": "string"
+                  },
+                  "box": {
+                    "description": "[x_min, y_min, x_max, y_max] tight around the text, on a 0-1000 grid with (0,0) at the top left",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  },
+                  "src": {
+                    "description": "the text exactly as written",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "src",
+                  "ar",
+                  "box"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object",
+          "required": [
+            "caption_ar",
+            "labels"
+          ],
+          "additionalProperties": false
+        },
+        "strict": true
+      }
+    },
+    "tools": [],
+    "tool_choice": "auto",
+    "truncation": "disabled",
+    "id": "resp_6ae79db548147e698f8c4492",
+    "object": "response",
+    "status": "completed",
+    "created_at": 1793564085,
+    "completed_at": 1793564085,
+    "error": null,
+    "incomplete_details": null,
+    "output": [
+      {
+        "type": "reasoning",
+        "id": "rs_6ae79db548147e698f8c4492:rs_f7a1a297-89c8-4552-9f1e-fdcb01382a42",
+        "summary": [],
+        "status": "completed"
+      },
+      {
+        "type": "message",
+        "id": "msg_18a7d3e3-11a0-4a12-bbc9-57edbd4344bf",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "{\"caption_ar\": \"جدول محوري يوضح مجموع الوحدات حسب المنطقة وتاريخ الشحن\", \"labels\": [{\"ar\": \"مجموع الوحدات\", \"box\": [5, 14, 135, 84], \"src\": \"Sum of Units\"}, {\"ar\": \"تاريخ الشحن\", \"box\": [160, 14, 274, 84], \"src\": \"Ship Date\"}, {\"ar\": \"المنطقة\", \"box\": [12, 139, 104, 208], \"src\": \"Region\"}, {\"ar\": \"الشرق\", \"box\": [8, 266, 63, 326], \"src\": \"East\"}, {\"ar\": \"الشمال\", \"box\": [8, 390, 78, 450], \"src\": \"North\"}, {\"ar\": \"الجنوب\", \"box\": [8, 513, 79, 573], \"src\": \"South\"}, {\"ar\": \"الغرب\", \"box\": [8, 636, 69, 697], \"src\": \"West\"}, {\"ar\": \"(فارغ)\", \"box\": [8, 762, 89, 827], \"src\": \"(blank)\"}, {\"ar\": \"الإجمالي العام\", \"box\": [114, 888, 267, 961], \"src\": \"Grand Total\"}]}",
+            "annotations": [],
+            "logprobs": []
+          }
+        ],
+        "status": "completed"
+      }
+    ],
+    "instructions": null,
+    "usage": {
+      "input_tokens": 376,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 3847,
+      "output_tokens_details": {
+        "reasoning_tokens": 3542
+      },
+      "total_tokens": 4223
+    },
+    "parallel_tool_calls": true,
+    "store": true
+  },
+  "latency_ms": 17551
+}

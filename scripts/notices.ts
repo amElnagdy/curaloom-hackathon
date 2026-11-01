@@ -59,6 +59,7 @@ const WORD = new RegExp(`[${CJK}]|(?:(?![${CJK}])[\\p{L}\\p{N}])+`, "gu");
 const AUTHORS: [RegExp, string][] = [
   [/(^|\.)wikipedia\.org$/, "Wikipedia contributors"],
   [/(^|\.)wikibooks\.org$/, "Wikibooks contributors"],
+  [/(^|\.)wikiversity\.org$/, "Wikiversity contributors"],
 ];
 
 const LANGUAGES: Record<string, string> = {

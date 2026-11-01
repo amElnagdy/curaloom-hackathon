@@ -213,11 +213,19 @@ function setup(options: FakeOptions = {}) {
     },
   };
   const cache = createFileCache(dir);
-  const run = (langs: Lang[], { topic = profile.topic, sessionId = "s1" } = {}) =>
+  const run = (
+    langs: Lang[],
+    { topic = profile.topic, sessionId = "s1", level = profile.diagnostic.level } = {},
+  ) =>
     runScout({
       orchestrator,
       sessionId,
-      brief: scoutBrief({ ...profile, topic, source_langs_ok: langs }),
+      brief: scoutBrief({
+        ...profile,
+        topic,
+        source_langs_ok: langs,
+        diagnostic: { ...profile.diagnostic, level },
+      }),
       pages,
       cache,
     });
@@ -373,6 +381,21 @@ describe("scout", () => {
     expect(again).toEqual(first);
     expect(fake.calls()).toBe(calls);
     expect(trace("s2")).toContainEqual(expect.stringMatching(/^Scout result read from the cache/));
+  });
+
+  it("searches again for another level on the same topic and languages, in a session and in a new one", async () => {
+    const { run, fake, providers } = setup();
+
+    await run(["en", "ru"], { level: "beginner" });
+    const calls = fake.calls();
+    await run(["en", "ru"], { level: "advanced" });
+    const inAnother = fake.calls();
+    await run(["en", "ru"], { level: "intermediate", sessionId: "s2" });
+
+    expect(providers()).toBe(3);
+    expect(inAnother).toBeGreaterThan(calls);
+    expect(fake.calls()).toBeGreaterThan(inAnother);
+    expect(fake.prompts.at(-1)).toMatch(/^Level: intermediate$/m);
   });
 
   it("pays once for each search when the orchestrator retries the step", async () => {

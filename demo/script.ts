@@ -3,7 +3,7 @@
 // this text, and a replay matches a request only by its exact text, so in replay the intake and quiz
 // pages offer this text to the presenter (docs/demo.md).
 
-import type { LearnerProfile } from "../contracts/index.ts";
+import type { LearnerProfile, Quiz } from "../contracts/index.ts";
 
 // The sample topic every recording is made on: the demo topic is not decided.
 export const RECORDED_TOPIC = "Excel pivot tables for data analysis";
@@ -47,9 +47,19 @@ const RETRY_QUIZ = [
 // His short answers by lesson id, then by the lesson's quiz in order (the first, then the retry).
 export const SHORT_ANSWERS = { L1: [FIRST_QUIZ, RETRY_QUIZ] } as const;
 
-// The recorded short answers to the `n`th quiz of a lesson (0 for its first), if the run has them.
-export const recordedShortAnswers = (lessonId: string, n: number): readonly string[] | undefined =>
-  (SHORT_ANSWERS as Record<string, readonly (readonly string[])[]>)[lessonId]?.[n];
+// The short answers the recorded run gave to the `n`th quiz of a lesson (0 for its first), if it
+// graded that quiz: Omar's words above on the beginner's run. The intermediate and advanced runs
+// (#98) graded the same quizzes with each short item's own model answer, which the quiz writer is
+// told earns full credit, so no text was written for them; `at` names the level and the quiz.
+export function recordedShortAnswers(
+  lessonId: string,
+  n: number,
+  at?: { level: LearnerProfile["diagnostic"]["level"]; quiz: Pick<Quiz, "items"> },
+): readonly string[] | undefined {
+  const omar = (SHORT_ANSWERS as Record<string, readonly (readonly string[])[]>)[lessonId]?.[n];
+  if (!omar || !at || at.level === "beginner") return omar;
+  return at.quiz.items.filter((item) => item.type === "short").map((item) => item.answer);
+}
 
 // How many of his five recap items he gets right, the first ones, before «مصدر آخر» re-plans his
 // course: below the gate, so the plan starts with a review. The run has no «مصدر آخر» after a recap
