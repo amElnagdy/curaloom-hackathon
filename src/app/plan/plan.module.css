@@ -584,11 +584,13 @@
   .plan {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-@media (max-width: 760px) {
+  /* The activity column no longer sits at the inline end, so the document keeps clear of the
+     trace tab there itself (#66). */
   .doc {
     padding-inline-end: var(--page-gutter-end);
   }
+}
+@media (max-width: 760px) {
   .title {
     font-size: var(--text-3xl);
   }

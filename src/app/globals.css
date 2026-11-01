@@ -106,7 +106,7 @@
   --rail-w: 4rem;
   --rail-open-w: 15rem;
   --top-h: 3.5rem;
-  /* Room the demo bar takes at the bottom of the page column (demo-bar.module.css). */
+  /* Room the demo bar takes at the bottom of the page column; the bar measures it (demo-bar.tsx). */
   --demo-bar-h: 0px;
   --feed-w: 27rem;
   --tab-w: 2.5rem;
@@ -117,15 +117,6 @@
   --page-gutter-end: calc(var(--tab-w) + var(--page-gutter));
 
   color-scheme: light;
-}
-
-/* "auto": no choice saved, so the bar is open on a wide screen and collapsed on a phone. */
-html[data-demo-bar="open"],
-html[data-demo-bar="auto"] {
-  --demo-bar-h: 9rem;
-}
-html[data-demo-bar="collapsed"] {
-  --demo-bar-h: 3.5rem;
 }
 
 @media (max-width: 1280px) {
@@ -142,17 +133,12 @@ html[data-demo-bar="collapsed"] {
     --tab-w: 0px;
     --trace-w: 100vw;
   }
-  /* The bar's controls wrap to their own row on a phone. */
-  html[data-demo-bar="open"] {
-    --demo-bar-h: 13.25rem;
-  }
-  html[data-demo-bar="auto"] {
-    --demo-bar-h: 3.5rem;
-  }
 }
 
 html {
   font-size: 100%;
+  /* Keyboard focus scrolls clear of the floating demo bar (WCAG 2.4.11). */
+  scroll-padding-block-end: var(--demo-bar-h);
 }
 @media (min-width: 1800px) {
   html {

@@ -1,6 +1,6 @@
 # Running the demo (#30)
 
-The demo runs the app on port 3107 for one sample learner, Omar. In replay, every model reply comes from a recording in `demo/fixtures/responses/`, so the demo needs no network and no API key. A badge in the top bar and on the demo bar says how the models answer: «ردود مسجّلة» `REPLAY`, «مباشر» `LIVE` or «يسجّل الآن» `RECORD`.
+The demo runs the app on port 3107 for one sample learner, Omar. In replay, every model reply comes from a recording in `demo/fixtures/responses/`, so the demo needs no network and no API key. A badge in the top bar and on the demo bar says how the models answer: «ردود مسجّلة» `REPLAY`, «مباشر» `LIVE` or «يسجّل الآن» `RECORD`. Click or tap the badge, or focus it and press Enter, to read what the mode means.
 
 ## Commands
 
@@ -34,6 +34,8 @@ To start the demo again from the beginning:
 1. Wait until the activity column on the plan page says «لا يعمل أي وكيل الآن». A step still running when you reset can write its result into the emptied data.
 2. Run `pnpm demo:reset`.
 3. Reload the browser tab. The plan page shows the example plan again, and the interview is empty.
+
+The demo bar's «إعادة» first asks «أتريد أن تبدأ العرض من الصفر؟». «نعم، ابدأ من الصفر» empties this session's data but keeps its trace, and the clock goes back to day 0. «تراجع» or Esc leaves everything as it was. The presenter steps do not use «إعادة», so it has no one-key shortcut. Between runs, use `pnpm demo:reset`.
 
 Stopping the server and running `pnpm demo:replay` again gives the same start state.
 
@@ -82,7 +84,7 @@ This is the recorded path, walked in a browser at 1440×900 on `pnpm demo:replay
    - Question 3: «المصنف ملف واحد للسنة يضم أوراقا مستقلة…».
    - Question 4: «التصفية تعرض سطور الرواتب فقط…».
 8. Click the shield in the side rail, «الموافقة». Turn on «رسائل المدرب», keep the other settings, and click «وافق وفعّل الرسائل».
-9. Click the phone in the side rail, «رسائل المدرب». On the demo bar, click the marker «اليوم ٢، تذكير», then «اليوم ٥، أسبوع أخف», then «اليوم ١٠، سؤال». Wait for each message on the phone before the next click.
+9. Click the phone in the side rail, «رسائل المدرب». In a window under 700 px tall, such as 1440×900 at 150% zoom, the demo bar starts as a chip, «أداة العرض»: click it to open the bar. On the demo bar, click the marker «اليوم ٢، تذكير», then «اليوم ٥، أسبوع أخف», then «اليوم ١٠، سؤال». Wait for each message on the phone before the next click.
 10. On the phone, tap «جلسات أقصر». When the coach answers, tap «افتح خطتي» under its answer.
 11. The plan page opens on «أهلًا بعودتك يا عمر». Answer the five review questions, three right and two wrong, then click «سلّم الإجابات». The proposed version 2 appears with Spark's note under «لماذا تغيّرت؟».
     - Question 1: «بتخزين معادلة تجمع أو تطرح قيم خلايا أخرى…».
@@ -117,6 +119,8 @@ The scripted walk and the chain tests found no other path on these pages that re
 Each test starts its own replay server on emptied data in a temporary folder, unpaced, as `pnpm preview` runs. The server listens on port 3190, or on `E2E_PORT`, so the walk runs beside `pnpm dev` and `pnpm preview`. The walk answers the short check three ways, in three tests: «لا أعرف بعد» in all three questions (beginner), two right and «لا أعرف بعد» (intermediate), and all three right (advanced). For the last two it also checks the note on the intake and the plan page, and the one trace event for the swap. Two more tests leave the path where «Paths off this list» says replay keeps the learner on it. One types its own intake messages and short answers, retries lesson 1's quiz with two wrong picks, picks the tone «عادي», opens the plan page on day 2, taps «مصدر آخر» and answers the review all right, then opens lesson 2's quiz. The other taps «استراحة أسبوع» in step 10 and moves on to day 17. They find each replay note by its role, `note`. A request with no recording fails the walk at once with the server's log line for it, and at the end each test checks the trace for calls and pages that had no recording. The five tests take about a minute together. CI runs the walk after `pnpm build`.
 
 The walk clicks the typed-text chips, not the voice chip in step 2, and it checks what each step shows, not how the pages look. Each test keeps its server's log in `e2e/test-results/`, and a test that fails keeps its Playwright trace there too. When the walk fails, CI uploads that folder as the `e2e-test-results` artifact.
+
+`pnpm e2e` also runs `e2e/shell.e2e.ts`, on one replay server for the file (#66). It scrolls `/plan`, `/lesson`, `/quiz`, `/coach`, `/consent`, `/settings` and `/progress` at 1440×900, at 150% zoom and on a phone, with the demo bar as it starts and as the viewer opens it, and fails when the demo bar or the trace tab sits on a page element. It also opens the mode badge with Enter, Space and a tap, and checks that «إعادة» sends no reset until it is confirmed. It takes about 10 seconds.
 
 ## When a recording is missing
 

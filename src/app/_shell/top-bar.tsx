@@ -8,8 +8,9 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { ProviderProfile } from "../../config.ts";
 import { routeForPath } from "../routes.ts";
+import { ModeBadge } from "./mode-badge.tsx";
 import styles from "./shell.module.css";
-import { DirIcon, ModeBadge } from "./ui.tsx";
+import { DirIcon } from "./ui.tsx";
 
 export function TopBar({ clock, profile }: { clock: ReactNode; profile: ProviderProfile }) {
   const route = routeForPath(usePathname());

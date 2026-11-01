@@ -11,6 +11,7 @@ const clock = vi.hoisted(() => ({
   move: async () => ({ kind: "failed" as const }),
   waitsForPlan: false,
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }) }));
 vi.mock(import("./use-sim-clock.ts"), async (original) => ({
   ...(await original()),
   useSimClock: () => clock,
@@ -31,7 +32,7 @@ function render() {
   const all = buttons(html);
   return {
     html,
-    day: all.find((b) => b.text === "يوم"),
+    day: all.find((b) => b.text === "قدّم يومًا"),
     reset: all.find((b) => b.text === "إعادة"),
     marks: all.filter((b) => b.attrs.includes("انتقل إلى")),
   };
@@ -63,5 +64,21 @@ describe("the demo bar's day buttons", () => {
     expect(day?.attrs).toContain(`title="${WAITS_FOR_PLAN}"`);
     // Reset goes back to the start, so it never waits.
     expect(off(reset)).toBe(false);
+  });
+});
+
+describe("the demo bar's mode badges", () => {
+  it("open their explanation on the chip and in the bar, and sit in no other button", () => {
+    // With no choice saved, the bar and its chip both render and CSS shows one.
+    const { html } = render();
+    const targets = [...html.matchAll(/<button[^>]*\spopovertarget="([^"]+)"/gi)].map(
+      ([, id]) => id,
+    );
+
+    expect(targets).toHaveLength(2);
+    for (const id of targets) {
+      expect(html).toMatch(new RegExp(`<div[^>]*\\sid="${id}"[^>]*\\spopover="auto"`));
+    }
+    expect(html).not.toMatch(/<button(?:(?!<\/button>).)*<button/s);
   });
 });

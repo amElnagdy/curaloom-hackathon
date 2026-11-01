@@ -240,41 +240,30 @@ export function RowGroup({ label, children }: { label: string; children: ReactNo
   );
 }
 
-export const MODE: Record<ProviderProfile, { label: string; code: string; about: string }> = {
+// How the models answer on this server (#30), for the mode badge (mode-badge.tsx) and the trace.
+export const MODE: Record<
+  ProviderProfile,
+  { label: string; code: string; icon: LucideIcon; about: [string, string] }
+> = {
   replay: {
     label: "ردود مسجّلة",
     code: "REPLAY",
-    about: "ردود النماذج هنا مسجّلة من تشغيل حقيقي سابق، وتُعرض كما سُجّلت بلا اتصال بالنماذج.",
+    icon: History,
+    about: ["ردود النماذج هنا مسجّلة من تشغيل حقيقي سابق.", "تُعرض كما سُجّلت، بلا اتصال بالنماذج."],
   },
   record: {
     label: "يسجّل الآن",
     code: "RECORD",
-    about: "يستدعي النماذج الآن ويحفظ ردودها لتُعرض لاحقًا.",
+    icon: History,
+    about: ["يستدعي العرض النماذج الآن، ويحفظ ردودها.", "تُعرض هذه الردود لاحقًا كما سُجّلت."],
   },
   live: {
     label: "مباشر",
     code: "LIVE",
-    about: "كل رد يكتبه النموذج الآن.",
+    icon: Radio,
+    about: ["يتصل العرض بالنماذج الآن.", "كل رد هنا يكتبه النموذج في لحظته."],
   },
 };
-
-// Says how the models answer on this server (#30): a viewer always knows whether a reply was written
-// now or recorded earlier. The learner is a sample persona in every mode.
-export function ModeBadge({ profile }: { profile: ProviderProfile }) {
-  const mode = MODE[profile];
-  return (
-    <span
-      className={cx(styles.mode, profile === "live" && styles.modeLive)}
-      title={`${mode.about} المتعلم شخصية تجريبية.`}
-    >
-      {profile === "live" ? <Radio aria-hidden /> : <History aria-hidden />}
-      <span className={styles.modeLabel}>{mode.label}</span>
-      <bdi className={styles.modeCode} dir="ltr" lang="en">
-        {mode.code}
-      </bdi>
-    </span>
-  );
-}
 
 // Replay only (#30): puts the text the recorded run was made with into a field, since a replayed
 // reply answers a request only when its text matches word for word. Its label says so. The intake's
