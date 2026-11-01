@@ -80,7 +80,7 @@ pnpm install
 pnpm demo:replay
 ```
 
-When the server prints `Ready`, open http://localhost:3107/intake. The replay needs no API key. Its build downloads the three Noto fonts once, and after that the demo needs no network.
+When the server prints `Ready`, open http://localhost:3107/intake. The replay needs no API key. The three Noto fonts ship in `src/app/fonts/`, so after `pnpm install` the build and the demo need no network.
 
 To call the models live, copy the settings file, set `MODEL_API_KEY` in `.env`, and start the live demo:
 

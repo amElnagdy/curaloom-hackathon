@@ -63,7 +63,7 @@ Replay finds each recording by a hash of the full request, the API path and the 
   5. `curl http://127.0.0.1:3111/intake` returned HTTP 200 and 35,111 bytes, titled `المقابلة | CuraLoom`, with the «ردود مسجّلة» `REPLAY` badge.
   6. `pnpm check` in the same clone passed: lint, typecheck, and 762 tests in 45 files.
 - [x] **Install from a ZIP download.** GitHub's "Download ZIP" gives a folder with no `.git`. There, `pnpm install` failed with exit code 128, because the `prepare` script ran `git config core.hooksPath .githooks`. Fixed in `package.json`: the script now ends with `|| exit 0`. The same install then passes. A clone still gets the pre-commit hook.
-- [ ] **Run the check again on the final commit. Owner: whoever publishes.** The build downloads the Noto fonts from Google Fonts, so it needs network once.
+- [ ] **Run the check again on the final commit. Owner: whoever publishes.** Since #43 the Noto fonts ship in `src/app/fonts/`, so the build needs no network.
 
 ## Personal data
 

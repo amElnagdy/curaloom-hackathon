@@ -73,6 +73,7 @@ flowchart LR
 ```
 src/app/             UI pages and route handlers
 src/app/_shell/      shell components and the live trace provider (#15)
+src/app/fonts/       the bundled Noto fonts and their licence (#43)
 src/app/routes.ts    route registry: the nav's only source
 src/server/agents/   one folder per agent
 src/server/orchestrator/
@@ -90,7 +91,7 @@ config/              .env.example, models.yaml (#12)
 evals/               model evals (#8)
 demo/fixtures/       seeded state, recorded responses and recorded pages
 docs/adr/            decisions
-scripts/             repo upkeep: notices.ts writes THIRD_PARTY_NOTICES.md (#32)
+scripts/             repo upkeep: notices.ts writes THIRD_PARTY_NOTICES.md (#32), fonts.py src/app/fonts/ (#43)
 spikes/              throwaway Day-1 spikes (Python, not in CI)
 ```
 
