@@ -105,14 +105,14 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
 
 ## Third-party notices
 
-- [x] **`THIRD_PARTY_NOTICES.md` is generated.** `pnpm notices` (`scripts/notices.ts`) writes it from `package.json`, `pnpm licenses list`, `src/app/layout.tsx`, the `lucide-react` imports in `src/`, and `demo/fixtures/`. It lists:
-  - 12 direct dependencies with their versions and licences, and all 64 installed packages by licence;
+- [x] **`THIRD_PARTY_NOTICES.md` is generated.** `pnpm notices` (`scripts/notices.ts`) writes it from `package.json`, `pnpm licenses list`, `pnpm-lock.yaml`, `src/app/layout.tsx`, the `lucide-react` imports in `src/`, and `demo/fixtures/`. It writes the same file on every system, and CI fails when the committed file is out of date. It lists:
+  - 12 direct dependencies with their versions and licences, the 57 packages pnpm installs on every system by licence, and the 72 platform binaries in the lockfile by family;
   - the three Noto fonts, under OFL-1.1;
   - lucide-react under ISC, with the 18 icons in use that Lucide marks as derived from Feather, under MIT;
   - the 11 recorded source pages, each with its licence, its licence statement and the app's credit line.
-- [x] **Licences to know about in the installed packages.** `@img/sharp-libvips-darwin-arm64` is LGPL-3.0-or-later. It comes with `sharp`, an optional dependency of `next`, and the app does not import `next/image`. `caniuse-lite` is CC-BY-4.0 data, and `lightningcss` is MPL-2.0. The repository ships none of them. They matter only to someone who ships a build.
+- [x] **Licences to know about in the installed packages.** The libvips binaries, such as `@img/sharp-libvips-linux-x64`, are LGPL-3.0-or-later, and sharp's Windows and WebAssembly builds bundle libvips too. They come with `sharp`, an optional dependency of `next`, and the app does not import `next/image`. `caniuse-lite` is CC-BY-4.0 data, and `lightningcss` is MPL-2.0. The repository ships none of them. They matter only to someone who ships a build.
 - [x] **The credit line has one source.** The lesson page and the notices script both call `creditLine()` from `src/app/_shell/format.ts`.
-- [ ] **Run `pnpm notices` again before publishing. Owner: whoever publishes.** Run it after any dependency, font, icon or fixture change. The file names the platform it ran on, because optional packages differ by system.
+- [ ] **Run `pnpm notices` again before publishing. Owner: whoever publishes.** Run it after any dependency, font, icon or fixture change. CI runs it too and fails when the committed file differs.
 
 ## Fixture content licences
 

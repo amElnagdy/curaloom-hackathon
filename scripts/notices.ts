@@ -1,13 +1,16 @@
-// `pnpm notices` writes THIRD_PARTY_NOTICES.md from what the repo holds: the installed npm packages
-// (`pnpm licenses list`), the fonts `src/app/layout.tsx` loads, the lucide icons `src/` imports, and
-// the source pages, images and model calls recorded in `demo/fixtures/`. Each recorded page's
-// licence comes from the scout's own checker, each image's from the diagrams agent's, and each
-// credit line from the lesson page's. Run it again after a dependency, font, icon or fixture change.
+// `pnpm notices` writes THIRD_PARTY_NOTICES.md from what the repo holds: the npm packages
+// (`pnpm licenses list`, and `pnpm-lock.yaml` for the platform binaries), the fonts
+// `src/app/layout.tsx` loads, the lucide icons `src/` imports, and the source pages, images and
+// model calls recorded in `demo/fixtures/`. Each recorded page's licence comes from the scout's own
+// checker, each image's from the diagrams agent's, and each credit line from the lesson page's. It
+// needs no network and no key, and writes the same file on every system, so CI checks that the
+// committed file is current. Run it again after a dependency, font, icon or fixture change.
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { parse } from "yaml";
 import { creditLine } from "../src/app/_shell/format.ts";
 import { config } from "../src/config.ts";
 import { fileInfoOf, fileTitle, imageLicence } from "../src/server/agents/diagrams/wiki.ts";
@@ -25,6 +28,23 @@ const FONT_LICENCES: Record<string, string> = {
   "Noto Sans": "OFL-1.1",
   "Noto Sans Arabic": "OFL-1.1",
   "Noto Sans SC": "OFL-1.1",
+};
+
+// pnpm installs a platform binary only on the systems it is built for, so no one machine holds
+// every variant's licence. Each pattern names a family of variants that share one licence, read
+// from the npm registry (`npm view <name>@<version> license`). The longest matching pattern wins,
+// because sharp's Windows and WebAssembly builds bundle libvips and so carry other licences.
+const PLATFORM_LICENCES: Record<string, string> = {
+  "@biomejs/cli-*": "MIT OR Apache-2.0",
+  "@emnapi/runtime": "MIT",
+  "@img/sharp-*": "Apache-2.0",
+  "@img/sharp-libvips-*": "LGPL-3.0-or-later",
+  "@img/sharp-wasm32": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
+  "@img/sharp-win32-*": "Apache-2.0 AND LGPL-3.0-or-later",
+  "@next/swc-*": "MIT",
+  "@rolldown/binding-*": "MIT",
+  fsevents: "MIT",
+  "lightningcss-*": "MPL-2.0",
 };
 
 // A recorded call carries a page's text when it holds a run of words that only that page holds. The
@@ -49,6 +69,15 @@ const LANGUAGES: Record<string, string> = {
 };
 
 type InstalledPackage = { name: string; versions: string[]; license: string; homepage?: string };
+
+type LockedPackage = { name: string; version: string };
+
+type Lockfile = {
+  importers: Record<string, Partial<Record<DependencyField, Record<string, { version: string }>>>>;
+  packages: Record<string, { os?: string[]; cpu?: string[]; libc?: string[] }>;
+  snapshots: Record<string, Partial<Record<DependencyField, Record<string, string>>>>;
+};
+type DependencyField = "dependencies" | "devDependencies" | "optionalDependencies";
 
 type RecordedCall = {
   request: {
@@ -95,7 +124,65 @@ function installedPackages(): InstalledPackage[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function dependencySection(installed: InstalledPackage[]): string[] {
+// The packages in the lockfile that pnpm installs only on some systems: those with an os, cpu or
+// libc field, and those that only such packages depend on.
+function platformPackages(): LockedPackage[] {
+  const lock = parse(readFileSync(join(ROOT, "pnpm-lock.yaml"), "utf8")) as Lockfile;
+  const fields: DependencyField[] = ["dependencies", "devDependencies", "optionalDependencies"];
+  const withoutPeers = (key: string) => key.replace(/\(.*$/, "");
+  const queue = Object.values(lock.importers).flatMap((importer) =>
+    fields.flatMap((field) =>
+      Object.entries(importer[field] ?? {}).map(([name, { version }]) => `${name}@${version}`),
+    ),
+  );
+  const seen = new Set<string>();
+  const everywhere = new Set<string>();
+  for (let key = queue.pop(); key !== undefined; key = queue.pop()) {
+    const entry = lock.packages[withoutPeers(key)];
+    if (seen.has(key) || entry?.os || entry?.cpu || entry?.libc) continue;
+    seen.add(key);
+    everywhere.add(withoutPeers(key));
+    const snapshot = lock.snapshots[key] ?? {};
+    for (const field of fields) {
+      for (const [name, version] of Object.entries(snapshot[field] ?? {})) {
+        queue.push(`${name}@${version}`);
+      }
+    }
+  }
+  return Object.keys(lock.packages)
+    .filter((key) => !everywhere.has(key))
+    .sort()
+    .map((key) => {
+      const at = key.lastIndexOf("@");
+      return { name: key.slice(0, at), version: key.slice(at + 1) };
+    });
+}
+
+// The platform packages by family, each family's licence checked against the variants installed.
+function platformFamilies(platform: LockedPackage[], installed: InstalledPackage[]) {
+  const patterns = Object.keys(PLATFORM_LICENCES).sort((a, b) => b.length - a.length);
+  const matches = (pattern: string, name: string) =>
+    pattern.endsWith("*") ? name.startsWith(pattern.slice(0, -1)) : name === pattern;
+  const families = new Map<string, LockedPackage[]>();
+  for (const pkg of platform) {
+    const family = patterns.find((pattern) => matches(pattern, pkg.name));
+    if (!family) {
+      throw new Error(`Add the licence of ${pkg.name}@${pkg.version} to PLATFORM_LICENCES`);
+    }
+    const declared = installed.find((p) => p.name === pkg.name)?.license;
+    if (declared && declared !== PLATFORM_LICENCES[family]) {
+      throw new Error(
+        `${pkg.name} declares ${declared}, but PLATFORM_LICENCES gives ${family} as ${PLATFORM_LICENCES[family]}`,
+      );
+    }
+    families.set(family, [...(families.get(family) ?? []), pkg]);
+  }
+  const unused = patterns.filter((pattern) => !families.has(pattern));
+  if (unused.length) throw new Error(`Remove ${unused.join(", ")} from PLATFORM_LICENCES`);
+  return [...families].sort(([a], [b]) => (a < b ? -1 : 1));
+}
+
+function dependencySection(installed: InstalledPackage[], platform: LockedPackage[]): string[] {
   const manifest = readJson<Record<string, Record<string, string> | undefined>>("package.json");
   const direct = [
     ...Object.keys(manifest.dependencies ?? {}).map((name) => ({ name, kind: "runtime" })),
@@ -106,12 +193,18 @@ function dependencySection(installed: InstalledPackage[]): string[] {
     if (!pkg) throw new Error(`${name} is not installed; run pnpm install first`);
     return `| ${name} | ${pkg.versions.join(", ")} | ${pkg.license} | ${kind} | ${pkg.homepage ?? ""} |`;
   });
-  const licences = [...new Set(installed.map((p) => p.license))].sort();
+  const variants = new Set(platform.map((p) => p.name));
+  const common = installed.filter((p) => !variants.has(p.name));
+  const licences = [...new Set(common.map((p) => p.license))].sort();
   const groups = licences.map((licence) => {
-    const names = installed
+    const names = common
       .filter((p) => p.license === licence)
       .map((p) => `${p.name}@${p.versions.join("/")}`);
     return `| ${cell(licence)} | ${names.length} | ${names.join(", ")} |`;
+  });
+  const families = platformFamilies(platform, installed).map(([family, pkgs]) => {
+    const names = pkgs.map((p) => `${p.name}@${p.version}`);
+    return `| \`${family}\` | ${cell(PLATFORM_LICENCES[family] ?? "")} | ${names.length} | ${names.join(", ")} |`;
   });
   return [
     "## npm packages",
@@ -122,11 +215,17 @@ function dependencySection(installed: InstalledPackage[]): string[] {
     "| --- | --- | --- | --- | --- |",
     ...rows,
     "",
-    `Every installed package, direct or transitive, by declared licence (${installed.length} packages, from \`pnpm licenses list\` on ${process.platform}-${process.arch}). Platform-specific optional packages, such as the compiler and image binaries, differ on other systems.`,
+    `Every package that pnpm installs on every system, direct or transitive, by declared licence (${common.length} packages, from \`pnpm licenses list\`):`,
     "",
     "| Licence | Count | Packages |",
     "| --- | --- | --- |",
     ...groups,
+    "",
+    `Platform binaries, such as the compiler, bundler, CSS and image binaries, come in one package per system, and pnpm installs only the ones for the machine it runs on. This table lists every variant in \`pnpm-lock.yaml\` (${platform.length} packages), each family once, with the packages only they need. Each family's licence comes from \`PLATFORM_LICENCES\` in \`scripts/notices.ts\`, which \`pnpm notices\` checks against the variants installed where it runs.`,
+    "",
+    "| Family | Licence | Count | Packages |",
+    "| --- | --- | --- | --- |",
+    ...families,
     "",
   ];
 }
@@ -451,6 +550,7 @@ function modelSection(sources: Source[]): string[] {
 }
 
 const installed = installedPackages();
+const platform = platformPackages();
 const pages = recordedPages();
 const recordings = recordedCalls();
 const sources = recordedSources(pages, recordings);
@@ -461,7 +561,7 @@ const lines = [
   "",
   `${config.appName} is a working name, read from \`src/config.ts\`. It appears below only where the app writes it into a credit line.`,
   "",
-  ...dependencySection(installed),
+  ...dependencySection(installed, platform),
   ...fontSection(),
   ...iconSection(installed),
   ...sourceSection(pages, sources),
