@@ -3,6 +3,7 @@
 // re-record. It changes only what the diagram shows; the edit and the check keep the reading.
 
 import type { GlossaryEntry } from "../../../../contracts/index.ts";
+import { wordsOf } from "./rules.ts";
 
 export type GlossaryOverride = {
   term: string;
@@ -21,6 +22,9 @@ const termKey = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase()
 
 const APPROVED = new Map(GLOSSARY_OVERRIDES.map((o) => [termKey(o.term), o.ar]));
 
+// Diacritics and tatweel aside, as the code check reads Arabic.
+const sameArabic = (a: string, b: string) => wordsOf(a).join(" ") === wordsOf(b).join(" ");
+
 // The labels with the table's Arabic wherever it names a label's source text and the reading's
 // Arabic differs, and each replacement made.
 export function overrideLabels<L extends { src: string; ar: string }>(
@@ -29,7 +33,7 @@ export function overrideLabels<L extends { src: string; ar: string }>(
   const overridden: Overridden[] = [];
   const shown = labels.map((label) => {
     const ar = APPROVED.get(termKey(label.src));
-    if (ar === undefined || label.ar.trim() === ar) return label;
+    if (ar === undefined || sameArabic(label.ar, ar)) return label;
     overridden.push({ src: label.src, model_ar: label.ar, ar });
     return { ...label, ar };
   });

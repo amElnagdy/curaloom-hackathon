@@ -26,6 +26,7 @@ describe("the glossary override table", () => {
     const given = [
       { src: "MUCK RAKE", ar: "مذراة طين" },
       { src: "BUZZ CUT", ar: "قَصّة شعر قصيرة" },
+      { src: "BUZZ CUT", ar: "قصة شعر قصيرة" },
       { src: "BUZZ CUTTER", ar: "قصة قصيرة" },
     ];
 
