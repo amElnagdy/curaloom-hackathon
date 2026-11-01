@@ -1,6 +1,6 @@
 # Fixture licences
 
-The repository's code licence is not chosen yet (#39). Whichever licence it is, it does not cover the recorded fixtures in `pages/` and `responses/`. Each fixture keeps the licence of its source.
+The repository's code licence, Apache-2.0, does not cover the recorded fixtures in `pages/` and `responses/`. Each fixture keeps the licence of its source.
 
 These fixtures exist only so the demo runs without network access or a model key. Replay mode reads web pages and model replies from them instead of fetching them.
 
@@ -24,4 +24,4 @@ Each file in `pages/` holds what the page fetcher read from one URL. That is a p
 
 ## Other files
 
-`prune.ts` is code, and `omar.json` is the demo's seeded learner, written for this project. The repository's licence covers both once #39 picks it.
+`prune.ts` is code, and `omar.json` is the demo's seeded learner, written for this project. The repository's Apache-2.0 licence covers both.

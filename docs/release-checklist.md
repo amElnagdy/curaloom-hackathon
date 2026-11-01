@@ -83,7 +83,7 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
 - [ ] `docs/spikes/api-access.md:153` keeps the agent's original note asking Ahmed to confirm that the Geographic Use Policy allows use from Egypt, and say "The spike tried no workaround, such as a VPN". Recommendation: keep the resolution on line 150 and drop the original note.
 - [ ] `docs/spikes/DECISIONS.md:8` says the detailed rules answers "are not yet written up in `rules.md`", a file that does not exist. Line 7 is the pending spike #9 with no data. Recommendation: drop the `rules.md` sentence and mark #9 as not run.
 - [ ] `docs/agents/domain.md`, `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md` configure agent skills for the private tracker. Their text is adapted from `mattpocock/skills` (MIT licence), which `docs/agents/triage-labels.md:5` names. Recommendation: drop the folder from the public copy, and drop `AGENTS.md:33` to `:45`, the "Agent skills" section that points at it. If they stay, credit `mattpocock/skills` and its MIT licence in `THIRD_PARTY_NOTICES.md`.
-- [ ] `AGENTS.md:30` says #32 picks the licence. Update it when the licence is chosen.
+- [x] `AGENTS.md:30` names the chosen licence, Apache-2.0 (#39).
 - [ ] `docs/video-script.md:3`, `:7` and `:58` to `:60` hold the recording date, the presenter setup and a rehearsal plan for Nov 3. Recommendation: keep. The file documents the demo.
 - [ ] `PRODUCT.md:45` and `.impeccable/surfaces/src-app-layout-tsx.md:10` name the hackathon, the video length and the judges. `PRODUCT.md`, `DESIGN.md` and `.impeccable/` are the design briefs that ADR-007 links. Recommendation: keep.
 - [ ] `docs/adr/0007-ui-css-modules-icons-fonts.md:7` and `.impeccable/surfaces/src-app-layout-tsx.md:21` name the branch `prototype/15-shell`. `docs/architecture.md:121` and `src/app/_shell/demo-bar.tsx:3` name `prototype/23-demo-bar`. A new repository lacks those branches. Recommendation: push both branches to the public repository, or accept the dead references.
@@ -97,11 +97,11 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
 
 ## Licence
 
-- [ ] **Choose the project licence. Owner: Ahmed.** The placeholder default is MIT or Apache-2.0. Recommendation: MIT. Neither choice conflicts with a dependency, because the repository ships no dependency code, and MIT is the shorter text. Pick Apache-2.0 if an explicit patent grant matters. Then:
-  1. Add `LICENSE` at the repository root.
-  2. Set `"license"` in `package.json`.
-  3. Replace the placeholder in `README.md`'s "Licence" section, and update `AGENTS.md:30`.
-  4. In `LICENSE` or `README.md`, say that the licence does not cover the third-party text in `demo/fixtures/` or the model output built on it. The next section explains why.
+- [x] **Choose the project licence. Owner: Ahmed.** Ahmed chose Apache-2.0 on Nov 1 (#39). It conflicts with no dependency, because the repository ships no dependency code.
+  1. `LICENSE` at the repository root holds the text of https://www.apache.org/licenses/LICENSE-2.0.txt unchanged (SHA-256 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`).
+  2. `package.json` sets `"license": "Apache-2.0"` and keeps `"private": true`.
+  3. `README.md`'s "Licence" section names the licence and the copyright holder, and `AGENTS.md:30` names the licence.
+  4. `README.md` and `demo/fixtures/LICENSE.md` say that the licence does not cover the third-party text in `demo/fixtures/` or the model output built on it. The next section explains why.
 
 ## Third-party notices
 
@@ -123,7 +123,7 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
 - [x] **The MPL-2.0 page stays.** The LibreOffice help page in Chinese is under MPL-2.0. The scout rejects it, because MPL-2.0 is not on its allowlist, but replay needs the file to reach that rejection. MPL-2.0 allows the copy under its own terms, and the notice names the licence.
 - [ ] **ShareAlike reaches the recordings. Owner: Ahmed.** 15 recorded calls carry the text of CC BY-SA pages: the lesson-writing calls, and the quiz-writing and answer-check calls that hold the lessons' excerpts. The files hold that text and replies built on it, so they carry CC BY-SA 4.0, not the project licence. No recorded call carries the CC BY-NC-SA or the MPL-2.0 page's text. `demo/fixtures/LICENSE.md` states this, and "Recorded model replies" in `THIRD_PARTY_NOTICES.md` lists the files. See step 4 under "Licence".
 - [ ] **Publishing model output. Owner: Ahmed.** The 88 recordings in `demo/fixtures/responses/`, the eval results in `evals/arabic/` and `docs/spikes/api-access.results.json` hold Muse model output. Check that the Meta Model API terms allow publishing it.
-- [ ] **The README GIF shows source text. Owner: Ahmed.** `docs/media/demo.gif` shows an excerpt of the French Wikipedia article «Tableur» (CC BY-SA 4.0), with its badge and source line, and part of the Russian «Сводная таблица» excerpt. It also shows the two public domain diagrams. Recommendation: keep it, since the frames carry the credit the app writes. If the project licence is not CC BY-SA compatible, say in the notices that the GIF's excerpt stays under CC BY-SA.
+- [ ] **The README GIF shows source text. Owner: Ahmed.** `docs/media/demo.gif` shows CC BY-SA 4.0 excerpts of three Wikipedia articles and the Arabic lesson and quiz written from them. The French «Tableur» card shows its badge but is cut off before its source line. The Russian «Сводная таблица» card shows its source line, and the English "Pivot table" card shows its badge. The GIF also shows one public domain diagram, the pivot table, in its Arabic and original views. Recommendation: keep it. Apache-2.0 does not cover CC BY-SA text, so `README.md`'s "Licence" section names the three articles and says that material stays under CC BY-SA 4.0.
 - [x] **Project-written fixtures.** `demo/fixtures/omar.json` is written for the demo. `evals/arabic/items.jsonl` cites no source and has no URL, so the items appear to be written for this eval.
 
 ## No hardcoded product name outside config
