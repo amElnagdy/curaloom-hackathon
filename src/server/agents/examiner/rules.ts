@@ -23,6 +23,14 @@ export type QuizView = {
   replaced?: Replaced;
 };
 
+// Replay only (#55): whether every attempt with the lesson's best score so far had recorded answers
+// graded in place of the learner's, so the pages do not credit that score to them.
+export function bestRecorded(attempts: QuizAttempt[], replaced: Replaced | undefined): boolean {
+  const best = Math.max(...attempts.map((a) => a.score));
+  const top = attempts.filter((a) => a.score === best);
+  return top.length > 0 && top.every((a) => replaced?.[a.id] !== undefined);
+}
+
 // Whether the lesson needs a quiz written: it has none, or its last one has an attempt below the
 // gate and the lesson is not passed.
 export function quizDue({ quizzes, attempts, mastery }: QuizView): boolean {

@@ -81,6 +81,35 @@ describe("courseLessons", () => {
     expect(first).toMatchObject({ open: true, passed: true, best: 1 });
     expect(second).toMatchObject({ open: true, written: false, passed: false });
   });
+
+  // Replay grades the recorded answers in place of some of the learner's (#55).
+  it("marks a best score that came with recorded answers, and only that one", () => {
+    const attempt = (id: string, score: number) => ({
+      id,
+      quiz_id: `quiz-${id}`,
+      lesson_id: "L1",
+      sim_day: 0,
+      answers: [],
+      score,
+      passed: score >= 0.8,
+    });
+    const mastery = [{ lesson_id: "L1", best_score: 1, passed: true, attempts: 2 }];
+    const own = [{ item_id: "i1", response: "إجابتي" }];
+    const attempts = [attempt("a1", 0.75), attempt("a2", 1)];
+
+    const keyed = courseLessons(plan(), new Set(["L1"]), mastery, {
+      attempts,
+      replaced: { a2: own },
+    });
+    const first = courseLessons(plan(), new Set(["L1"]), mastery, {
+      attempts,
+      replaced: { a1: own },
+    });
+
+    expect(keyed[0]).toMatchObject({ passed: true, best: 1, recorded: true });
+    expect(first[0]).toMatchObject({ passed: true, best: 1, recorded: false });
+    expect(courseLessons(plan(), new Set(["L1"]), [])[0]?.recorded).toBe(false);
+  });
 });
 
 describe("currentLesson", () => {

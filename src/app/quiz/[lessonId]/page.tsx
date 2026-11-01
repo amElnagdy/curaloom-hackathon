@@ -27,7 +27,7 @@ import type { GlossaryEntry, Lesson, Quiz, QuizAttempt } from "../../../../contr
 import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
 import { config } from "../../../config.ts";
 import { PASS_THRESHOLD, quizView } from "../../../server/agents/examiner/examiner.ts";
-import { type QuizView, withoutKeys } from "../../../server/agents/examiner/rules.ts";
+import { bestRecorded, type QuizView, withoutKeys } from "../../../server/agents/examiner/rules.ts";
 import { termMarks } from "../../../server/agents/lesson/rules.ts";
 import { replayShortAnswers } from "../../../server/agents/recorded-level.ts";
 import { Callout, MetaItem, Page, PageHead } from "../../_shell/blocks.tsx";
@@ -89,7 +89,7 @@ type Shown =
   | { kind: "missing"; progress: Progress }
   | { kind: "locked"; state: CourseLesson; lessons: CourseLesson[] }
   | ({ kind: "writing" } & Course)
-  | ({ kind: "answering"; quiz: Quiz } & Course)
+  | ({ kind: "answering"; quiz: Quiz; recorded: readonly string[] | undefined } & Course)
   | ({ kind: "result"; sample: boolean; quiz: Quiz; attempt: QuizAttempt } & Course);
 
 function shownQuiz(lessonId: string): Shown {
@@ -117,9 +117,10 @@ function shownQuiz(lessonId: string): Shown {
       : { kind: "waiting", lessonId };
   }
   if (!quiz) return { kind: "writing", ...shared };
-  return attempt
-    ? { kind: "result", sample: false, quiz, attempt, ...shared }
-    : { kind: "answering", quiz, ...shared };
+  if (attempt) return { kind: "result", sample: false, quiz, attempt, ...shared };
+  const n = view.quizzes.length - 1;
+  const recorded = replayShortAnswers(lessonId, n, { level: course.level, quiz });
+  return { kind: "answering", quiz, recorded, ...shared };
 }
 
 function scoreLabel(score: number): string {
@@ -498,8 +499,8 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[lessonId]">
   const quiz = shown.kind === "writing" ? undefined : shown.quiz;
   const gate = quiz?.pass_threshold ?? PASS_THRESHOLD;
   const tries = view.mastery?.attempts ?? view.attempts.length;
-  const recorded = replayShortAnswers(lesson.id, view.quizzes.length - 1);
   const best = view.mastery?.best_score ?? Math.max(0, ...view.attempts.map((a) => a.score));
+  const yours = bestRecorded(view.attempts, view.replaced) ? "" : " لك";
   const lede =
     shown.kind === "result" && shown.sample ? (
       <>
@@ -558,15 +559,15 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[lessonId]">
             quiz={withoutKeys(shown.quiz)}
             sessionId={DEMO_SESSION_ID}
             lessonId={lesson.id}
-            recorded={recorded}
+            recorded={shown.recorded}
             closed={
-              config.providerProfile === "replay" && !recorded
+              config.providerProfile === "replay" && !shown.recorded
                 ? "لا يصحّح العرض المسجّل هذا الاختبار، فأسئلته هنا للقراءة فقط."
                 : undefined
             }
             note={
               tries > 0
-                ? `اختبار جديد بأسئلة أخرى من الدرس نفسه، وهذه محاولتك ${ordinalF(tries)}. أفضل نتيجة لك حتى الآن ${percent(best)}، والنجاح عند ${percent(gate)}.`
+                ? `اختبار جديد بأسئلة أخرى من الدرس نفسه، وهذه محاولتك ${ordinalF(tries)}. أفضل نتيجة${yours} حتى الآن ${percent(best)}، والنجاح عند ${percent(gate)}.`
                 : undefined
             }
           />

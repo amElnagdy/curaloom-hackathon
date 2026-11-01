@@ -35,7 +35,7 @@ import { DEMO_SESSION_ID } from "../../../../demo/session.ts";
 import { config } from "../../../config.ts";
 import { lessonDiagramsBrief, savedDiagrams } from "../../../server/agents/diagrams/diagrams.ts";
 import { quizView } from "../../../server/agents/examiner/examiner.ts";
-import type { QuizView } from "../../../server/agents/examiner/rules.ts";
+import { bestRecorded, type QuizView } from "../../../server/agents/examiner/rules.ts";
 import { sourceMarks, type TermMark, termMarks } from "../../../server/agents/lesson/rules.ts";
 import { createFileStore } from "../../../server/store/store.ts";
 import {
@@ -442,10 +442,15 @@ function LessonFoot({ lessonId, quiz }: { lessonId: string; quiz: LessonQuiz }) 
 function QuizWay({ view, last }: { view: QuizView; last: Quiz }) {
   const gate = percent(last.pass_threshold);
   const best = percent(view.mastery?.best_score ?? 0);
+  const recorded = bestRecorded(view.attempts, view.replaced);
   if (view.mastery?.passed) {
     return (
       <footer className={styles.footer}>
-        <p>اجتزت اختبار هذا الدرس بنسبة {best}.</p>
+        <p>
+          {recorded
+            ? "اجتزت اختبار هذا الدرس في العرض المسجّل."
+            : `اجتزت اختبار هذا الدرس بنسبة ${best}.`}
+        </p>
         <Link href={`/quiz/${last.lesson_id}`} className={buttonClass("secondary")}>
           راجع نتيجتك
           <DirIcon icon={ArrowRight} />
@@ -468,7 +473,7 @@ function QuizWay({ view, last }: { view: QuizView; last: Quiz }) {
   return (
     <footer className={styles.footer}>
       <p>
-        {`أفضل نتيجة لك ${best}، والنجاح عند ${gate}. `}
+        {`أفضل نتيجة${recorded ? "" : " لك"} ${best}، والنجاح عند ${gate}. `}
         {graded
           ? "حين تكون جاهزًا، ابدأ من صفحة نتيجتك اختبارًا جديدًا بأسئلة أخرى من الدرس نفسه."
           : "الاختبار الجديد بأسئلة أخرى من الدرس نفسه."}

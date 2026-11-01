@@ -76,7 +76,7 @@ function stateText(l: CourseLesson) {
     return (
       <>
         <CircleCheck aria-hidden />
-        اجتزته بنسبة {percent(l.best ?? 1)}
+        {l.recorded ? "اجتزته في العرض المسجّل" : `اجتزته بنسبة ${percent(l.best ?? 1)}`}
       </>
     );
   }
@@ -94,7 +94,7 @@ function stateText(l: CourseLesson) {
       {!l.written
         ? "مفتوح، ويُكتب حين تفتحه"
         : l.best !== undefined
-          ? `أفضل نتيجة لك ${percent(l.best)}، أعد الاختبار حين تكون جاهزًا`
+          ? `أفضل نتيجة${l.recorded ? "" : " لك"} ${percent(l.best)}، أعد الاختبار حين تكون جاهزًا`
           : "مفتوح وجاهز لتبدأه"}
     </>
   );

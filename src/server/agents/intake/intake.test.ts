@@ -14,6 +14,7 @@ import {
   type Quiz,
   type QuizAttempt,
 } from "../../../../contracts/index.ts";
+import type * as script from "../../../../demo/script.ts";
 import {
   INTAKE_MESSAGES,
   INTAKE_VOICE_CLIP,
@@ -56,6 +57,7 @@ import {
 import { lessonOpen, quizViolations } from "../examiner/rules.ts";
 import { createLessonBuilder, LessonLocked, savedLessons } from "../lesson/lesson.ts";
 import { wordCount } from "../lesson/rules.ts";
+import { replayShortAnswers } from "../recorded-level.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
 import { DONT_KNOW } from "./diagnostic.ts";
 import { transcribeResponse } from "./http.ts";
@@ -419,9 +421,17 @@ describe("intake", () => {
   });
 });
 
-// The intake as a server in `mode` runs it: config is read once, when the modules load.
-async function intakeIn(mode: ProviderProfile) {
+// The intake as a server in `mode` runs it (config is read once, when the modules load), with
+// RECORDED_LEVELS as `listed` when given.
+async function intakeIn(mode: ProviderProfile, listed?: Level[]) {
   vi.stubEnv("PROVIDER_PROFILE", mode);
+  vi.doUnmock("../../../../demo/script.ts");
+  if (listed) {
+    vi.doMock("../../../../demo/script.ts", async (original) => ({
+      ...(await original<typeof script>()),
+      RECORDED_LEVELS: listed,
+    }));
+  }
   vi.resetModules();
   return (await import("./intake.ts")).createIntake;
 }
@@ -430,12 +440,15 @@ const ALL_RIGHT = { q1: "صحيح 1", q2: "صحيح 2", q3: "صحيح 3" };
 const NONE_KNOWN = { q1: DONT_KNOW, q2: DONT_KNOW, q3: DONT_KNOW };
 
 describe("intake, in replay (#55)", () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.doUnmock("../../../../demo/script.ts");
+  });
 
   // A server in `mode`: one message, then the quick check answered as given. Returns the view and
-  // what the intake traced as it closed.
-  async function closed(mode: ProviderProfile, answers: Record<string, string>) {
-    const { intake, store } = setup([EVERYTHING], {}, await intakeIn(mode));
+  // what the intake traced as it closed. With `listed`, replay has recordings of those levels only.
+  async function closed(mode: ProviderProfile, answers: Record<string, string>, listed?: Level[]) {
+    const { intake, store } = setup([EVERYTHING], {}, await intakeIn(mode, listed));
     intake().start();
     await intake().message("أنا محاسب وأبي أصير محلل بيانات");
     const before = store.readTrace<TraceEvent>("s1").length;
@@ -450,7 +463,7 @@ describe("intake, in replay (#55)", () => {
   }
 
   it("closes on a level with no recordings with the level alone, and a note of the app's under it", async () => {
-    const { view, reread, store } = await closed("replay", ALL_RIGHT);
+    const { view, reread, store } = await closed("replay", ALL_RIGHT, ["beginner"]);
 
     expect(view.turns.at(-1)?.text_ar).toBe("شكرًا يا عمر، اكتملت المقابلة. مستواك الآن: متقدم.");
     expect(view.level_note_ar).toBe(
@@ -470,7 +483,7 @@ describe("intake, in replay (#55)", () => {
   });
 
   it("traces once that the recorded demo plans a level with no recordings on the beginner's path (#88)", async () => {
-    const { decisions } = await closed("replay", { ...ALL_RIGHT, q3: DONT_KNOW });
+    const { decisions } = await closed("replay", { ...ALL_RIGHT, q3: DONT_KNOW }, ["beginner"]);
 
     expect(decisions).toEqual([
       {
@@ -485,17 +498,33 @@ describe("intake, in replay (#55)", () => {
     ]);
   });
 
+  const INTERMEDIATE = { ...ALL_RIGHT, q3: DONT_KNOW };
   it.each([
-    ["replay", "a beginner", NONE_KNOWN, "الاختبار القصير: 0 من 3، والمستوى مبتدئ"],
-    ["live", "an advanced learner", ALL_RIGHT, "الاختبار القصير: 3 من 3، والمستوى متقدم"],
-    ["record", "an advanced learner", ALL_RIGHT, "الاختبار القصير: 3 من 3، والمستوى متقدم"],
+    ["replay", "a beginner", NONE_KNOWN, "0 من 3، والمستوى مبتدئ", "فتبدأ خطتك من الأساسيات."],
+    [
+      "replay",
+      "an intermediate learner",
+      INTERMEDIATE,
+      "2 من 3، والمستوى متوسط",
+      "فتبدأ خطتك بمراجعة قصيرة للأساسيات ثم تتجاوزها.",
+    ],
+    [
+      "replay",
+      "an advanced learner",
+      ALL_RIGHT,
+      "3 من 3، والمستوى متقدم",
+      "فتتجاوز خطتك الأساسيات إلى ما بعدها.",
+    ],
+    ["live", "an advanced learner", ALL_RIGHT, "3 من 3، والمستوى متقدم", ""],
+    ["record", "an advanced learner", ALL_RIGHT, "3 من 3، والمستوى متقدم", ""],
   ] as const)(
     "in %s, plans %s on their own level: no swap traced, and no note",
-    async (mode, _learner, answers, quickCheck) => {
+    async (mode, _learner, answers, quickCheck, plan) => {
       const { view, decisions } = await closed(mode, answers);
 
-      expect(decisions.map((d) => d.summary_ar)).toEqual([quickCheck]);
+      expect(decisions.map((d) => d.summary_ar)).toEqual([`الاختبار القصير: ${quickCheck}`]);
       expect(view.level_note_ar).toBeNull();
+      expect(view.turns.at(-1)?.text_ar).toMatch(new RegExp(`${plan}$`));
     },
   );
 });
@@ -723,7 +752,7 @@ describe("intake, replaying Omar's recorded interview", () => {
   }, 600_000);
 
   it("grades the recorded short answers when he writes his own, and passes a retry he got wrong", async () => {
-    const { examiner, builder, first, second } = await quizzed("beginner", recordedShortAnswers);
+    const { examiner, builder, first, second } = await quizzed("beginner", replayedAt("beginner"));
     const own = ["كتبتها بكلماتي", "وهذه أيضًا"];
     const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
     const missed = quiz.items.filter((i) => i.type === "mcq")[1];
@@ -746,10 +775,6 @@ describe("intake, replaying Omar's recorded interview", () => {
       }),
     );
 
-    const shortsOf = (attempt: QuizAttempt, q: Quiz) =>
-      attempt.answers
-        .filter((a) => q.items.find((i) => i.id === a.item_id)?.type === "short")
-        .map((a) => a.response);
     expect(shortsOf(below.attempt, quiz)).toEqual(OMAR_FIRST);
     expect(below.attempt.passed).toBe(false);
     expect(shortsOf(passed.attempt, retry)).toEqual(OMAR_RETRY);
@@ -1286,6 +1311,21 @@ describe.each(["advanced", "intermediate"] as const)(
       expect(unrecorded(store)).toEqual([]);
     }, 600_000);
 
+    it("plans the same course from the recorded interview when he types other words", async () => {
+      const own = await planned(
+        level,
+        chain(),
+        INTAKE_MESSAGES.map((_, i) => `كلام آخر ${i + 1}`),
+      );
+      const fresh = await planned(level);
+
+      expect(savedProfile(own.store, "s1")?.diagnostic.level).toBe(level);
+      expect(own.saved.versions.map((v) => v.committed)).toEqual(
+        fresh.saved.versions.map((v) => v.committed),
+      );
+      expect(unrecorded(own.store)).toEqual([]);
+    }, 600_000);
+
     it("writes lesson 1 from its resources, and its quiz", async () => {
       const { store, examiner, saved, first, lesson } = await quizzed(level);
 
@@ -1328,6 +1368,32 @@ describe.each(["advanced", "intermediate"] as const)(
       for (const answer of passed.attempt.answers) {
         expect(answer.feedback_ar).toMatch(/\p{Script=Arabic}/u);
       }
+      expect(unrecorded(store)).toEqual([]);
+    }, 600_000);
+
+    it("grades the level's recorded short answers when he writes his own, and passes a retry he got wrong", async () => {
+      const course = await quizzed(level, replayedAt(level));
+      const { store, examiner, builder, first, second } = course;
+      const quiz = (await examiner.quiz(first)).quizzes[0] as Quiz;
+      const choices = (q: Quiz) => q.items.filter((i) => i.type === "mcq").map((i) => i.id);
+
+      const below = await examiner.attempt(
+        first,
+        quiz.id,
+        answersTo(quiz, ownAnswersTo(quiz), ...choices(quiz).slice(0, 2)),
+      );
+      const retry = (await examiner.quiz(first)).quizzes[1] as Quiz;
+      const passed = await examiner.attempt(
+        first,
+        retry.id,
+        answersTo(retry, ownAnswersTo(retry), ...choices(retry).slice(0, 2)),
+      );
+
+      expect(shortsOf(below.attempt, quiz)).toEqual(modelAnswersTo(quiz));
+      expect(below.attempt.passed).toBe(false);
+      expect(shortsOf(passed.attempt, retry)).toEqual(modelAnswersTo(retry));
+      expect(passed.attempt.passed).toBe(true);
+      expect((await builder.build(second)).lessons[second]).toBeDefined();
       expect(unrecorded(store)).toEqual([]);
     }, 600_000);
 
@@ -1392,7 +1458,35 @@ describe.each(["advanced", "intermediate"] as const)(
       expect(unrecorded(store)).toEqual([]);
     }, 600_000);
 
-    it.each([3, 5])(
+    it("plays its recorded messages in another tone to the check-in, then the weekly one after «استراحة أسبوع» as its template", async () => {
+      const { store, orchestrator } = await passedFirst(level);
+      const sim = () =>
+        sessionSim(store, "s1", loadOmarSeed(RECORDED_TOPIC), orchestrator, recordedCoach()).sim;
+      sim().setConsent({ messages: true, quiet_hours: null, intensity: "normal" });
+
+      const fired = [];
+      for (const day of [2, 5, 10]) fired.push(...(await sim().set(day)).events);
+      await sim().answer({ event_id: "checkin_a0_d10", choice: "pause", pause_days: 7 });
+      fired.push(...(await sim().set(17)).events);
+
+      const coach = store.readTrace<TraceEvent>("s1").filter((e) => e.agent === "coach");
+      expect(fired.map((e) => [e.id, e.status])).toEqual([
+        ["nudge_a0_d2", "sent"],
+        ["replan_a0_d5", "sent"],
+        ["checkin_a0_d10", "sent"],
+        ["weekly_a0_d17", "sent"],
+      ]);
+      expect(coach.filter((e) => e.kind === "model_call")).toHaveLength(3);
+      expect(
+        coach
+          .filter((e) => /no recording of its wording$/.test(e.summary_en))
+          .map((e) => e.summary_en.split(":")[0]),
+      ).toEqual(["weekly_a0_d17"]);
+      expect(sim().comeback()).toMatchObject({ state: "none", held: "paused" });
+      expect(unrecorded(store)).toEqual([]);
+    }, 600_000);
+
+    it.each([3, 4, 5])(
       "proposes v2 in Spark's words after «جلسات أقصر» and a recap of %i out of 5",
       async (right) => {
         const { store, v1, comeback, finished, first } = await cameBack(right, "shrink", { level });
@@ -1465,6 +1559,29 @@ describe.each(["advanced", "intermediate"] as const)(
       expect(quiz.lesson_id).toBe(second);
       expect(quizViolations(quiz, rewritten.glossary_ids)).toEqual([]);
       expectDiagramsShaped(came, second, diagrams);
+    }, 600_000);
+
+    it("in replay, re-plans «مصدر آخر» after a 5-of-5 recap from the recorded 3-of-5 one, and writes lesson 2 again", async () => {
+      const came = await cameBack(5, "switch", { level, recorded: recordedCoach() });
+      const { store, finished, planner, post, ok, builder, examiner, second } = came;
+      const v2 = planFor(store, "s1", savedProfile(store, "s1") as LearnerProfile)
+        ?.pending as CoursePlan;
+      const pick = v2.diff.flatMap((c) => (c.op === "switch" ? c.to : []))[0];
+
+      await ok(planResponse(post({ version: 2 }), "s1", "accept", planner));
+      const rewritten = (await builder.build(second)).lessons[second] as Lesson;
+      const quiz = (await examiner.quiz(second)).quizzes[0] as Quiz;
+
+      expect(finished.comeback.last.recap).toMatchObject({
+        replaced: true,
+        below_gate: true,
+        attempt: { score: 0.6 },
+      });
+      expect(new Set(rewritten.sections.map((s) => s.source_excerpt.resource_id))).toEqual(
+        new Set([pick]),
+      );
+      expect(quiz.lesson_id).toBe(second);
+      expect(unrecorded(store)).toEqual([]);
     }, 600_000);
 
     // The intake's «ابدأ من جديد» keeps the session's steps and the scout's cache, so a scout keyed
@@ -1557,6 +1674,27 @@ function lessonOneAnswers(level: Level, quiz: Quiz, n: 0 | 1) {
   const missed = n === 1 ? [] : level === "beginner" ? choices.slice(1, 2) : choices.slice(0, 2);
   return answersTo(quiz, shorts, ...missed);
 }
+
+// The short answers of the run recorded at `level` to a lesson's quiz, as the replay route's
+// examiner reads them.
+const replayedAt =
+  (level: Level): ExaminerDeps["recorded"] =>
+  (lessonId, n, quiz) =>
+    replayShortAnswers(lessonId, n, quiz && { level, quiz }, "replay");
+
+// The short answers an attempt at `quiz` was graded on, in order.
+const shortsOf = (attempt: QuizAttempt, quiz: Quiz) =>
+  attempt.answers
+    .filter((a) => quiz.items.find((i) => i.id === a.item_id)?.type === "short")
+    .map((a) => a.response);
+
+// Each short item's model answer, which the runs at the other levels gave (recordedShortAnswers).
+const modelAnswersTo = (quiz: Quiz) =>
+  quiz.items.filter((i) => i.type === "short").map((i) => i.answer);
+
+// Words of the learner's own for each short item of `quiz`, which no run recorded.
+const ownAnswersTo = (quiz: Quiz) =>
+  quiz.items.filter((i) => i.type === "short").map((_, i) => `كتبتها بكلماتي ${i + 1}`);
 
 // Omar's plan with his first lesson written, and the examiner the lesson page asks. With `recorded`,
 // the examiner grades the recorded short answers, as the replay route's does.
@@ -1675,9 +1813,9 @@ const modelsOf = (store: Store, agent: string) =>
     .filter((e) => e.agent === agent && e.kind === "model_call")
     .map((e) => e.model);
 
-// Omar's interview, then his plan, as the plan page builds it.
-async function planned(level: Level = "beginner", into: Chain = chain()) {
-  const { store, cache, orchestrator, intake } = await interview({ level, into });
+// Omar's interview, then his plan, as the plan page builds it. With `say`, as interview() says.
+async function planned(level: Level = "beginner", into: Chain = chain(), say?: readonly string[]) {
+  const { store, cache, orchestrator, intake } = await interview({ level, into, say });
   const pages = createPageFetcher({
     profile: recording ? "record" : "replay",
     userAgent: `${loadConfig(process.env).appName}-scout/0.1 (checks the licence of open learning resources)`,

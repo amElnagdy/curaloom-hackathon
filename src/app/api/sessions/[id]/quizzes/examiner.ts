@@ -9,8 +9,8 @@ import { createProvider } from "../../../../../server/providers/provider.ts";
 import { createFileStore } from "../../../../../server/store/store.ts";
 
 // The session's examiner (#20), on the plan built for the intake's profile, the seed's until the
-// intake is done, and the lessons written for it. In replay it grades the recorded run's short
-// answers (#55).
+// intake is done, and the lessons written for it. In replay it grades the short answers of the run
+// recorded at the learner's level (#55, #98).
 export function examinerFor(sessionId: string) {
   const store = createFileStore();
   const orchestrator = createOrchestrator({
@@ -30,6 +30,7 @@ export function examinerFor(sessionId: string) {
     store,
     sessionId,
     course: () => courseOf(store, sessionId, profile()),
-    recorded: replayShortAnswers,
+    recorded: (lessonId, n, quiz) =>
+      replayShortAnswers(lessonId, n, quiz && { level: profile().diagnostic.level, quiz }),
   });
 }

@@ -1,12 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LearnerProfile } from "../../../contracts/index.ts";
-import { RECORDED_TOPIC, SHORT_ANSWERS } from "../../../demo/script.ts";
+import type * as script from "../../../demo/script.ts";
+import { RECORDED_LEVELS, RECORDED_TOPIC, SHORT_ANSWERS } from "../../../demo/script.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
 import type { ProviderProfile } from "../../config.ts";
-import { replayShortAnswers } from "./recorded-level.ts";
 
 type Level = LearnerProfile["diagnostic"]["level"];
 
@@ -16,100 +13,108 @@ const at = (level: Level): LearnerProfile => ({
   diagnostic: { ...seed.profile.diagnostic, level },
 });
 
-const dirs: string[] = [];
-afterEach(() => {
-  vi.unstubAllEnvs();
-  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
-});
+afterEach(() => vi.unstubAllEnvs());
 
-// Imports the modules afresh under PROVIDER_PROFILE=`mode`, as a server in that mode reads config.
-async function server(mode: ProviderProfile) {
+// Imports the modules afresh under PROVIDER_PROFILE=`mode`, as a server in that mode reads config,
+// with RECORDED_LEVELS as `listed` when given.
+async function server(mode: ProviderProfile, listed?: Level[]) {
   vi.stubEnv("PROVIDER_PROFILE", mode);
+  vi.doUnmock("../../../demo/script.ts");
+  if (listed) {
+    vi.doMock("../../../demo/script.ts", async (original) => ({
+      ...(await original<typeof script>()),
+      RECORDED_LEVELS: listed,
+    }));
+  }
   vi.resetModules();
-  const [scout, architect, lesson, orchestrator, provider, models, store, pages] =
-    await Promise.all([
-      import("./scout/scout.ts"),
-      import("./architect/architect.ts"),
-      import("./lesson/lesson.ts"),
-      import("../orchestrator/orchestrator.ts"),
-      import("../providers/provider.ts"),
-      import("../providers/models.ts"),
-      import("../store/store.ts"),
-      import("../tools/fetch-page.ts"),
-    ]);
+  // One at a time: imports in parallel can resolve the script before its mock's factory is done.
+  const recorded = await import("./recorded-level.ts");
+  const scout = await import("./scout/scout.ts");
+  const architect = await import("./architect/architect.ts");
+  const lesson = await import("./lesson/lesson.ts");
   const plan = seed.plans[0];
   const lessonId = plan?.committed.lessons[0]?.id;
   if (!plan || !lessonId) throw new Error("The seed has no plan with a lesson");
   return {
-    // The three briefs whose requests name the learner's level.
-    briefs: (profile: LearnerProfile) => ({
-      scout: scout.scoutBrief(profile),
-      architect: architect.architectBrief(profile, seed.resources),
-      lesson: lesson.lessonBrief(profile, plan, seed.resources, lessonId, []),
-    }),
-    // The scout's recorded run for `profile`, replayed with no network.
-    replayScout(profile: LearnerProfile) {
-      const dir = mkdtempSync(join(tmpdir(), "recorded-level-"));
-      dirs.push(dir);
-      return scout.runScout({
-        orchestrator: orchestrator.createOrchestrator({
-          store: store.createFileStore(dir),
-          makeProvider: (onTrace) =>
-            provider.createProvider({ models: models.loadModels(), profile: "replay", onTrace }),
-        }),
-        sessionId: "s1",
-        brief: scout.scoutBrief(profile),
-        pages: pages.createPageFetcher({
-          profile: "replay",
-          userAgent: "test",
-          transport: async () => {
-            throw new Error("replay must not touch the network");
-          },
-        }),
-        cache: store.createFileCache(dir),
-      });
+    // The levels the three briefs whose requests name the learner's level carry.
+    levels: (level: Level) => {
+      const profile = at(level);
+      return [
+        scout.scoutBrief(profile).level,
+        architect.architectBrief(profile, seed.resources).level,
+        lesson.lessonBrief(profile, plan, seed.resources, lessonId, []).level,
+      ];
     },
+    replayShortAnswers: recorded.replayShortAnswers,
   };
 }
 
 describe("the level the model requests carry", () => {
-  it("in replay, is the recorded level for a level with no recordings, so the requests match them", async () => {
-    const { briefs } = await server("replay");
+  it("in replay, is the learner's own for each level replay has recordings of", async () => {
+    const { levels } = await server("replay");
 
-    const recorded = briefs(at("beginner"));
-
-    expect(recorded.scout.level).toBe("beginner");
-    expect(briefs(at("intermediate"))).toEqual(recorded);
-    expect(briefs(at("advanced"))).toEqual(recorded);
+    for (const level of RECORDED_LEVELS) expect(levels(level)).toEqual([level, level, level]);
   });
 
-  it("in replay, plays an advanced learner's scout from the recorded run", async () => {
-    const { replayScout } = await server("replay");
+  it("in replay, is the first level listed for a level not listed, so the requests match its recordings", async () => {
+    const { levels } = await server("replay", ["beginner", "advanced"]);
 
-    const { resources } = await replayScout(at("advanced"));
-
-    expect(resources.length).toBeGreaterThanOrEqual(5);
+    expect(levels("intermediate")).toEqual(["beginner", "beginner", "beginner"]);
+    expect(levels("advanced")).toEqual(["advanced", "advanced", "advanced"]);
   });
 
-  it("is swapped only in replay: live and record modes send the learner's own", async () => {
-    const sent = async (mode: ProviderProfile) => {
-      const brief = (await server(mode)).briefs(at("advanced"));
-      return [brief.scout.level, brief.architect.level, brief.lesson.level];
-    };
-
-    expect(await sent("replay")).toEqual(["beginner", "beginner", "beginner"]);
-    expect(await sent("live")).toEqual(["advanced", "advanced", "advanced"]);
-    expect(await sent("record")).toEqual(["advanced", "advanced", "advanced"]);
+  it("is the learner's own in live and record modes, listed or not", async () => {
+    for (const mode of ["live", "record"] as const) {
+      const { levels } = await server(mode, ["beginner"]);
+      expect(levels("advanced")).toEqual(["advanced", "advanced", "advanced"]);
+    }
   });
 });
 
 describe("the short answers replay grades and offers", () => {
-  it("are the recorded run's in replay, for the quizzes it answered, and none in live or record mode", () => {
-    expect(replayShortAnswers("L1", 0, "replay")).toEqual(SHORT_ANSWERS.L1[0]);
-    expect(replayShortAnswers("L1", 1, "replay")).toEqual(SHORT_ANSWERS.L1[1]);
-    expect(replayShortAnswers("L1", 2, "replay")).toBeUndefined();
-    expect(replayShortAnswers("L2", 0, "replay")).toBeUndefined();
-    expect(replayShortAnswers("L1", 0, "live")).toBeUndefined();
-    expect(replayShortAnswers("L1", 0, "record")).toBeUndefined();
+  // A quiz of two short items between multiple-choice ones, as a level's run wrote it.
+  const quiz = {
+    items: (["mcq", "short", "mcq", "short"] as const).map((type, i) => ({
+      id: `q${i + 1}`,
+      type,
+      prompt_ar: "سؤال",
+      options_ar: type === "mcq" ? ["أ", "ب"] : [],
+      answer: type === "mcq" ? "أ" : `الإجابة النموذجية ${i + 1}`,
+      rubric_ar: "معيار",
+      glossary_ids: [],
+    })),
+  };
+
+  it("are Omar's words on the beginner's run and the model answers on the other levels', for the quizzes they graded", async () => {
+    const { replayShortAnswers } = await server("replay");
+
+    expect(replayShortAnswers("L1", 0, { level: "beginner", quiz })).toEqual(SHORT_ANSWERS.L1[0]);
+    expect(replayShortAnswers("L1", 1, { level: "beginner", quiz })).toEqual(SHORT_ANSWERS.L1[1]);
+    for (const level of ["intermediate", "advanced"] as const) {
+      for (const n of [0, 1]) {
+        expect(replayShortAnswers("L1", n, { level, quiz })).toEqual([
+          "الإجابة النموذجية 2",
+          "الإجابة النموذجية 4",
+        ]);
+      }
+      expect(replayShortAnswers("L1", 2, { level, quiz })).toBeUndefined();
+      expect(replayShortAnswers("L2", 0, { level, quiz })).toBeUndefined();
+    }
+    expect(replayShortAnswers("L1", 1)).toBeDefined();
+    expect(replayShortAnswers("L1", 2)).toBeUndefined();
+  });
+
+  it("are Omar's words for a level not listed, which plays the beginner's run", async () => {
+    const { replayShortAnswers } = await server("replay", ["beginner"]);
+
+    expect(replayShortAnswers("L1", 0, { level: "advanced", quiz })).toEqual(SHORT_ANSWERS.L1[0]);
+  });
+
+  it("are none in live or record mode", async () => {
+    for (const mode of ["live", "record"] as const) {
+      const { replayShortAnswers } = await server(mode);
+      expect(replayShortAnswers("L1", 0, { level: "advanced", quiz })).toBeUndefined();
+      expect(replayShortAnswers("L1", 0)).toBeUndefined();
+    }
   });
 });

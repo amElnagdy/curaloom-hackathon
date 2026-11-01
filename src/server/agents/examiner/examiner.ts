@@ -401,8 +401,9 @@ export type ExaminerDeps = {
   store: Store;
   sessionId: string;
   course(): Course | undefined;
-  // Replay only (#55): the recorded run's short answers to a lesson's `n`th quiz, if it has them.
-  recorded?(lessonId: string, n: number): readonly string[] | undefined;
+  // Replay only (#55): the recorded run's short answers to a lesson's `n`th quiz, `quiz` when given,
+  // if it graded that quiz.
+  recorded?(lessonId: string, n: number, quiz?: Quiz): readonly string[] | undefined;
 };
 
 export function createExaminer({ orchestrator, store, sessionId, course, recorded }: ExaminerDeps) {
@@ -466,7 +467,7 @@ export function createExaminer({ orchestrator, store, sessionId, course, recorde
       const problems = answerProblems(quiz, responses);
       if (problems.length) throw new AttemptInvalid(problems.join("; "));
 
-      const shorts = recorded?.(lessonId, quizzes.length - 1);
+      const shorts = recorded?.(lessonId, quizzes.length - 1, quiz);
       const brief: GradeBrief = {
         quiz,
         responses: quiz.items.map((item) => ({

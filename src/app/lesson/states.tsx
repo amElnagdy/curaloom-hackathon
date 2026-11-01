@@ -85,7 +85,8 @@ export function LockedBody({ state, lessons }: { state: CourseLesson; lessons: C
           {before.open ? "اجتز" : `أنت الآن في ${name(way)}. اجتز`} اختبار «
           <BidiText text={way.planned.title_ar} />» بنسبة {percent(PASS_THRESHOLD)} أو أكثر،
           {before.open ? " ويُفتح لك هذا الدرس." : " ويُفتح لك ما بعده."}
-          {way.best !== undefined && ` أفضل نتيجة لك فيه حتى الآن ${percent(way.best)}.`}
+          {way.best !== undefined &&
+            ` أفضل نتيجة${way.recorded ? "" : " لك"} فيه حتى الآن ${percent(way.best)}.`}
         </>
       }
       actions={

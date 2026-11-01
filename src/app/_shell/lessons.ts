@@ -5,6 +5,7 @@
 import type {
   CoursePlan,
   GlossaryEntry,
+  LearnerProfile,
   Lesson,
   Mastery,
   Resource,
@@ -14,7 +15,7 @@ import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
 import { planFor } from "../../server/agents/architect/architect.ts";
 import { type SavedQuizzes, savedQuizzes } from "../../server/agents/examiner/examiner.ts";
-import { lessonOpen } from "../../server/agents/examiner/rules.ts";
+import { bestRecorded, lessonOpen } from "../../server/agents/examiner/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
 import { savedLessons } from "../../server/agents/lesson/lesson.ts";
 import { createFileStore, type Store } from "../../server/store/store.ts";
@@ -37,12 +38,15 @@ export type CourseLesson = {
   passed: boolean;
   // The best quiz score so far; undefined before the first attempt.
   best: number | undefined;
+  // Whether that score came with recorded answers in place of the learner's (bestRecorded).
+  recorded: boolean;
 };
 
 export function courseLessons(
   plan: CoursePlan,
   written: Set<string>,
   mastery: Mastery[],
+  { attempts, replaced }: Pick<SavedQuizzes, "attempts" | "replaced"> = { attempts: [] },
 ): CourseLesson[] {
   const ids = plan.committed.lessons.map((l) => l.id);
   return plan.committed.lessons.map((planned, position) => {
@@ -55,6 +59,10 @@ export function courseLessons(
       open: lessonOpen(ids, mastery, planned.id),
       passed: own?.passed === true,
       best: own && own.attempts > 0 ? own.best_score : undefined,
+      recorded: bestRecorded(
+        attempts.filter((a) => a.lesson_id === planned.id),
+        replaced,
+      ),
     };
   });
 }
@@ -79,6 +87,7 @@ export type LearnerCourse = {
   // The seed's example, shown before the intake.
   sample: boolean;
   name: string;
+  level: LearnerProfile["diagnostic"]["level"];
   plan: CoursePlan;
   // Every version of the plan, oldest first; `plan` is the last.
   versions: CoursePlan[];
@@ -101,6 +110,7 @@ export function learnerCourse(): LearnerCourse | undefined {
     return {
       sample: true,
       name: seed.profile.name,
+      level: seed.profile.diagnostic.level,
       plan,
       versions: seed.plans.toSorted((a, b) => a.version - b.version),
       resources: seed.resources,
@@ -124,13 +134,14 @@ export function learnerCourse(): LearnerCourse | undefined {
   return {
     sample: false,
     name: learner.name,
+    level: learner.diagnostic.level,
     plan,
     versions: saved.versions,
     resources: saved.resources,
     lessons,
     glossary: written?.glossary ?? [],
     quizzes,
-    states: courseLessons(plan, new Set(Object.keys(lessons)), quizzes.mastery),
+    states: courseLessons(plan, new Set(Object.keys(lessons)), quizzes.mastery, quizzes),
   };
 }
 
