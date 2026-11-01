@@ -52,7 +52,7 @@ Arabic speakers get a course assembled for them from open sources in other langu
 - Messages are sent only through a simulated channel. No real messages go to learners.
 - **Open decisions:**
   - The product name is not final. "CuraLoom" is a working name, read from config and never hardcoded.
-  - The demo topic is not decided. It is read from config.
+  - The demo topic is no longer open. It is Excel pivot tables for data analysis, read from config.
 
 ## Brand Commitments
 

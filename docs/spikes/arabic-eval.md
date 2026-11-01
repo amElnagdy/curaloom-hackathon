@@ -96,5 +96,5 @@ Ahmed reviewed these on 2026-10-27; his judgement is final over the judge's.
 
 - **Regression:** re-run `pnpm eval:arabic --model <model>` after any prompt or model change, and compare against the results files.
 - **Runner:** since #12 it calls the provider layer, routing `--model` and `--judge` as the roles `eval_answer` and `eval_judge`. Its trace lines are now the provider's trace events. The committed results files predate that change.
-- **Planned:** when a demo topic is chosen, add a few items for it.
+- **Planned:** add a few items on the demo topic, Excel pivot tables for data analysis.
 - **Slide:** the results table above is the Technical-depth slide.

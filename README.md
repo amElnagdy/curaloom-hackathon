@@ -82,18 +82,21 @@ pnpm demo:replay
 
 When the server prints `Ready`, open http://localhost:3107/intake. The replay needs no API key. Its build downloads the three Noto fonts once, and after that the demo needs no network.
 
-To call the models live, copy the settings file and set `MODEL_API_KEY` in it:
+To call the models live, copy the settings file, set `MODEL_API_KEY` in `.env`, and start the live demo:
 
 ```sh
 cp config/.env.example .env
-pnpm dev
+# Set MODEL_API_KEY in .env.
+pnpm demo:live
 ```
 
-`config/.env.example` lists every setting with its default. Live calls cost money, and the trace shows each call's cost.
+`pnpm demo:live` builds the app first. It then serves the app on port 3107, on 127.0.0.1 only, with its data in `.live-data/`, which it empties at start. When the server prints `Ready`, open http://localhost:3107/intake. The live demo uses the recorded topic, "Excel pivot tables for data analysis", unless `DEMO_TOPIC` is set in `.env` or the shell. Without a key, it stops before the build and says where to set the key. `config/.env.example` lists every setting with its default. Live calls cost money, and the trace shows each call's cost.
+
+For development only, `pnpm dev` runs the Next.js dev server on port 3000. It listens on every network interface, not on 127.0.0.1 only. Its default mode is `live`, so its model calls cost money too. Unlike `pnpm demo:live`, it does not fall back to the recorded topic. Without `DEMO_TOPIC` in `.env`, its topic is the placeholder `<DEMO_TOPIC>`. It keeps its data in `data/`.
 
 | Command                                       | What it does                                                                                        |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `pnpm dev`                                    | Runs the dev server. Its default mode is `live`, which needs `MODEL_API_KEY`.                       |
+| `pnpm dev`                                    | Development only. Runs the dev server on every network interface. Its default mode is `live`.       |
 | `pnpm check`                                  | Runs lint, typecheck and tests. The tests replay recordings, so they need no key.                   |
 | `pnpm demo:replay`                            | Builds and serves the recorded demo on port 3107, paced like a live run.                            |
 | `pnpm preview`                                | Builds and serves the recorded demo on port 3107 with no pacing, to check the UI.                   |
@@ -129,7 +132,7 @@ A human review then ruled that both models' answer to one disputed diacritics it
 
 ## Limitations
 
-- Replay plays only the recorded path, on one topic. A new topic needs a key and a new recording, as `docs/demo.md` describes. The demo topic is not decided yet.
+- The demo topic is Excel pivot tables for data analysis. Replay plays only the recorded path on it, and the live demo uses it unless `DEMO_TOPIC` is set. A replay on another topic needs a key and a new recording, as `docs/demo.md` describes.
 - There is one sample learner in one session, with no accounts and no authentication. The demo servers listen on 127.0.0.1 only for that reason.
 - Messages go only to the simulated phone inbox. The `whatsapp` and `email` notifier adapters are stubs that throw.
 - Time is simulated. The demo bar moves the clock.

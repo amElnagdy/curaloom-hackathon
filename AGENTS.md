@@ -17,7 +17,7 @@ To see the UI while the user's `pnpm dev` runs (Next allows one dev server per c
 
 Read `docs/architecture.md` for the component map and layout, and the ADRs in `docs/adr/` that touch your area, before changing code.
 
-- **Config:** read settings only through `src/config.ts`. The product name and demo topic are not final; take them from `config.appName` and `config.demoTopic`. `src/guards.test.ts` enforces this.
+- **Config:** read settings only through `src/config.ts`. The product name is not final. Take it and the demo topic from `config.appName` and `config.demoTopic`. `src/guards.test.ts` enforces this.
 - **Models:** call models only through `createProvider()` in `src/server/providers/` (ADR-002), by a role from `config/models.yaml`. Feature code imports no model SDK and never calls the Meta API itself; `src/guards.test.ts` enforces this. Recorded responses for `replay` live in `demo/fixtures/responses/`.
 - **Contracts:** entity shapes and types come from `contracts/index.ts` (ADR-006). Pass a contract to `provider.structured` and check model output with `validate()`. After changing an agent-output contract, run `pnpm fixtures:record` (live; it calls the model only for requests with no fixture), then `pnpm fixtures:prune`.
 - **Time:** take time only from the clock module (ADR-004).

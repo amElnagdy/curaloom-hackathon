@@ -11,7 +11,7 @@ Mode: Operate. Omar on a laptop in an evening study session; judges see it in a 
 Hero moment: Omar's course assembling live while six named agents work. The trace is a drawer that toggles in at key beats.
 Proof: language badges, SPDX licences, Arabic lesson text, model and cost per step. Sample data is labelled as sample. Layout C (course outline + activity feed) chosen.
 Anti-goals: generic dashboard filler (stat tiles, charts for their own sake), wireframe look, busy screens, novelty styling.
-Open: product name (config.appName), demo topic (config.demoTopic).
+Open: product name (config.appName). The demo topic (config.demoTopic) is Excel pivot tables for data analysis.
 
 ## Direction contract
 
