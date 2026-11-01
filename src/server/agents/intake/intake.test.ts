@@ -1,4 +1,5 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -24,7 +25,12 @@ import { comebackResponse, consentResponse, inboxResponse, simResponse } from ".
 import { sessionSim } from "../../coach/session.ts";
 import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.ts";
 import { loadModels } from "../../providers/models.ts";
-import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
+import {
+  createProvider,
+  FIXTURES_DIR,
+  type ModelResult,
+  type Provider,
+} from "../../providers/provider.ts";
 import { createFileCache, createFileStore, type Store } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
@@ -33,6 +39,7 @@ import { planResponse } from "../architect/http.ts";
 import { noteViolations, type ReplanRequest, replanBrief } from "../architect/replan.ts";
 import { planViolations } from "../architect/rules.ts";
 import { createDiagramsBuilder, lessonDiagramsBrief, writtenCourse } from "../diagrams/diagrams.ts";
+import { diagramImageResponse } from "../diagrams/http.ts";
 import { glossaryProblems } from "../diagrams/rules.ts";
 import {
   courseOf,
@@ -537,14 +544,20 @@ describe("intake, replaying Omar's recorded interview", () => {
   }, 600_000);
 
   // The lesson page asks for lesson 2's quiz once he opens it.
-  it("relabels lesson 2's pivot table into Arabic once it opens", async () => {
+  it("relabels lesson 2's pivot table into Arabic once it opens, and serves Muse Image's bytes as they came", async () => {
     const course = await passedFirst();
     await course.builder.build(course.second);
 
     const diagrams = await diagramsOf(course).build(course.second);
 
-    expectRelabelled(expectDiagram(course, course.second, diagrams, "Pivottable-Pivoted.PNG"));
+    const diagram = expectDiagram(course, course.second, diagrams, "Pivottable-Pivoted.PNG");
+    expectRelabelled(diagram);
     expect(overridesTraced(course.store)).toEqual([]);
+    const ref = diagram.output?.ref ?? "";
+    const served = diagramImageResponse(course.store, "s1", course.second, ref);
+    expect(served.headers.get("content-type")).toBe("image/webp");
+    // Byte for byte, so the provenance metadata Meta put in the image reaches the browser.
+    expect(recordedEdits()).toContain(sha256(new Uint8Array(await served.arrayBuffer())));
   }, 600_000);
 
   it("writes the quiz for his second lesson once it opens", async () => {
@@ -1005,6 +1018,17 @@ function expectDiagram(
   }
   return diagram as Diagram;
 }
+
+const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+
+// The images in Muse Image's recorded replies, decoded from the b64 Meta sent.
+const recordedEdits = () =>
+  readdirSync(FIXTURES_DIR)
+    .filter((name) => name.startsWith("images_edits-"))
+    .map((name) => {
+      const { body } = JSON.parse(readFileSync(join(FIXTURES_DIR, name), "utf8"));
+      return sha256(Buffer.from(body.data[0].b64_json, "base64"));
+    });
 
 const expectRelabelled = (diagram: Diagram) =>
   expect(diagram).toMatchObject({

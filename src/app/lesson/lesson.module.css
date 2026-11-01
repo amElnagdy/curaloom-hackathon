@@ -600,6 +600,9 @@
     opacity var(--dur-3) var(--ease-out),
     visibility 0s var(--dur-3);
 }
+.figure:has(input[value="source"]:checked) [data-view="arabic"] {
+  display: none;
+}
 .legendWrap {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 22rem));
