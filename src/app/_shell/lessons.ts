@@ -17,7 +17,7 @@ import { type SavedQuizzes, savedQuizzes } from "../../server/agents/examiner/ex
 import { lessonOpen } from "../../server/agents/examiner/rules.ts";
 import { savedProfile } from "../../server/agents/intake/intake.ts";
 import { savedLessons } from "../../server/agents/lesson/lesson.ts";
-import { createFileStore } from "../../server/store/store.ts";
+import { createFileStore, type Store } from "../../server/store/store.ts";
 import { type CourseModule, latestPlan, lessonPlace, type Session } from "./course.ts";
 
 export type PlannedLesson = CoursePlan["committed"]["lessons"][number];
@@ -119,4 +119,14 @@ export function learnerCourse(): LearnerCourse | undefined {
     quizzes,
     states: courseLessons(plan, new Set(Object.keys(lessons)), quizzes.mastery),
   };
+}
+
+// Whose plan the session follows: the seed's example before the intake, the learner's own once it
+// is built, and none between the two, while the coach has no study of theirs to follow (#61).
+export type PlanKind = "sample" | "own" | "none";
+
+export function planKind(store: Store, sessionId: string): PlanKind {
+  const learner = savedProfile(store, sessionId);
+  if (!learner) return "sample";
+  return planFor(store, sessionId, learner)?.versions.at(-1) ? "own" : "none";
 }

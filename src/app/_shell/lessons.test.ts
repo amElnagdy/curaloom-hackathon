@@ -1,7 +1,46 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
+import { contentHash, createFileStore } from "../../server/store/store";
 import { latestPlan } from "./course";
-import { courseLessons, currentLesson } from "./lessons";
+import { courseLessons, currentLesson, planKind } from "./lessons";
+
+describe("planKind", () => {
+  const seed = loadOmarSeed("x");
+  const learner = { ...seed.profile, id: "l_new", name: "سارة" };
+  const store = () => createFileStore(mkdtempSync(join(tmpdir(), "plan-kind-")));
+  const planned = (forProfile: string) => ({
+    for_profile: forProfile,
+    versions: seed.plans,
+    resources: seed.resources,
+    limits: { budget_minutes: 300, resource_ids: [] },
+    pending: null,
+  });
+
+  it("is the seed's sample before the intake", () => {
+    expect(planKind(store(), "s1")).toBe("sample");
+  });
+
+  it("is none after the intake until the learner's plan is built", () => {
+    const s = store();
+    s.writeDoc("s1", "profile", learner);
+
+    expect(planKind(s, "s1")).toBe("none");
+    // A plan built for the seed's learner is not this learner's.
+    s.writeDoc("s1", "plan", planned(contentHash(seed.profile)));
+    expect(planKind(s, "s1")).toBe("none");
+  });
+
+  it("is the learner's own once their plan is built", () => {
+    const s = store();
+    s.writeDoc("s1", "profile", learner);
+    s.writeDoc("s1", "plan", planned(contentHash(learner)));
+
+    expect(planKind(s, "s1")).toBe("own");
+  });
+});
 
 // The seed's plan: L1 in module 1 (sessions on days 0 and 3), L2 in module 2 (days 8 and 10).
 const plan = () => {

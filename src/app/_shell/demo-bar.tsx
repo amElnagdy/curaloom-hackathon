@@ -5,9 +5,11 @@
 // marker ahead jumps the clock to its day. Demo machinery, so it collapses to a chip.
 // Until the viewer chooses, it renders both and CSS picks one: open on a wide screen, the chip on a
 // phone (#35). Choosing in JS after mount would flash the open bar on a phone first.
+// Between the intake and the learner's plan, the controls that move the clock forward are off and
+// say why (#61); reset stays on.
 
 import { ChevronDown, FlaskConical, Plus, RotateCcw } from "lucide-react";
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useId, useState } from "react";
 import type { CoachEvent } from "../../../contracts/index.ts";
 import type { ProviderProfile } from "../../config.ts";
 import { compareSimTime, type SimTime, startOfDay } from "../../server/clock/time.ts";
@@ -15,7 +17,7 @@ import { COACH_TITLE, simDay, simTimeText } from "./course.ts";
 import styles from "./demo-bar.module.css";
 import { arabicNumber } from "./format.ts";
 import { buttonClass, cx, ModeBadge } from "./ui.tsx";
-import { useSimClock } from "./use-sim-clock.ts";
+import { useSimClock, WAITS_FOR_PLAN } from "./use-sim-clock.ts";
 
 export type DemoMark = { day: number; type: CoachEvent["type"] };
 
@@ -62,8 +64,9 @@ export function DemoBar({
   // Whether the models answer live or from recordings, shown open or collapsed (#30).
   profile: ProviderProfile;
 }) {
-  const { now, busy, move } = useSimClock(sessionId);
+  const { now, busy, move, waitsForPlan } = useSimClock(sessionId);
   const [collapsed, setCollapsed] = useState<boolean | null>(null);
+  const waitsId = useId();
   const [note, setNote] = useState<string | null>(null);
   const shown = collapsed === null ? "auto" : collapsed ? "collapsed" : "open";
 
@@ -114,6 +117,8 @@ export function DemoBar({
   const span = Math.max(MIN_SPAN, now?.day ?? 0, ...marks.map((m) => m.day));
   const passed = (day: number) => now !== null && compareSimTime(startOfDay(day), now) <= 0;
   const at = now ? percent(now, span) : 0;
+  const still = busy || now === null;
+  const waits = waitsForPlan ? { "aria-describedby": waitsId, title: WAITS_FOR_PLAN } : {};
 
   return (
     <div className={styles.dock} data-shown={shown}>
@@ -130,11 +135,17 @@ export function DemoBar({
               {simTimeText(now)}
             </span>
           )}
+          {waitsForPlan && (
+            <span id={waitsId} className={styles.waits} title={WAITS_FOR_PLAN}>
+              {WAITS_FOR_PLAN}
+            </span>
+          )}
           <div className={styles.controls}>
             <button
               type="button"
               className={buttonClass("primary", "sm")}
-              disabled={busy || now === null}
+              disabled={still || waitsForPlan}
+              {...waits}
               onClick={() => run({ action: "advance", body: { days: 1 } })}
             >
               <Plus aria-hidden />
@@ -143,7 +154,7 @@ export function DemoBar({
             <button
               type="button"
               className={buttonClass("ghost", "sm")}
-              disabled={busy || now === null}
+              disabled={still}
               onClick={() => run({ action: "reset" })}
             >
               <RotateCcw aria-hidden />
@@ -173,7 +184,8 @@ export function DemoBar({
                 <button
                   type="button"
                   className={styles.pin}
-                  disabled={done || busy || now === null}
+                  disabled={done || still || waitsForPlan}
+                  {...waits}
                   aria-label={done ? `${label}، حلّ موعدها` : `انتقل إلى ${label}`}
                   onClick={() => run({ action: "set", body: { day: m.day } })}
                 >

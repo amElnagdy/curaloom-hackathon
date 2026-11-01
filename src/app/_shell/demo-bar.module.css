@@ -51,8 +51,21 @@
 }
 .controls {
   display: flex;
+  align-items: center;
   gap: var(--s-1);
   margin-inline-start: auto;
+}
+/* Why the forward controls beside it are off (#61). It takes only the room the header's line has
+   left, cut with an ellipsis, so it never wraps the header past --demo-bar-h. */
+.waits {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: end;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 
 /* Day 0 sits at the inline start (the right edge); --pos and --at run along the inline axis. */

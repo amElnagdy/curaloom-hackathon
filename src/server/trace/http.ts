@@ -18,8 +18,8 @@ export function traceJson(store: Store, sessionId: string, after: string | null)
   }
 }
 
-// Sends every event after `after` (or the Last-Event-ID a reconnecting EventSource sends), then
-// polls the store for new events until the client disconnects.
+// Sends a comment, then every event after `after` (or the Last-Event-ID a reconnecting EventSource
+// sends), then polls the store for new events until the client disconnects.
 export function traceStream(
   store: Store,
   sessionId: string,
@@ -49,6 +49,9 @@ export function traceStream(
         clearTimeout(timer);
         controller.close();
       });
+      // The server sends the headers with the first bytes, and EventSource opens only on them, so an
+      // empty trace would leave it connecting until the first event. A comment line is ignored.
+      controller.enqueue(encoder.encode(": open\n\n"));
       flush();
     },
     cancel() {

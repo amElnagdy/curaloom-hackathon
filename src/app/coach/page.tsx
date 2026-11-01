@@ -2,7 +2,9 @@
 // clock (#23), delivered by the notifier (#22) to a simulated phone, labelled as a simulated channel
 // (ADR-004), beside the queue and the limits the coach keeps (quiet hours, weekly time, «توقف»).
 // The learner replies from the phone, answers the check-in with its buttons, and «توقف» stops the
-// messages.
+// messages. The head's pill, the queue, the limits and the phone all name the consent from one state
+// (#61, #57), and with no plan yet the queue says the coach waits for it. Before the intake the pill
+// marks the seed's Omar as an example.
 
 import {
   BatteryFull,
@@ -38,8 +40,20 @@ import {
   Panel,
   Stack,
 } from "../_shell/blocks.tsx";
-import { COACH_STATUS, COACH_TITLE, ladderText, simDay, simTimeText } from "../_shell/course.ts";
+import {
+  COACH_TITLE,
+  CONSENT_PILL,
+  coachEventStatus,
+  consentState,
+  heldBecause,
+  ladderText,
+  SAMPLE_PILL,
+  simDay,
+  simTimeText,
+  stoppedAt,
+} from "../_shell/course.ts";
 import { clockTime, countOf, HOURS } from "../_shell/format.ts";
+import { planKind } from "../_shell/lessons.ts";
 import { BidiText, buttonClass, cx, Meta, StatusPill } from "../_shell/ui.tsx";
 import styles from "./coach.module.css";
 import { CheckinButtons, RefreshOnCoachEvents, ReplyBox } from "./phone.tsx";
@@ -75,11 +89,11 @@ function CtaButton({ cta, eventId, answers }: { cta: Cta; eventId: string; answe
   );
 }
 
-// One line of the phone thread.
-function ThreadLine({ item, answers }: { item: ThreadItem; answers: Answers }) {
+// One line of the phone thread. `held` says why the gate held a message back.
+function ThreadLine({ item, answers, held }: { item: ThreadItem; answers: Answers; held: string }) {
   switch (item.kind) {
     case "suppressed":
-      return <li className={styles.system}>لم تُرسل رسالة، لأن الرسائل متوقفة.</li>;
+      return <li className={styles.system}>{held}</li>;
     case "sent":
       return (
         <li className={cx(styles.bubble, styles.mine)}>
@@ -132,7 +146,8 @@ export default async function CoachPage() {
   const consent = sim.consent();
   const now = sim.now();
   const events = [...sim.coachEvents()].sort((a, b) => a.sim_day - b.sim_day);
-  const thread = phoneThread(readInbox(store, DEMO_SESSION_ID), sim.outbox());
+  const inbox = readInbox(store, DEMO_SESSION_ID);
+  const thread = phoneThread(inbox, sim.outbox());
   const ladder = sim.ladder();
   const answers: Answers = {
     chosen: new Map(sim.checkinReplies().map((r) => [r.event_id, r.choice])),
@@ -142,34 +157,53 @@ export default async function CoachPage() {
   const quietText = quiet
     ? `لا رسائل من ${clockTime(quiet.start)} حتى ${clockTime(quiet.end)}`
     : "لم تحدد ساعات هدوء";
+  const agreed = consentState(consent);
+  const stopped = stoppedAt(consent, inbox);
+  const plan = planKind(store, DEMO_SESSION_ID);
+  const pill = plan === "sample" ? SAMPLE_PILL : CONSENT_PILL[agreed];
+  // With no plan yet, the coach has nothing to follow and the clock waits for the plan (#61).
+  const noPlan = plan === "none";
   // The day the learner agreed takes its place among the thread's days.
   const consentDay = consent.granted ? (consent.granted_sim_day ?? 0) : null;
   const dayOf = (item: ThreadItem) => parseSimTime(item.at).day;
   const days = [
     ...new Set([...thread.map(dayOf), ...(consentDay === null ? [] : [consentDay])]),
   ].sort((a, b) => a - b);
+  const heldText = (item: ThreadItem) =>
+    heldBecause(consent, parseSimTime(item.at), stopped) === "not_agreed"
+      ? `لم تُرسل رسالة، فلم يكن ${profile.name} قد وافق على الرسائل.`
+      : "لم تُرسل رسالة، لأن الرسائل متوقفة.";
 
   return (
     <Page>
       <PageHead
         title="رسائل المدرب"
-        pill={<ChannelTag />}
+        pill={
+          <>
+            <ChannelTag />
+            <StatusPill status={pill.status}>{pill.label}</StatusPill>
+          </>
+        }
         lede="يرسل المدرب رسائل قصيرة بالفصحى ضمن الحدود التي وضعتها. في هذا العرض تصل الرسائل إلى هاتف محاكى، لا إلى هاتف حقيقي."
       />
 
       <div className={styles.layout}>
         <Stack>
-          <Panel id="queue-title" title="الرسائل المجدولة">
+          <Panel id="queue-title" title="جدول الرسائل">
             {events.length === 0 ? (
               <EmptyState
                 inline
                 icon={MessageSquare}
-                text="لا رسائل مجدولة بعد. يجدولها المدرب بعد أن تجهز خطتك."
+                text={
+                  noPlan
+                    ? "لا رسائل بعد. يجدولها المدرب بعد أن تجهز خطتك."
+                    : "لم يحلّ موعد أي رسالة بعد."
+                }
               />
             ) : (
               <MarkList>
                 {events.map((event) => {
-                  const { status, label } = COACH_STATUS[event.status];
+                  const { status, label } = coachEventStatus(event, consent, stopped);
                   return (
                     <MarkItem
                       key={event.id}
@@ -188,11 +222,23 @@ export default async function CoachPage() {
                 })}
               </MarkList>
             )}
-            <p className={styles.note}>{ladderText(ladder)}</p>
-            <p className={styles.note}>
-              تُرسل الرسالة حين تبلغ الساعة المحاكاة يومها. الساعة الآن {simTimeText(now)}، وتحرّكها
-              من <Link href="/settings">الإعدادات</Link>.
-            </p>
+            {noPlan ? (
+              <p className={styles.note}>
+                الساعة الآن {simTimeText(now)}، وتتحرك بعد أن تجهز خطتك.
+              </p>
+            ) : (
+              <>
+                <p className={styles.note}>{ladderText(ladder, agreed)}</p>
+                {agreed === "on" ? (
+                  <p className={styles.note}>
+                    تُرسل الرسالة حين تبلغ الساعة المحاكاة يومها. الساعة الآن {simTimeText(now)}. قدّم
+                    الوقت بأداة العرض أسفل الصفحة لترى متى تصلك رسائل المدرب.
+                  </p>
+                ) : (
+                  <p className={styles.note}>الساعة الآن {simTimeText(now)}.</p>
+                )}
+              </>
+            )}
           </Panel>
 
           <Panel
@@ -200,7 +246,7 @@ export default async function CoachPage() {
             title="ما يلتزم به المدرب"
             aside={
               <Link href="/consent" className={buttonClass("ghost", "sm")}>
-                حدودك
+                عدّل حدودك
               </Link>
             }
           >
@@ -215,9 +261,11 @@ export default async function CoachPage() {
                 mark={<OctagonX />}
                 title="كلمة «توقف»"
                 detail={
-                  consent.opted_out
-                    ? `توقفت الرسائل في ${simDay(consent.opted_out_sim_day ?? now.day)}، وتعيد تفعيلها من صفحة حدودك.`
-                    : "أرسلها في أي وقت، فتتوقف الرسائل فورًا."
+                  agreed === "stopped"
+                    ? `الرسائل متوقفة بطلبك منذ ${simDay(consent.opted_out_sim_day ?? now.day)}، وتعيد تفعيلها من صفحة حدودك.`
+                    : agreed === "not_asked"
+                      ? "لا يرسل المدرب شيئًا قبل موافقتك، وبعدها تكفي «توقف» لإيقاف رسائله فورًا."
+                      : "أرسلها في أي وقت، فتتوقف الرسائل فورًا."
                 }
               />
               <MarkItem
@@ -252,7 +300,7 @@ export default async function CoachPage() {
             </div>
             <div className={styles.thread}>
               <ol className={styles.messages} aria-label="الرسائل">
-                {consentDay === null && (
+                {agreed === "not_asked" && (
                   <li className={styles.system}>
                     {`لم يوافق ${profile.name} على رسائل المدرب بعد.`}
                   </li>
@@ -268,13 +316,18 @@ export default async function CoachPage() {
                     {thread
                       .filter((item) => dayOf(item) === d)
                       .map((item) => (
-                        <ThreadLine key={item.id} item={item} answers={answers} />
+                        <ThreadLine
+                          key={item.id}
+                          item={item}
+                          answers={answers}
+                          held={heldText(item)}
+                        />
                       ))}
                   </Fragment>
                 ))}
               </ol>
             </div>
-            <ReplyBox sessionId={DEMO_SESSION_ID} optedOut={consent.opted_out} />
+            <ReplyBox sessionId={DEMO_SESSION_ID} consent={agreed} />
           </div>
         </section>
       </div>

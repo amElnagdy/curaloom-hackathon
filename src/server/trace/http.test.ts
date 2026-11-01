@@ -46,6 +46,22 @@ describe("trace JSON endpoint", () => {
 });
 
 describe("trace SSE endpoint", () => {
+  it("sends a comment at once, so a session with no events yet still opens", async () => {
+    const store = createFileStore(mkdtempSync(join(tmpdir(), "http-")));
+    const abort = new AbortController();
+    const res = traceStream(store, "s_new", null, { signal: abort.signal, pollMs: 10 });
+    const reader = (res.body as ReadableStream<Uint8Array>).getReader();
+    const nothing = new Promise<"nothing">((resolve) => setTimeout(resolve, 100, "nothing"));
+
+    const first = await Promise.race([reader.read(), nothing]);
+    abort.abort();
+
+    expect(first).not.toBe("nothing");
+    const text = new TextDecoder().decode((first as ReadableStreamReadResult<Uint8Array>).value);
+    // A line that starts with a colon is a comment, which EventSource does not dispatch.
+    expect(text).toMatch(/^:[^\n]*\n\n$/);
+  });
+
   it("sends saved events, then new ones as they are written", async () => {
     const { store, tracer } = seeded();
     const abort = new AbortController();

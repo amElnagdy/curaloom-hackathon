@@ -133,6 +133,10 @@
   flex-wrap: wrap;
   gap: var(--s-3);
 }
+.hint {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
 .status {
   font-size: var(--text-sm);
   color: var(--ready-ink);

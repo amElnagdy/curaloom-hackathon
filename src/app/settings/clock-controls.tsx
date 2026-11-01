@@ -1,7 +1,8 @@
 "use client";
 
 // The simulated clock's controls (#23): +1 hour, +1 day, jump to day 2, 5, 10 or 17, and reset,
-// through useSimClock, so the time shown is live across tabs.
+// through useSimClock, so the time shown is live across tabs. Like the demo bar, the forward moves
+// wait for the learner's plan after the intake (#61); reset does not.
 
 import { CalendarPlus, FastForward, Info, RotateCcw } from "lucide-react";
 import Link from "next/link";
@@ -12,7 +13,7 @@ import { Callout, SettingRow, SettingRows } from "../_shell/blocks.tsx";
 import { simDay } from "../_shell/course.ts";
 import { countOf, MESSAGES } from "../_shell/format.ts";
 import { buttonClass, SimClockPill } from "../_shell/ui.tsx";
-import { type SimMove, useSimClock } from "../_shell/use-sim-clock.ts";
+import { type SimMove, useSimClock, WAITS_FOR_PLAN } from "../_shell/use-sim-clock.ts";
 import styles from "./settings.module.css";
 
 const JUMP_DAYS = [2, 5, 10, 17];
@@ -29,7 +30,7 @@ function firedNote(events: CoachEvent[]): ReactNode {
 }
 
 export function ClockControls({ sessionId }: { sessionId: string }) {
-  const { now, busy, move: moveClock } = useSimClock(sessionId);
+  const { now, busy, move: moveClock, waitsForPlan } = useSimClock(sessionId);
   const [note, setNote] = useState<ReactNode>(null);
 
   async function move(m: SimMove) {
@@ -42,6 +43,10 @@ export function ClockControls({ sessionId }: { sessionId: string }) {
 
   const disabled = busy || now === null;
   const passed = (day: number) => now !== null && compareSimTime(startOfDay(day), now) <= 0;
+  const forward = {
+    disabled: disabled || waitsForPlan,
+    "aria-describedby": waitsForPlan ? "clock-waits" : undefined,
+  };
 
   return (
     <>
@@ -52,7 +57,7 @@ export function ClockControls({ sessionId }: { sessionId: string }) {
           help="يرى المدرب هذا الوقت. تقديم الساعة يُطلق رسائل المدرب المستحقة بالترتيب، مرة واحدة لكل رسالة."
         >
           <SimClockPill now={now} running={false} />
-          <fieldset className={styles.buttons} aria-labelledby="clock-now" disabled={disabled}>
+          <fieldset className={styles.buttons} aria-labelledby="clock-now" {...forward}>
             <button
               type="button"
               className={buttonClass("secondary", "sm")}
@@ -78,7 +83,7 @@ export function ClockControls({ sessionId }: { sessionId: string }) {
           labelId="clock-jump"
           help="تنتقل الساعة إلى بداية اليوم، ٩:٠٠ ص، وتُطلق في طريقها كل رسالة حلّ موعدها. الساعة لا تعود إلى الوراء، فالأيام التي مضت معطّلة حتى تعيد الضبط."
         >
-          <fieldset className={styles.buttons} aria-labelledby="clock-jump" disabled={disabled}>
+          <fieldset className={styles.buttons} aria-labelledby="clock-jump" {...forward}>
             {JUMP_DAYS.map((day) => (
               <button
                 key={day}
@@ -108,6 +113,13 @@ export function ClockControls({ sessionId }: { sessionId: string }) {
           </button>
         </SettingRow>
       </SettingRows>
+      {waitsForPlan && (
+        <div className={styles.panelNote} id="clock-waits">
+          <Callout icon={Info}>
+            {WAITS_FOR_PLAN}. <Link href="/plan">افتح خطتك</Link>
+          </Callout>
+        </div>
+      )}
       <div className={note ? styles.panelNote : undefined} role="status">
         {note && <Callout icon={Info}>{note}</Callout>}
       </div>

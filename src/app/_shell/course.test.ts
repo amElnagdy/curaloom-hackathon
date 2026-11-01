@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
+import type { Consent } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed";
 import { startOfDay } from "../../server/clock/time";
 import { ladderAt } from "../../server/coach/ladder";
-import { courseStatus, ladderText, quizState, simDay } from "./course";
+import type { InboxEntry } from "../../server/notifier/adapters.ts";
+import {
+  CONSENT_PILL,
+  coachEventStatus,
+  consentState,
+  consentText,
+  courseStatus,
+  ladderText,
+  quizState,
+  simDay,
+  stoppedAt,
+} from "./course";
 
 const seed = () => loadOmarSeed("x");
 
@@ -73,7 +85,7 @@ describe("ladderText", () => {
   const facts = { anchor: 0, pause: null, messages_on: true };
 
   it("names where the coach is and the day of its next message", () => {
-    expect(ladderText(ladderAt(facts, startOfDay(5)))).toBe(
+    expect(ladderText(ladderAt(facts, startOfDay(5)), "on")).toBe(
       "المدرب عرض عليك أسبوعًا أخف. رسالته التالية في اليوم ١٠.",
     );
   });
@@ -81,14 +93,127 @@ describe("ladderText", () => {
   it("gives the end of a pause the learner chose", () => {
     const pause = { anchor: 0, from: startOfDay(10), until: startOfDay(17) };
 
-    expect(ladderText(ladderAt({ ...facts, pause }, startOfDay(12)))).toBe(
-      "المدرب في استراحة طلبتها حتى اليوم ١٧، ٩:٠٠ ص.",
+    expect(ladderText(ladderAt({ ...facts, pause }, startOfDay(12)), "on")).toBe(
+      "المدرب في استراحة طلبتها حتى اليوم ١٧، ٩:٠٠ ص.",
     );
   });
 
-  it("names no next message while the messages are off", () => {
-    expect(ladderText(ladderAt({ ...facts, messages_on: false }, startOfDay(5)))).toBe(
-      "المدرب لا يرسل رسائل.",
+  it("names no next message while the messages are off, and why", () => {
+    const off = ladderAt({ ...facts, messages_on: false }, startOfDay(5));
+
+    expect(ladderText(off, "not_asked")).toBe("المدرب لا يرسل شيئًا قبل موافقتك.");
+    expect(ladderText(off, "stopped")).toBe("المدرب لا يرسل رسائل، فهي متوقفة بطلبك.");
+  });
+});
+
+// The consent before the consent screen saves one (session.ts), and after it does.
+const NOT_ASKED: Consent = {
+  learner_id: "l_new",
+  channel: "simulated",
+  granted: false,
+  granted_sim_day: null,
+  quiet_hours: { start: "22:00", end: "08:00" },
+  opted_out: false,
+  opted_out_sim_day: null,
+  intensity: "gentle",
+};
+const ON: Consent = { ...NOT_ASKED, granted: true, granted_sim_day: 0 };
+const STOPPED: Consent = { ...ON, opted_out: true, opted_out_sim_day: 3 };
+
+describe("consentState", () => {
+  it("tells a learner never asked from one who stopped the messages", () => {
+    expect(consentState(NOT_ASKED)).toBe("not_asked");
+    expect(consentState(ON)).toBe("on");
+    expect(consentState(STOPPED)).toBe("stopped");
+    // Messages turned off on the consent screen before ever turning them on.
+    const turnedOff: Consent = { ...NOT_ASKED, opted_out: true, opted_out_sim_day: 0 };
+    expect(consentState(turnedOff)).toBe("stopped");
+  });
+
+  it("calls only a stopped consent stopped", () => {
+    expect(CONSENT_PILL.not_asked.label).toBe("لم تُطلب موافقتك بعد");
+    expect(consentText(NOT_ASKED)).not.toMatch(/متوقفة/);
+    expect(consentText(ON)).toBe(
+      "الرسائل مفعّلة بموافقتك منذ يوم البدء، وتكفي كلمة «توقف» لإيقافها في أي وقت.",
     );
+    expect(consentText(STOPPED)).toBe(
+      "الرسائل متوقفة بطلبك منذ اليوم ٣، فلا يصلك شيء حتى تعيد تفعيلها.",
+    );
+  });
+
+  it("names the sample learner as the one who agreed or stopped, before the intake", () => {
+    expect(consentText(ON, "عمر")).toBe(
+      "الرسائل مفعّلة بموافقة عمر منذ يوم البدء، وتكفي كلمة «توقف» لإيقافها في أي وقت.",
+    );
+    expect(consentText(STOPPED, "عمر")).toBe(
+      "الرسائل متوقفة بطلب عمر منذ اليوم ٣، فلا يصله شيء حتى يعيد تفعيلها.",
+    );
+  });
+});
+
+// The phone's «توقف» at `sim_ts` and the notifier's confirmation of it, as the inbox keeps them.
+const confirmed = (sim_ts: string): InboxEntry[] => [
+  { id: "in_1", direction: "in", text: "توقف", cta: null, template: null, sim_ts },
+  {
+    id: "opt_out_x",
+    direction: "out",
+    text: "أوقفنا رسائل المدرب كما طلبت.",
+    cta: null,
+    template: "opt_out_confirmation",
+    sim_ts,
+  },
+];
+
+describe("stoppedAt", () => {
+  it("is the minute of the «توقف» the phone confirmed", () => {
+    const stopped: Consent = { ...NOT_ASKED, opted_out: true, opted_out_sim_day: 2 };
+
+    expect(stoppedAt(stopped, confirmed("day 2 14:30"))).toEqual({ day: 2, minute: 870 });
+  });
+
+  it("is the start of the day of a stop saved on the consent screen", () => {
+    // A «توقف» on day 1, on again, then off on the consent screen on day 3.
+    expect(stoppedAt(STOPPED, confirmed("day 1 10:00"))).toEqual({ day: 3, minute: 0 });
+  });
+
+  it("is null while the messages are not stopped", () => {
+    expect(stoppedAt(ON, confirmed("day 1 10:00"))).toBeNull();
+  });
+});
+
+describe("coachEventStatus", () => {
+  const held = (day: number) => ({ status: "suppressed_opt_out" as const, sim_day: day });
+
+  it("does not say the learner stopped a message held back before they agreed", () => {
+    expect(coachEventStatus(held(2), NOT_ASKED, null).label).toBe("لم تُرسل قبل موافقتك");
+    expect(coachEventStatus(held(2), { ...ON, granted_sim_day: 4 }, null).label).toBe(
+      "لم تُرسل قبل موافقتك",
+    );
+  });
+
+  it("keeps a message held back before a stop on the same day as not agreed", () => {
+    // Never agreed; the day-2 message fired at 09:00, and «توقف» came at that minute or later.
+    const never: Consent = { ...NOT_ASKED, opted_out: true, opted_out_sim_day: 2 };
+
+    expect(coachEventStatus(held(2), never, { day: 2, minute: 540 }).label).toBe(
+      "لم تُرسل قبل موافقتك",
+    );
+    expect(coachEventStatus(held(2), never, { day: 2, minute: 600 }).label).toBe(
+      "لم تُرسل قبل موافقتك",
+    );
+    // A stop at 08:00 came before the 09:00 message.
+    expect(coachEventStatus(held(2), never, { day: 2, minute: 480 }).label).toBe("أُوقفت بطلبك");
+  });
+
+  it("says the learner stopped a message held back after they stopped the messages", () => {
+    expect(coachEventStatus(held(5), STOPPED, { day: 3, minute: 0 }).label).toBe("أُوقفت بطلبك");
+    // Stopped on day 3, then on again: the day-5 message was held back by the stop.
+    expect(coachEventStatus(held(5), { ...ON, granted_sim_day: 0 }, null).label).toBe(
+      "أُوقفت بطلبك",
+    );
+  });
+
+  it("keeps the other statuses as they are", () => {
+    expect(coachEventStatus({ status: "sent", sim_day: 2 }, NOT_ASKED, null).label).toBe("أُرسلت");
   });
 });

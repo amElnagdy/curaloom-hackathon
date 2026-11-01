@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { splitRuns } from "./format.ts";
+import { clockTime, splitRuns } from "./format.ts";
+
+describe("clockTime", () => {
+  it("keeps the time and its «ص» or «م» on one line", () => {
+    expect(clockTime("22:00")).toBe("١٠:٠٠ م");
+    expect(clockTime("08:30")).toBe("٨:٣٠ ص");
+    expect(clockTime("12:00")).toBe("١٢:٠٠ ظهرًا");
+  });
+});
 
 const foreign = (text: string) =>
   splitRuns(text)

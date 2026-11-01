@@ -145,12 +145,13 @@ export const ordinal = (index: number): string => ORDINAL[index] ?? arabicNumber
 export const ordinalF = (index: number): string => ORDINAL_F[index] ?? arabicNumber(index + 1);
 
 // A time of day as a learner set it ("22:00", e.g. quiet hours), in Arabic: "١٠:٠٠ م", and noon
-// as "١٢:٠٠ ظهرًا". A setting, not an instant, so no clock is read.
+// as "١٢:٠٠ ظهرًا". A setting, not an instant, so no clock is read. A no-break space keeps «م» with
+// its number when a narrow line, such as the phone's, wraps (#57).
 export function clockTime(hhmm: string): string {
   const [h = 0, m = 0] = hhmm.split(":").map(Number);
-  if (h === 12 && m === 0) return "١٢:٠٠ ظهرًا";
+  if (h === 12 && m === 0) return "١٢:٠٠ ظهرًا";
   const minutes = String(m).padStart(2, "0");
-  return `${arabicNumber(h % 12 || 12)}:${toArabicIndic(minutes)} ${h < 12 ? "ص" : "م"}`;
+  return `${arabicNumber(h % 12 || 12)}:${toArabicIndic(minutes)} ${h < 12 ? "ص" : "م"}`;
 }
 
 // Learner-facing time of day of a timestamp, e.g. "٨:٤٠ م". Formats a given instant; it never
