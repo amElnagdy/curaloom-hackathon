@@ -221,3 +221,27 @@ The diagrams agent reads each image's licence and author from its file page, and
 ## Recorded model replies
 
 `demo/fixtures/responses/` holds 88 recorded Meta Model API calls: 3 from muse-image-1.0, 80 from muse-spark-1.3, 1 from muse-voice-transcribe-1.0, 4 from muse-wonder-1.0. Each file keeps the request and the model's reply.
+
+The repository's code licence does not cover these files, as [`demo/fixtures/LICENSE.md`](demo/fixtures/LICENSE.md) explains. A file that carries the text of a recorded page keeps that page's licence. Its request holds the text, and the model wrote its reply from it. A call carries a page's text when it holds a run of 15 words that this page holds and no other recorded page does, counting a Chinese character as one word. The check reads every request, and every web search's reply too, since a search opens pages its request does not hold. Each page's entry under "Recorded source pages" names its authors and its licence statement.
+
+15 calls carry page text:
+
+- `responses-muse-spark-1.3-147a130a79bde83e.json` (QuizDraft): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-1a300c7687e7a17f.json` (QuizDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-4c39e67a9c107b2a.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-5146c0f51b6051f7.json` (KeyCheck): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-6fbe2fd3c8d0a578.json` (KeyCheck): Pivot table - Wikipedia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-70099d585cbdd8b1.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-79219bd06faf7200.json` (LessonDraft): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-94b2b44f883b07e4.json` (LessonDraft): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0), Microsoft Excel — Викиучебник (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-96c6a75f7a285e56.json` (LessonDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-9780694944164172.json` (KeyCheck): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-bd1bf60258a939ec.json` (QuizDraft): Pivot table - Wikipedia (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-d80eeb2750de05ed.json` (KeyCheck): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-e99574003b128c18.json` (KeyCheck): Microsoft Office/Create a Pivot Table (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-ed65e6c405f30a06.json` (QuizDraft): Pivot table - Wikipedia (CC-BY-SA-4.0), Сводная таблица (CC-BY-SA-4.0).
+- `responses-muse-spark-1.3-f973e451cfc13976.json` (QuizDraft): Tableur (CC-BY-SA-4.0), Microsoft Excel (CC-BY-SA-4.0).
+
+No call carries the text of 8.8: Pivot Tables (CC-BY-4.0), 7.2: PivotTables for Data Analysis (CC-BY-NC-SA-4.0), Tableau croisé dynamique — Wikipédia (CC-BY-SA-4.0), Tableau de contingence (CC-BY-SA-4.0), 数据透视表 (MPL-2.0).
+
+The other 73 calls carry no page text, so no page licence applies to them.

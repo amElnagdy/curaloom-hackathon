@@ -146,6 +146,8 @@ A human review then ruled that both models' answer to one disputed diacritics it
 
 ## Licence
 
-The licence is not chosen yet. The owner picks one, MIT or Apache-2.0, before the repository goes public. Until then the repository has no `LICENSE` file.
+The code licence is not chosen yet (#39). The owner picks one, MIT or Apache-2.0, before the repository goes public. Until then the repository has no `LICENSE` file.
 
 Third-party packages, fonts, icons and the recorded source pages keep their own licences. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) lists each one.
+
+The code licence will not cover the recorded pages and model replies in `demo/fixtures/`, which keep the licences of their sources. [`demo/fixtures/LICENSE.md`](demo/fixtures/LICENSE.md) explains them. Replies built on Wikipedia and Wikibooks text are CC BY-SA 4.0, and the stored pages include one CC BY-NC-SA 4.0 page and one MPL-2.0 page.

@@ -1,8 +1,8 @@
 // `pnpm notices` writes THIRD_PARTY_NOTICES.md from what the repo holds: the installed npm packages
 // (`pnpm licenses list`), the fonts `src/app/layout.tsx` loads, the lucide icons `src/` imports, and
-// the source pages and images recorded in `demo/fixtures/`. Each recorded page's licence comes from
-// the scout's own checker, each image's from the diagrams agent's, and each credit line from the
-// lesson page's. Run it again after a dependency, font, icon or fixture change.
+// the source pages, images and model calls recorded in `demo/fixtures/`. Each recorded page's
+// licence comes from the scout's own checker, each image's from the diagrams agent's, and each
+// credit line from the lesson page's. Run it again after a dependency, font, icon or fixture change.
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { creditLine } from "../src/app/_shell/format.ts";
 import { config } from "../src/config.ts";
 import { fileInfoOf, fileTitle, imageLicence } from "../src/server/agents/diagrams/wiki.ts";
+import { EXCERPT_WORDS } from "../src/server/agents/lesson/rules.ts";
 import { classifyLicence } from "../src/server/agents/scout/licence.ts";
 import { normalizeResponses } from "../src/server/providers/meta.ts";
 
@@ -26,6 +27,14 @@ const FONT_LICENCES: Record<string, string> = {
   "Noto Sans SC": "OFL-1.1",
 };
 
+// A recorded call carries a page's text when it holds a run of words that only that page holds. The
+// run is as long as the shortest excerpt a lesson may quote, which is longer than a page title or
+// the one-sentence description of a page that a search reply gives.
+const RUN_WORDS = EXCERPT_WORDS.min;
+const CJK = "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}";
+// A Chinese or Japanese character counts as a word, as the lesson rules count them.
+const WORD = new RegExp(`[${CJK}]|(?:(?![${CJK}])[\\p{L}\\p{N}])+`, "gu");
+
 // Who to credit when the licence statement does not name the authors.
 const AUTHORS: [RegExp, string][] = [
   [/(^|\.)wikipedia\.org$/, "Wikipedia contributors"],
@@ -40,6 +49,14 @@ const LANGUAGES: Record<string, string> = {
 };
 
 type InstalledPackage = { name: string; versions: string[]; license: string; homepage?: string };
+
+type RecordedCall = {
+  request: {
+    path: string;
+    json?: { text?: { format?: { name?: string } }; tools?: { type: string }[] };
+  };
+  body: unknown;
+};
 
 type RecordedPage = {
   file: string;
@@ -207,7 +224,10 @@ const recordedCalls = (): string[] =>
     readFileSync(join(ROOT, RESPONSES, file), "utf8"),
   );
 
-function sourceSection(recorded: RecordedPage[], recordings: string[]): string[] {
+const isRobots = (url: string) => URL.parse(url)?.pathname === "/robots.txt";
+
+// Each recorded page that holds text, with its licence, its title and the calls that name it.
+function recordedSources(recorded: RecordedPage[], recordings: string[]) {
   const redirects = new Map(
     recorded.flatMap((p) => (p.response.kind === "redirect" ? [[p.url, p.response.location]] : [])),
   );
@@ -223,17 +243,11 @@ function sourceSection(recorded: RecordedPage[], recordings: string[]): string[]
       .filter((from) => finalUrl(from) === url)
       .map((from) => cited.get(normalUrl(from)))
       .find(Boolean);
-
-  const isRobots = (url: string) => URL.parse(url)?.pathname === "/robots.txt";
-  const withText = recorded.filter(
-    (p) => p.response.kind === "page" && p.response.text && !isRobots(p.url),
-  );
-  const robots = recorded.filter((p) => p.response.kind === "page" && isRobots(p.url));
   const htmlCopies = recorded.filter((p) => p.response.kind === "html" && !isFilePage(p.url));
-  const media = recorded.filter((p) => isFilePage(p.url) || p.response.kind === "image");
 
-  const sources = withText.map((page) => {
-    const text = page.response.kind === "page" ? page.response.text : "";
+  return recorded.flatMap((page) => {
+    if (page.response.kind !== "page" || !page.response.text || isRobots(page.url)) return [];
+    const text = page.response.text;
     const check = classifyLicence(text, page.url);
     const host = URL.parse(page.url)?.hostname ?? "";
     const seen = titleOf(page.url);
@@ -244,17 +258,31 @@ function sourceSection(recorded: RecordedPage[], recordings: string[]): string[]
     const named = recordings.filter((r) => [...forms, ...ids].some((form) => r.includes(form)));
     const quoted = named.filter((r) => ids.some((id) => r.includes(`### ${id} |`)));
     const html = htmlCopies.filter((h) => forms.includes(finalUrl(h.url)));
-    return {
-      page,
-      check,
-      title: seen?.title ?? host,
-      lang: seen?.lang,
-      authors: AUTHORS.find(([pattern]) => pattern.test(host))?.[1],
-      named: named.length,
-      quoted: quoted.length,
-      html,
-    };
+    return [
+      {
+        page,
+        text,
+        check,
+        title: seen?.title ?? host,
+        lang: seen?.lang,
+        authors: AUTHORS.find(([pattern]) => pattern.test(host))?.[1],
+        named: named.length,
+        quoted: quoted.length,
+        html,
+      },
+    ];
   });
+}
+
+type Source = ReturnType<typeof recordedSources>[number];
+
+function sourceSection(recorded: RecordedPage[], sources: Source[]): string[] {
+  const withText = sources.map((s) => s.page);
+  const redirects = new Set(
+    recorded.flatMap((p) => (p.response.kind === "redirect" ? [p.url] : [])),
+  );
+  const robots = recorded.filter((p) => p.response.kind === "page" && isRobots(p.url));
+  const media = recorded.filter((p) => isFilePage(p.url) || p.response.kind === "image");
   const paired = new Set(sources.flatMap((s) => s.html));
   const empty = recorded.filter(
     (p) =>
@@ -265,7 +293,7 @@ function sourceSection(recorded: RecordedPage[], recordings: string[]): string[]
       !media.includes(p),
   );
 
-  const use = (s: (typeof sources)[number]) =>
+  const use = (s: Source) =>
     s.check.use === "rejected"
       ? `rejected by the checker: ${s.check.reason}`
       : s.check.use === "personal_study"
@@ -358,9 +386,24 @@ function imageSection(recorded: RecordedPage[], recordings: string[]): string[] 
   ];
 }
 
-function modelSection(recordings: string[]): string[] {
+const wordRuns = (text: string): string[] => {
+  const words = text.normalize("NFKC").toLowerCase().match(WORD) ?? [];
+  return Array.from({ length: Math.max(0, words.length - RUN_WORDS + 1) }, (_, i) =>
+    words.slice(i, i + RUN_WORDS).join(" "),
+  );
+};
+
+const strings = (value: unknown): string[] =>
+  typeof value === "string"
+    ? [value]
+    : value && typeof value === "object"
+      ? Object.values(value).flatMap(strings)
+      : [];
+
+function modelSection(sources: Source[]): string[] {
+  const files = readdirSync(join(ROOT, RESPONSES)).sort();
   const models = new Map<string, number>();
-  for (const file of readdirSync(join(ROOT, RESPONSES))) {
+  for (const file of files) {
     const model = file.match(/^[a-z_]+-(.+)-[0-9a-f]{16}\.json$/)?.[1] ?? "unknown";
     models.set(model, (models.get(model) ?? 0) + 1);
   }
@@ -368,10 +411,41 @@ function modelSection(recordings: string[]): string[] {
     .sort()
     .map(([model, n]) => `${n} from ${model}`)
     .join(", ");
+
+  // Each run of words that one page holds and no other page does, by that page.
+  const owner = new Map<string, Source | null>();
+  for (const source of sources) {
+    for (const run of wordRuns(source.text)) {
+      owner.set(run, owner.has(run) && owner.get(run) !== source ? null : source);
+    }
+  }
+  const carriers = files.flatMap((file) => {
+    const call = readJson<RecordedCall>(`${RESPONSES}/${file}`);
+    const searched = call.request.json?.tools?.some((tool) => tool.type === "web_search");
+    const read = [...strings(call.request.json), ...(searched ? strings(call.body) : [])];
+    const found = new Set(read.flatMap(wordRuns).map((run) => owner.get(run)));
+    const carried = sources.filter((s) => found.has(s));
+    const kind = call.request.json?.text?.format?.name ?? call.request.path;
+    return carried.length ? [{ file, kind, carried }] : [];
+  });
+  const uncarried = sources.filter((s) => !carriers.some((c) => c.carried.includes(s)));
+  const titled = (s: Source) => `${s.title} (${s.check.spdx})`;
+
   return [
     "## Recorded model replies",
     "",
-    `\`${RESPONSES}/\` holds ${recordings.length} recorded Meta Model API calls: ${modelCounts}. Each file keeps the request and the model's reply.`,
+    `\`${RESPONSES}/\` holds ${files.length} recorded Meta Model API calls: ${modelCounts}. Each file keeps the request and the model's reply.`,
+    "",
+    `The repository's code licence does not cover these files, as [\`demo/fixtures/LICENSE.md\`](demo/fixtures/LICENSE.md) explains. A file that carries the text of a recorded page keeps that page's licence. Its request holds the text, and the model wrote its reply from it. A call carries a page's text when it holds a run of ${RUN_WORDS} words that this page holds and no other recorded page does, counting a Chinese character as one word. The check reads every request, and every web search's reply too, since a search opens pages its request does not hold. Each page's entry under "Recorded source pages" names its authors and its licence statement.`,
+    "",
+    `${carriers.length} calls carry page text:`,
+    "",
+    ...carriers.map((c) => `- \`${c.file}\` (${c.kind}): ${c.carried.map(titled).join(", ")}.`),
+    "",
+    ...(uncarried.length
+      ? [`No call carries the text of ${uncarried.map(titled).join(", ")}.`, ""]
+      : []),
+    `The other ${files.length - carriers.length} calls carry no page text, so no page licence applies to them.`,
     "",
   ];
 }
@@ -379,6 +453,7 @@ function modelSection(recordings: string[]): string[] {
 const installed = installedPackages();
 const pages = recordedPages();
 const recordings = recordedCalls();
+const sources = recordedSources(pages, recordings);
 const lines = [
   "# Third-party notices",
   "",
@@ -389,9 +464,9 @@ const lines = [
   ...dependencySection(installed),
   ...fontSection(),
   ...iconSection(installed),
-  ...sourceSection(pages, recordings),
+  ...sourceSection(pages, sources),
   ...imageSection(pages, recordings),
-  ...modelSection(recordings),
+  ...modelSection(sources),
 ];
 writeFileSync(join(ROOT, OUT), `${lines.join("\n").trimEnd()}\n`);
 const format = spawnSync("pnpm", ["exec", "biome", "format", "--write", OUT], { stdio: "inherit" });
