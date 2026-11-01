@@ -2,6 +2,37 @@
 
 The checks to pass before the public copy of this repository. A checked item has its evidence. An open item says what it needs and from whom. The last full run was on 2026-10-31, on `main` at `f780c93`, with the changes listed under each item still uncommitted.
 
+## Replay freeze (from Nov 3)
+
+The code freeze starts on Nov 3, 2026, Cairo time (UTC+2). The submission deadline is Nov 5, 2026, at 04:00 Cairo time, which is 02:00 UTC. From the freeze on, the recorded demo must keep working as it was recorded.
+
+Replay finds each recording by a hash of the full request, the API path and the JSON body (`fixtureKey()` in `src/server/providers/provider.ts`). The model, the prompt text, the response schema and every parameter are part of the hash. A change to any of them leaves that request with no recording, and replay fails with `MissingRecording`.
+
+**Do not edit from Nov 3.** Each of these feeds a model request:
+
+- the agents' prompts and instructions under `src/server/agents/**`, and the coach's in `src/server/coach/coach.ts`;
+- the contracts and response schemas in `contracts/`;
+- `config/models.yaml`, with its models, reasoning effort and `max_output_tokens`;
+- the request builders in `src/server/providers/meta.ts`;
+- `demo/script.ts`, with the topic, Omar's messages and his short answers;
+- `demo/fixtures/`, with the seed `omar.json`, the fetched pages in `pages/` and the recordings in `responses/`;
+- `public/demo/omar-intake-1.wav`, whose hash is part of its transcription request.
+
+**Allowed after the freeze.** UI, CSS, docs, the README, tests, the notices, and code that post-processes replies, such as #44's fix for the diagram labels in #38. Post-processing can still change a later request. For example, each lesson's request carries the course glossary so far, and the diagrams agent's reading prompt carries the lesson's glossary terms. The checks below catch that.
+
+**Before merging after Nov 3.** For any change under `src/server/`, `src/app/api/`, `contracts/`, `config/` or `demo/`:
+
+1. Run `pnpm check`. Its replay tests read all 88 recordings in `demo/fixtures/responses/` and all 37 in `demo/fixtures/pages/`, and a test fails when its request has no recording. The chain test in `src/server/agents/intake/intake.test.ts` replays the demo's path from the interview to the comeback, with the scout, the lessons, the quizzes and the diagrams.
+2. Walk the presenter steps in `docs/demo.md` on `pnpm demo:replay`, from the intake to lesson 2's diagram. No red banner may name a missing recording. The tests wire each agent themselves, and the app wires it again in its route handlers under `src/app/api/`. Only the walk checks the requests the app makes.
+
+**If a re-record cannot be avoided.** It needs `MODEL_API_KEY`, live calls, and a decision from Ahmed, the owner.
+
+- Follow "Re-recording" in `docs/demo.md`. Set the key in `.env`, run `pnpm fixtures:record`, then `pnpm fixtures:prune`, check the new files for the key and the learner id, and walk the presenter steps on `pnpm demo:replay`. A new topic also records the scout with `PROVIDER_PROFILE=record` and `pnpm scout`.
+- `pnpm fixtures:record` calls the models only for requests that have no recording, so a re-record pays only for those. The whole set of 88 recordings cost about $2.05, worked out from token counts, not from billing (`docs/submission.md`). A change early in the chain, such as the interview's prompt, can change the saved profile, and with it every request after it. That costs close to the whole set (`docs/demo.md`, "Voice in replay").
+- The recorded calls on the demo's path took about 5 minutes in all (`docs/demo.md`, "Pace"). A full re-record takes longer than that, before the walk.
+
+**No hash guard.** #47 offered an optional test that fails when the SHA-256 of the frozen files changes. The repository leaves it out on purpose. It would fail on edits the freeze allows, such as post-processing code under `src/server/agents/**`. The replay tests already fail on any request of theirs that has no recording, so the check that matters is a replay of the journey.
+
 ## Make the public copy from a fresh clone
 
 - [ ] **Choose how to publish. Owner: Ahmed.** Recommendation: create a new public repository and push a fresh `git clone` of this one to it. Keep this repository private.
@@ -51,7 +82,7 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
 - [ ] `docs/submission.md`, the whole file. It was added in `f780c93` while this check ran. It holds the form answers, the submission target time and a note to save the confirmation "in a private place". Recommendation: leave it out of the public copy until the form is submitted.
 - [ ] `docs/spikes/api-access.md:153` keeps the agent's original note asking Ahmed to confirm that the Geographic Use Policy allows use from Egypt, and say "The spike tried no workaround, such as a VPN". Recommendation: keep the resolution on line 150 and drop the original note.
 - [ ] `docs/spikes/DECISIONS.md:8` says the detailed rules answers "are not yet written up in `rules.md`", a file that does not exist. Line 7 is the pending spike #9 with no data. Recommendation: drop the `rules.md` sentence and mark #9 as not run.
-- [ ] `docs/agents/domain.md`, `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md` configure agent skills for the private tracker. Their text is adapted from `mattpocock/skills` (MIT licence), which `docs/agents/triage-labels.md:5` names. Recommendation: drop the folder from the public copy, and drop `AGENTS.md:32` to `:44`, the "Agent skills" section that points at it. If they stay, credit `mattpocock/skills` and its MIT licence in `THIRD_PARTY_NOTICES.md`.
+- [ ] `docs/agents/domain.md`, `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md` configure agent skills for the private tracker. Their text is adapted from `mattpocock/skills` (MIT licence), which `docs/agents/triage-labels.md:5` names. Recommendation: drop the folder from the public copy, and drop `AGENTS.md:33` to `:45`, the "Agent skills" section that points at it. If they stay, credit `mattpocock/skills` and its MIT licence in `THIRD_PARTY_NOTICES.md`.
 - [ ] `AGENTS.md:30` says #32 picks the licence. Update it when the licence is chosen.
 - [ ] `docs/video-script.md:3`, `:7` and `:58` to `:60` hold the recording date, the presenter setup and a rehearsal plan for Nov 3. Recommendation: keep. The file documents the demo.
 - [ ] `PRODUCT.md:45` and `.impeccable/surfaces/src-app-layout-tsx.md:10` name the hackathon, the video length and the judges. `PRODUCT.md`, `DESIGN.md` and `.impeccable/` are the design briefs that ADR-007 links. Recommendation: keep.
@@ -107,7 +138,7 @@ None of these blocks the release. Each one needs a keep or drop decision from Ah
   - `DESIGN.md:2` and `:130`, and `.impeccable/design.json:4`;
   - `PRODUCT.md:54`;
   - `docs/submission.md:13`;
-  - `AGENTS.md:36`, the repository slug `amElnagdy/curaloom`, and the repository name itself.
+  - `AGENTS.md:37`, the repository slug `amElnagdy/curaloom`, and the repository name itself.
 
   Then run `pnpm notices` to rewrite the credit lines.
 

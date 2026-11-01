@@ -103,6 +103,8 @@ To fix it, record the request as described next. The hash names the file the rec
 
 ## Re-recording
 
+From Nov 3, 2026, the recordings are frozen. Do not change a prompt, a contract, `config/models.yaml`, `demo/script.ts` or a fixture, because replay would have no recording for the changed request. `docs/release-checklist.md` ("Replay freeze") has the full lists, the checks to run before merging, and the cost of a re-record.
+
 `pnpm fixtures:prune` deletes every recording that no test replays. A recording made by clicking through a server in record mode is therefore deleted by the next prune. Record through the tests instead. The chain test in `src/server/agents/intake/intake.test.ts` walks the demo's path through the HTTP API with the text in `demo/script.ts`.
 
 After a prompt or contract change, on the same topic:
