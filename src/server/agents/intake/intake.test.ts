@@ -456,6 +456,14 @@ describe("intake, replaying Omar's recorded interview", () => {
     const diagram = expectDiagram(course, course.first, diagrams, "Visicalc.png");
     expect(diagram).toMatchObject({ method: "legend", output: null, check: { attempts: 2 } });
     expect(diagram.check.problems).not.toEqual([]);
+    // The recorded reading gave "BUZZ CUT" as «قصة قصيرة», a short story (#38). The override table
+    // corrects the legend without a re-record, so the recorded edits keep the reading's Arabic.
+    expect(diagram.labels).toContainEqual(
+      expect.objectContaining({ src: "BUZZ CUT", ar: "قَصّة شعر قصيرة" }),
+    );
+    expect(overridesTraced(course.store)).toEqual([
+      'Visicalc.png: the override table corrects "BUZZ CUT" from «قصة قصيرة» to the approved «قَصّة شعر قصيرة»',
+    ]);
   }, 600_000);
 
   it("keeps his second lesson shut below 80%, then opens it once he passes a quiz with other questions", async () => {
@@ -536,6 +544,7 @@ describe("intake, replaying Omar's recorded interview", () => {
     const diagrams = await diagramsOf(course).build(course.second);
 
     expectRelabelled(expectDiagram(course, course.second, diagrams, "Pivottable-Pivoted.PNG"));
+    expect(overridesTraced(course.store)).toEqual([]);
   }, 600_000);
 
   it("writes the quiz for his second lesson once it opens", async () => {
@@ -983,6 +992,7 @@ function expectDiagram(
     author: expect.stringMatching(/\w/),
   });
   expect(glossaryProblems(diagram?.labels ?? [], brief?.glossary ?? [])).toEqual([]);
+  expect(events.filter((e) => e.missing_recording).map((e) => e.missing_recording)).toEqual([]);
   expect(new Set(events.filter((e) => e.kind === "model_call").map((e) => e.role))).toEqual(
     new Set(["diagram_labels", "image_text", "image_edit"]),
   );
@@ -1002,6 +1012,12 @@ const expectRelabelled = (diagram: Diagram) =>
     output: { mime: "image/webp" },
     check: { problems: [] },
   });
+
+const overridesTraced = (store: Store) =>
+  store
+    .readTrace<TraceEvent>("s1")
+    .filter((e) => e.agent === "diagrams" && e.kind === "decision" && /override/.test(e.summary_en))
+    .map((e) => e.summary_en);
 
 // Omar's plan once he passed lesson 1's quiz on his second try, the way the quiz page leaves it.
 async function passedFirst() {

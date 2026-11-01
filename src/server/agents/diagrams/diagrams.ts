@@ -16,6 +16,7 @@ import { contentHash, type Store } from "../../store/store.ts";
 import type { PageFetcher } from "../../tools/fetch-page.ts";
 import { planFor } from "../architect/architect.ts";
 import { lessonResources, savedLessons } from "../lesson/lesson.ts";
+import { type Overridden, overrideLabels, overridesNote } from "./glossary-overrides.ts";
 import {
   type GlossaryTerm,
   glossaryProblems,
@@ -224,6 +225,7 @@ async function relabel(
   title: string,
   image: Image,
   labels: Label[],
+  overridden: Overridden[],
 ): Promise<Relabelled> {
   const source = transcribe(ctx, image, { ar: "الرسم الأصلي", en: `the source of ${title}` }).then(
     (texts) => ({ texts }),
@@ -270,6 +272,21 @@ async function relabel(
         en: `${title} relabelled (sample ${sample})`,
       });
       problems = relabelProblems(labels, read.texts, texts);
+      if (!problems.length && overridden.length) {
+        // The edit wrote the reading's Arabic, which the override table rejects, and another edit
+        // from the same labels would write it again.
+        const note = overridesNote(overridden);
+        problems = [
+          `sample ${sample} passes the code check but is drawn with the reading's Arabic for an overridden term: ${note.en}`,
+        ];
+        ctx.trace({
+          kind: "decision",
+          summary_ar: `اجتاز الرسم المعرَّب ${title} فحص الكود لكنه كُتب بترجمة النموذج لمصطلح صحّحه جدول المصطلحات المعتمدة (${note.ar})؛ يعرض الأصل مع جدول نصوصه بالعربية`,
+          summary_en: `${title} sample ${sample} passes the code check but carries the reading's Arabic for an overridden term (${note.en}); showing the legend`,
+          payload_ref: saveImage(ctx, output).ref,
+        });
+        return { method: "legend", output: null, check: { attempts: sample, problems } };
+      }
       if (!problems.length) {
         ctx.trace({
           kind: "decision",
@@ -330,6 +347,17 @@ async function diagramOf(
   if (!labels.some((l) => ARABIC.test(l.ar))) {
     return skip("ليس فيه نص تُرجم إلى العربية", "no text in it was translated into Arabic");
   }
+  // The diagram shows the override table's Arabic; the edit and the check keep the reading's, so a
+  // recorded request keeps its hash.
+  const { labels: shown, overridden } = overrideLabels(labels);
+  if (overridden.length) {
+    const note = overridesNote(overridden);
+    ctx.trace({
+      kind: "decision",
+      summary_ar: `صحّح جدول المصطلحات المعتمدة ترجمة نصوص الرسم ${title}: ${note.ar}`,
+      summary_en: `${title}: the override table corrects ${note.en}`,
+    });
+  }
   const { ok: _, ...cited } = licence;
   const diagram = {
     image_id: `img_${contentHash(figure.file_page)}`,
@@ -339,7 +367,7 @@ async function diagramOf(
     file: { title, page_url: figure.file_page, image_url: file.value.image_url },
     author: file.value.author,
     licence: cited,
-    labels: labels.map((l) => ({ src: l.src, ar: l.ar, bbox: bboxOf(l.box, image) })),
+    labels: shown.map((l) => ({ src: l.src, ar: l.ar, bbox: bboxOf(l.box, image) })),
     source: saveImage(ctx, image),
   };
   if (!licence.adapt) {
@@ -353,7 +381,7 @@ async function diagramOf(
     });
     return { ...diagram, method: "legend", output: null, check: { attempts: 0, problems: [] } };
   }
-  return { ...diagram, ...(await relabel(ctx, title, image, labels)) };
+  return { ...diagram, ...(await relabel(ctx, title, image, labels, overridden)) };
 }
 
 const diagramsAgent = (

@@ -119,6 +119,14 @@ const LABELS: DiagramLabels = {
 const SOURCE_TEXTS = ["Sum of Units", "Region", "1/31/2005", "66"];
 const GOOD = ["مجموع الوحدات", "المنطقة", "1/31/2005", "66"];
 const LEFT_OVER = ["مجموع الوحدات", "Region", "1/31/2005", "66"];
+// A reading that gives "BUZZ CUT" as «قصة قصيرة» (a short story), which the override table corrects.
+const HAIRCUT: DiagramLabels = {
+  ...LABELS,
+  labels: [...LABELS.labels, { src: "BUZZ CUT", ar: "قصة قصيرة", box: [0, 700, 100, 800] }],
+};
+const HAIRCUT_SOURCE = [...SOURCE_TEXTS, "BUZZ CUT"];
+const HAIRCUT_GOOD = [...GOOD, "قصة قصيرة"];
+const HAIRCUT_LEFT_OVER = [...LEFT_OVER, "قصة قصيرة"];
 
 const file = (licences: string[]): FileInfo => ({
   licences,
@@ -152,6 +160,7 @@ type Script = {
   shown?: Record<string, Figure[]>;
   files?: Record<string, FileInfo>;
   readings?: DiagramLabels[];
+  sourceTexts?: string[];
   samples?: string[][];
   // How many readings fail before one answers, and whether the source's transcript fails.
   failedReadings?: number;
@@ -167,6 +176,7 @@ function setup({
   shown = SHOWN,
   files = { [PIVOTED]: file(["Public domain"]) },
   readings = [LABELS],
+  sourceTexts = SOURCE_TEXTS,
   samples = [GOOD],
   failedReadings = 0,
   sourceFails = false,
@@ -193,7 +203,7 @@ function setup({
       const sample = marked ? (Buffer.from(marked, "base64")[30] ?? 0) : 0;
       if (!sample && sourceFails) throw new Error("Spark is down");
       if (sample && ++transcribed <= failedSamples) throw new Error("Spark is down");
-      const texts: ImageTexts = { texts: sample ? (samples[sample - 1] ?? GOOD) : SOURCE_TEXTS };
+      const texts: ImageTexts = { texts: sample ? (samples[sample - 1] ?? GOOD) : sourceTexts };
       return result(texts);
     },
     async imageEdit(call: { prompt: string }) {
@@ -381,6 +391,68 @@ describe("a lesson's diagrams", () => {
       output: null,
       check: { attempts: 1, problems: ["the source could not be transcribed: Spark is down"] },
     });
+  });
+
+  it("shows the override table's Arabic for a term it names, traces it, and sends the edit the reading's", async () => {
+    const { builder, sent, trace } = setup({
+      readings: [HAIRCUT],
+      sourceTexts: HAIRCUT_SOURCE,
+      samples: [HAIRCUT_LEFT_OVER, HAIRCUT_LEFT_OVER],
+    });
+
+    const [diagram] = await builder.build("L2");
+
+    expect(sent.edits).toHaveLength(2);
+    for (const edit of sent.edits) expect(edit).toContain('"BUZZ CUT" -> "قصة قصيرة"');
+    expect(diagram).toMatchObject({
+      method: "legend",
+      labels: [
+        { src: "Sum of Units", ar: "مجموع الوحدات" },
+        { src: "Region", ar: "المنطقة" },
+        { src: "BUZZ CUT", ar: "قَصّة شعر قصيرة" },
+      ],
+      check: { attempts: 2 },
+    });
+    const said = trace().filter((e) => /override/.test(e.summary_en));
+    expect(said).toEqual([
+      expect.objectContaining({
+        kind: "decision",
+        summary_en:
+          'Pivottable-Pivoted.PNG: the override table corrects "BUZZ CUT" from «قصة قصيرة» to the approved «قَصّة شعر قصيرة»',
+      }),
+    ]);
+    expect(said[0]?.summary_ar).toMatch(/BUZZ CUT.*قَصّة شعر قصيرة/);
+  });
+
+  it("falls back to the legend, with no second sample, when a sample passes drawn with the reading's Arabic for an overridden term", async () => {
+    const { builder, sent, trace } = setup({
+      readings: [HAIRCUT],
+      sourceTexts: HAIRCUT_SOURCE,
+      samples: [HAIRCUT_GOOD],
+    });
+
+    const [diagram] = await builder.build("L2");
+
+    expect(sent.edits).toHaveLength(1);
+    expect(diagram).toMatchObject({
+      method: "legend",
+      output: null,
+      labels: [
+        { ar: "مجموع الوحدات" },
+        { ar: "المنطقة" },
+        { src: "BUZZ CUT", ar: "قَصّة شعر قصيرة" },
+      ],
+      check: {
+        attempts: 1,
+        problems: [
+          'sample 1 passes the code check but is drawn with the reading\'s Arabic for an overridden term: "BUZZ CUT" from «قصة قصيرة» to the approved «قَصّة شعر قصيرة»',
+        ],
+      },
+    });
+    const fell = trace().filter((e) => /showing the legend/.test(e.summary_en));
+    expect(fell).toHaveLength(1);
+    expect(fell[0]?.payload_ref).toMatch(/^blob_/);
+    expect(fell[0]?.summary_ar).toMatch(/\p{Script=Arabic}/u);
   });
 
   it("tries the next image when one fails, and fails the step only when every image fails", async () => {
