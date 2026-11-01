@@ -93,7 +93,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-4.0, https://spdx.org/licenses/CC-BY-4.0.html. Use: open.
 - Licence statement on the page: "…Attribution This page titled 8.8: Pivot Tables was last modified on Sun, 07 Mar 2021 18:26:12 GMT and is shared under a CC BY 4.0 license and was authored, remixed, and/or curated by Lumen Learning via source content that was edited to the style and…"
 - Stored copy: `demo/fixtures/pages/biz.libretexts.org-66e7ea6863fe7711.json`, the page's text as fetched.
-- Recorded model calls that name it: 3. Lesson-writing calls that quote its text: 0.
+- Recorded model calls that name it: 3. Calls that carry its text, as "Recorded model replies" counts them: 0.
 - Credit line the lesson page copies: «8.8: Pivot Tables»، https://biz.libretexts.org/Courses/Lumen_Learning/Computer_Applications_for_Managers_(Lumen)/08%3A_Microsoft_Excel_Advanced_Skills/8.08%3A_Pivot_Tables، بترخيص CC-BY-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### 7.2: PivotTables for Data Analysis
@@ -102,7 +102,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-NC-SA-4.0, https://spdx.org/licenses/CC-BY-NC-SA-4.0.html. Use: personal study only (NonCommercial or NoDerivatives).
 - Licence statement on the page: "…page titled 7.2: PivotTables for Data Analysis was last modified on Sun, 14 Dec 2025 03:54:10 GMT and is shared under a CC BY-NC-SA 4.0 license and was authored, remixed, and/or curated by Gabrielle Brixey ."
 - Stored copy: `demo/fixtures/pages/biz.libretexts.org-b9f4e01f9ca71aa3.json`, the page's text as fetched.
-- Recorded model calls that name it: 3. Lesson-writing calls that quote its text: 0.
+- Recorded model calls that name it: 3. Calls that carry its text, as "Recorded model replies" counts them: 0.
 - Credit line the lesson page copies: «7.2: PivotTables for Data Analysis»، https://biz.libretexts.org/Courses/Coalinga_College/Introduction_to_Spreadsheets_(BSOT_112)/07%3A_Analyzing_and_Troubleshooting_Data/7.02%3A_PivotTables_for_Data_Analysis، بترخيص CC-BY-NC-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Microsoft Office/Create a Pivot Table
@@ -113,7 +113,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Text is available under the Creative Commons Attribution-ShareAlike License ;"
 - Stored copy: `demo/fixtures/pages/en.wikibooks.org-8f7bbb8e164629d2.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/en.wikibooks.org-f59bc6af3bf7361a.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 9. Lesson-writing calls that quote its text: 1.
+- Recorded model calls that name it: 9. Calls that carry its text, as "Recorded model replies" counts them: 3.
 - Credit line the lesson page copies: «Microsoft Office/Create a Pivot Table»، https://en.wikibooks.org/wiki/Microsoft_Office/Create_a_Pivot_Table، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Pivot table - Wikipedia
@@ -124,7 +124,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Text is available under the Creative Commons Attribution-ShareAlike 4.0 License ;"
 - Stored copy: `demo/fixtures/pages/en.wikipedia.org-ffbe05d82f77f9ff.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/en.wikipedia.org-1746e7cafeb2b708.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 9. Lesson-writing calls that quote its text: 2.
+- Recorded model calls that name it: 9. Calls that carry its text, as "Recorded model replies" counts them: 7.
 - Credit line the lesson page copies: «Pivot table - Wikipedia»، https://en.wikipedia.org/wiki/Pivot_table، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Tableur
@@ -135,7 +135,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Droit d'auteur : les textes sont disponibles sous licence Creative Commons attribution, partage dans les mêmes conditions ;"
 - Stored copy: `demo/fixtures/pages/fr.wikipedia.org-19cfaa64b2177867.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/fr.wikipedia.org-fc81a20edc63a82f.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 6. Lesson-writing calls that quote its text: 1.
+- Recorded model calls that name it: 6. Calls that carry its text, as "Recorded model replies" counts them: 5.
 - Credit line the lesson page copies: «Tableur»، https://fr.wikipedia.org/wiki/Tableur، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Tableau croisé dynamique — Wikipédia
@@ -145,7 +145,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Droit d'auteur : les textes sont disponibles sous licence Creative Commons attribution, partage dans les mêmes conditions ;"
 - Stored copy: `demo/fixtures/pages/fr.wikipedia.org-43e79caf953f781d.json`, the page's text as fetched.
-- Recorded model calls that name it: 8. Lesson-writing calls that quote its text: 0.
+- Recorded model calls that name it: 8. Calls that carry its text, as "Recorded model replies" counts them: 0.
 - Credit line the lesson page copies: «Tableau croisé dynamique — Wikipédia»، https://fr.wikipedia.org/wiki/Tableau_croisé_dynamique، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Microsoft Excel
@@ -156,7 +156,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Droit d'auteur : les textes sont disponibles sous licence Creative Commons attribution, partage dans les mêmes conditions ;"
 - Stored copy: `demo/fixtures/pages/fr.wikipedia.org-c61a1e51781a683c.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/fr.wikipedia.org-9650919c6c9f80f2.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 6. Lesson-writing calls that quote its text: 1.
+- Recorded model calls that name it: 6. Calls that carry its text, as "Recorded model replies" counts them: 5.
 - Credit line the lesson page copies: «Microsoft Excel»، https://fr.wikipedia.org/wiki/Microsoft_Excel، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Tableau de contingence
@@ -166,7 +166,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: CC-BY-SA-4.0, https://spdx.org/licenses/CC-BY-SA-4.0.html. Use: open.
 - Licence statement on the page: "Droit d'auteur : les textes sont disponibles sous licence Creative Commons attribution, partage dans les mêmes conditions ;"
 - Stored copy: `demo/fixtures/pages/fr.wikipedia.org-df4da75dafb1a410.json`, the page's text as fetched.
-- Recorded model calls that name it: 7. Lesson-writing calls that quote its text: 0.
+- Recorded model calls that name it: 7. Calls that carry its text, as "Recorded model replies" counts them: 0.
 - Credit line the lesson page copies: «Tableau de contingence»، https://fr.wikipedia.org/wiki/Tableau_de_contingence، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### 数据透视表
@@ -175,7 +175,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence: MPL-2.0, https://spdx.org/licenses/MPL-2.0.html. Use: rejected by the checker: MPL-2.0 is not on the allowlist.
 - Licence statement on the page: "…ersion) | Copyright information: Unless otherwise specified, all text and images on this website are licensed under the Mozilla Public License v2.0 ."
 - Stored copy: `demo/fixtures/pages/help.libreoffice.org-dd5a6520fa8b559f.json`, the page's text as fetched.
-- Recorded model calls that name it: 4. Lesson-writing calls that quote its text: 0.
+- Recorded model calls that name it: 4. Calls that carry its text, as "Recorded model replies" counts them: 0.
 
 ### Microsoft Excel — Викиучебник
 
@@ -185,7 +185,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Текст доступен по лицензии Creative Commons «С указанием авторства — С сохранением условий» (CC BY-SA) ;"
 - Stored copy: `demo/fixtures/pages/ru.wikibooks.org-c167a21689c8b115.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/ru.wikibooks.org-f3034505a977db30.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 8. Lesson-writing calls that quote its text: 1.
+- Recorded model calls that name it: 8. Calls that carry its text, as "Recorded model replies" counts them: 1.
 - Credit line the lesson page copies: «Microsoft Excel — Викиучебник»، https://ru.wikibooks.org/wiki/Microsoft_Excel، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 ### Сводная таблица
@@ -196,7 +196,7 @@ The replay demo reads web pages from `demo/fixtures/pages/` instead of the netwo
 - Licence statement on the page: "Текст доступен по лицензии Creative Commons «С указанием авторства — С сохранением условий» (CC BY-SA) ;"
 - Stored copy: `demo/fixtures/pages/ru.wikipedia.org-a475aa23cd43123a.json`, the page's text as fetched.
 - Stored HTML copy: `demo/fixtures/pages/ru.wikipedia.org-238ca6821bf528c4.json`, the whole page as fetched, which the diagrams agent reads for its figures.
-- Recorded model calls that name it: 9. Lesson-writing calls that quote its text: 2.
+- Recorded model calls that name it: 9. Calls that carry its text, as "Recorded model replies" counts them: 4.
 - Credit line the lesson page copies: «Сводная таблица»، https://ru.wikipedia.org/wiki/Сводная_таблица، بترخيص CC-BY-SA-4.0. الشرح العربي في CuraLoom مبني على مقتطفات منه، مع تغييرات.
 
 The other files in that folder hold no page text:

@@ -355,7 +355,6 @@ function recordedSources(recorded: RecordedPage[], recordings: string[]) {
     // The scout names a resource by a hash of the URL the model cited, in any of these spellings.
     const ids = forms.map((u) => `r_${createHash("sha256").update(u).digest("hex").slice(0, 8)}`);
     const named = recordings.filter((r) => [...forms, ...ids].some((form) => r.includes(form)));
-    const quoted = named.filter((r) => ids.some((id) => r.includes(`### ${id} |`)));
     const html = htmlCopies.filter((h) => forms.includes(finalUrl(h.url)));
     return [
       {
@@ -366,7 +365,6 @@ function recordedSources(recorded: RecordedPage[], recordings: string[]) {
         lang: seen?.lang,
         authors: AUTHORS.find(([pattern]) => pattern.test(host))?.[1],
         named: named.length,
-        quoted: quoted.length,
         html,
       },
     ];
@@ -375,7 +373,7 @@ function recordedSources(recorded: RecordedPage[], recordings: string[]) {
 
 type Source = ReturnType<typeof recordedSources>[number];
 
-function sourceSection(recorded: RecordedPage[], sources: Source[]): string[] {
+function sourceSection(recorded: RecordedPage[], sources: Source[], carriers: Carrier[]): string[] {
   const withText = sources.map((s) => s.page);
   const redirects = new Set(
     recorded.flatMap((p) => (p.response.kind === "redirect" ? [p.url] : [])),
@@ -413,7 +411,7 @@ function sourceSection(recorded: RecordedPage[], sources: Source[]): string[] {
       (h) =>
         `- Stored HTML copy: \`${PAGES}/${h.file}\`, the whole page as fetched, which the diagrams agent reads for its figures.`,
     ),
-    `- Recorded model calls that name it: ${s.named}. Lesson-writing calls that quote its text: ${s.quoted}.`,
+    `- Recorded model calls that name it: ${s.named}. Calls that carry its text, as "Recorded model replies" counts them: ${carriers.filter((c) => c.carried.includes(s)).length}.`,
     ...(s.check.use === "rejected"
       ? []
       : [
@@ -499,8 +497,31 @@ const strings = (value: unknown): string[] =>
       ? Object.values(value).flatMap(strings)
       : [];
 
-function modelSection(sources: Source[]): string[] {
-  const files = readdirSync(join(ROOT, RESPONSES)).sort();
+const responseFiles = () => readdirSync(join(ROOT, RESPONSES)).sort();
+
+// The recorded calls that hold a run of words only one page holds, with the pages they carry.
+function carryingCalls(sources: Source[]) {
+  const owner = new Map<string, Source | null>();
+  for (const source of sources) {
+    for (const run of wordRuns(source.text)) {
+      owner.set(run, owner.has(run) && owner.get(run) !== source ? null : source);
+    }
+  }
+  return responseFiles().flatMap((file) => {
+    const call = readJson<RecordedCall>(`${RESPONSES}/${file}`);
+    const searched = call.request.json?.tools?.some((tool) => tool.type === "web_search");
+    const read = [...strings(call.request.json), ...(searched ? strings(call.body) : [])];
+    const found = new Set(read.flatMap(wordRuns).map((run) => owner.get(run)));
+    const carried = sources.filter((s) => found.has(s));
+    const kind = call.request.json?.text?.format?.name ?? call.request.path;
+    return carried.length ? [{ file, kind, carried }] : [];
+  });
+}
+
+type Carrier = ReturnType<typeof carryingCalls>[number];
+
+function modelSection(sources: Source[], carriers: Carrier[]): string[] {
+  const files = responseFiles();
   const models = new Map<string, number>();
   for (const file of files) {
     const model = file.match(/^[a-z_]+-(.+)-[0-9a-f]{16}\.json$/)?.[1] ?? "unknown";
@@ -511,22 +532,6 @@ function modelSection(sources: Source[]): string[] {
     .map(([model, n]) => `${n} from ${model}`)
     .join(", ");
 
-  // Each run of words that one page holds and no other page does, by that page.
-  const owner = new Map<string, Source | null>();
-  for (const source of sources) {
-    for (const run of wordRuns(source.text)) {
-      owner.set(run, owner.has(run) && owner.get(run) !== source ? null : source);
-    }
-  }
-  const carriers = files.flatMap((file) => {
-    const call = readJson<RecordedCall>(`${RESPONSES}/${file}`);
-    const searched = call.request.json?.tools?.some((tool) => tool.type === "web_search");
-    const read = [...strings(call.request.json), ...(searched ? strings(call.body) : [])];
-    const found = new Set(read.flatMap(wordRuns).map((run) => owner.get(run)));
-    const carried = sources.filter((s) => found.has(s));
-    const kind = call.request.json?.text?.format?.name ?? call.request.path;
-    return carried.length ? [{ file, kind, carried }] : [];
-  });
   const uncarried = sources.filter((s) => !carriers.some((c) => c.carried.includes(s)));
   const titled = (s: Source) => `${s.title} (${s.check.spdx})`;
 
@@ -554,6 +559,7 @@ const platform = platformPackages();
 const pages = recordedPages();
 const recordings = recordedCalls();
 const sources = recordedSources(pages, recordings);
+const carriers = carryingCalls(sources);
 const lines = [
   "# Third-party notices",
   "",
@@ -564,9 +570,9 @@ const lines = [
   ...dependencySection(installed, platform),
   ...fontSection(),
   ...iconSection(installed),
-  ...sourceSection(pages, sources),
+  ...sourceSection(pages, sources, carriers),
   ...imageSection(pages, recordings),
-  ...modelSection(sources),
+  ...modelSection(sources, carriers),
 ];
 writeFileSync(join(ROOT, OUT), `${lines.join("\n").trimEnd()}\n`);
 const format = spawnSync("pnpm", ["exec", "biome", "format", "--write", OUT], { stdio: "inherit" });
