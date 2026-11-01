@@ -1,22 +1,23 @@
-// Settings (#15 slot): the demo layer's settings, read from config. The model profile is read-only;
-// the simulated clock moves from here (#23), and the coach's consent shows here, edited on /consent
-// (#24). Before the intake the consent is the sample learner's, marked as an example.
+// Settings (#15 slot): the demo layer's settings, read from config. The model profile is read-only,
+// in Arabic, with the setting names folded away (#64); the simulated clock moves from here (#23), and
+// the coach's consent shows here, edited on /consent (#24). Before the intake the consent is the
+// sample learner's, marked as an example.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
-import type { ReactNode } from "react";
 import type { Consent } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
-import { config, PROVIDER_PROFILES, type ProviderProfile } from "../../config.ts";
+import { config, loadConfig, PROVIDER_PROFILES, type ProviderProfile } from "../../config.ts";
+import { ladderMarks } from "../../server/coach/ladder.ts";
 import { sessionSim } from "../../server/coach/session.ts";
 import { createFileStore } from "../../server/store/store.ts";
 import { Page, PageHead, Panel, SettingRow, SettingRows } from "../_shell/blocks.tsx";
 import { CONSENT_PILL, consentState, consentText, SAMPLE_PILL, simDay } from "../_shell/course.ts";
 import { clockTime } from "../_shell/format.ts";
 import { planKind } from "../_shell/lessons.ts";
-import { buttonClass, cx, StatusPill } from "../_shell/ui.tsx";
+import { buttonClass, cx, MODE, StatusPill } from "../_shell/ui.tsx";
 import { ClockControls } from "./clock-controls.tsx";
 import styles from "./settings.module.css";
 
@@ -31,28 +32,15 @@ function Tech({ children }: { children: string }) {
   );
 }
 
-const PROFILE: Record<ProviderProfile, { label: string; help: ReactNode }> = {
-  replay: {
-    label: "مسجّل",
-    help: "يعرض ردود النماذج المسجلة: لا اتصال بالنماذج ولا تكلفة. هذا وضع العرض.",
-  },
-  record: {
-    label: "تسجيل",
-    help: (
-      <>
-        يستدعي النماذج ويحفظ ردودها لتُعرض لاحقًا. يحتاج مفتاحًا في ملف <Tech>.env</Tech>.
-      </>
-    ),
-  },
-  live: {
-    label: "مباشر",
-    help: (
-      <>
-        يستدعي النماذج مباشرة في كل خطوة. يحتاج مفتاحًا في ملف <Tech>.env</Tech>.
-      </>
-    ),
-  },
+const PROFILE_HELP: Record<ProviderProfile, string> = {
+  replay: "يعرض ردود النماذج المسجّلة: لا اتصال بالنماذج ولا تكلفة. هذا وضع العرض.",
+  record: "يستدعي النماذج ويحفظ ردودها لتُعرض لاحقًا. يحتاج إلى مفتاح النماذج.",
+  live: "يستدعي النماذج مباشرة في كل خطوة. يحتاج إلى مفتاح النماذج.",
 };
+
+// Config's default topic is a placeholder, so a server started without one has no topic. demo/run.ts
+// tells the two apart the same way.
+const topicOf = (topic: string) => (topic === loadConfig({}).demoTopic ? undefined : topic);
 
 const INTENSITY: Record<Consent["intensity"], string> = { gentle: "لطيف", normal: "عادي" };
 
@@ -74,7 +62,7 @@ function consentLine(consent: Consent, sample?: string): string {
 export default async function SettingsPage() {
   // The consent is the session's, so the page renders on each request.
   await connection();
-  const profile = PROFILE[config.providerProfile];
+  const topic = topicOf(config.demoTopic);
   const store = createFileStore();
   const { learner, sim } = sessionSim(store, DEMO_SESSION_ID, loadOmarSeed(config.demoTopic));
   const consent = sim.consent();
@@ -90,7 +78,7 @@ export default async function SettingsPage() {
 
       <Panel id="clock-title" title="الساعة المحاكاة" flush>
         {config.simClock ? (
-          <ClockControls sessionId={DEMO_SESSION_ID} />
+          <ClockControls sessionId={DEMO_SESSION_ID} days={ladderMarks().map((m) => m.day)} />
         ) : (
           <SettingRows>
             <SettingRow
@@ -125,8 +113,12 @@ export default async function SettingsPage() {
 
       <Panel id="models-title" title="النماذج" flush>
         <SettingRows>
-          <SettingRow label="وضع النماذج" labelId="profile-label" help={profile.help}>
-            {/* Read-only: the profile comes from PROVIDER_PROFILE in .env, not from this page. */}
+          <SettingRow
+            label="وضع النماذج"
+            labelId="profile-label"
+            help={PROFILE_HELP[config.providerProfile]}
+          >
+            {/* Read-only: the profile comes from the server's settings, not from this page. */}
             <ul className={styles.segments} aria-labelledby="profile-label">
               {PROVIDER_PROFILES.map((p) => {
                 const current = p === config.providerProfile;
@@ -136,45 +128,50 @@ export default async function SettingsPage() {
                     className={cx(styles.segment, current && styles.segmentOn)}
                     aria-current={current || undefined}
                   >
-                    {PROFILE[p].label}
-                    <Tech>{p}</Tech>
+                    {MODE[p].label}
                   </li>
                 );
               })}
             </ul>
           </SettingRow>
-          <SettingRow
-            label="من أين يُضبط"
-            labelId="profile-source"
-            help={
-              <>
-                يتغير الوضع من ملف <Tech>.env</Tech> فقط، وتُوجَّه كل مهمة إلى نموذجها في ملف الأدوار.
-              </>
-            }
-          >
-            <span className={styles.files}>
-              <Tech>PROVIDER_PROFILE</Tech>
-              <Tech>config/models.yaml</Tech>
-            </span>
-          </SettingRow>
         </SettingRows>
+        <details className={styles.techFold}>
+          <summary>تفاصيل تقنية</summary>
+          <p>
+            يتغير الوضع من ملف <Tech>.env</Tech> فقط، وتُوجَّه كل مهمة إلى نموذجها في ملف الأدوار.
+          </p>
+          <dl>
+            <dt>الوضع</dt>
+            <dd>
+              <Tech>{`PROVIDER_PROFILE=${config.providerProfile}`}</Tech>
+            </dd>
+            <dt>ملف الأدوار</dt>
+            <dd>
+              <Tech>config/models.yaml</Tech>
+            </dd>
+          </dl>
+        </details>
       </Panel>
 
       <Panel id="app-title" title="التطبيق" flush>
         <SettingRows>
           <SettingRow
-            label="اسم العمل"
+            label="اسم التطبيق"
             labelId="app-name"
-            help="اسم مؤقت لم يُعتمد بعد. يُقرأ من الإعدادات ولا يُكتب في الشيفرة."
+            help="يظهر في الشعار وفي عنوان كل صفحة، ويُقرأ من إعدادات الخادم."
           >
             <bdi className={styles.name}>{config.appName}</bdi>
           </SettingRow>
           <SettingRow
             label="موضوع العرض"
             labelId="app-topic"
-            help="لم يُحدَّد موضوع الدورة بعد، فالمحتوى الحالي مكتوب على موضوع مؤقت."
+            help={
+              topic
+                ? "الموضوع الذي تُبنى عليه دورة العرض."
+                : "لم يُحدَّد موضوع للعرض على هذا الخادم. حدّده في إعدادات الخادم قبل أن تبدأ المقابلة."
+            }
           >
-            <Tech>{config.demoTopic}</Tech>
+            {topic ? <Tech>{topic}</Tech> : <StatusPill status="neutral">لم يُحدَّد</StatusPill>}
           </SettingRow>
           <SettingRow
             label="جلسة العرض"

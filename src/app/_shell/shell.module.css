@@ -102,11 +102,6 @@
   font-weight: 700;
   letter-spacing: -0.01em;
 }
-.brandNote {
-  font-size: var(--text-2xs);
-  font-weight: 500;
-  color: var(--ink-3);
-}
 
 .nav ul {
   display: flex;
@@ -200,15 +195,6 @@
   font-size: inherit;
   font-weight: 600;
   letter-spacing: 0;
-}
-.rail:not([data-open="true"]) .brandText {
-  flex-direction: row;
-  align-items: baseline;
-  gap: var(--s-2);
-}
-.rail:not([data-open="true"]) .brandNote {
-  color: rgb(255 255 255 / 0.75);
-  font-size: var(--text-xs);
 }
 .rail[data-open="true"] .tip {
   display: none;

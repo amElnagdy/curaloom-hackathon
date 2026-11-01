@@ -40,7 +40,7 @@ import {
   percent,
   QUESTIONS,
 } from "../../_shell/format.ts";
-import { type CourseLesson, learnerCourse } from "../../_shell/lessons.ts";
+import { type CourseLesson, learnerCourse, lessonTabTitle } from "../../_shell/lessons.ts";
 import { nextStep, type Progress, progressOf } from "../../_shell/next-step.ts";
 import { BidiText, buttonClass, cx, DirIcon, ReplayNote, StatusPill } from "../../_shell/ui.tsx";
 import { LockedBody, MissingLesson } from "../../lesson/states.tsx";
@@ -60,7 +60,12 @@ import {
 import styles from "../quiz.module.css";
 import { QuizWaiting } from "../waiting.tsx";
 
-export const metadata: Metadata = { title: "الاختبار" };
+export async function generateMetadata({
+  params,
+}: PageProps<"/quiz/[lessonId]">): Promise<Metadata> {
+  const { lessonId } = await params;
+  return { title: lessonTabTitle(learnerCourse()?.states, lessonId, "quiz") };
+}
 
 type Item = Quiz["items"][number];
 type Graded = QuizAttempt["answers"][number];

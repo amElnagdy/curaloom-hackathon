@@ -57,7 +57,7 @@ import {
   percent,
   QUESTIONS,
 } from "../../_shell/format.ts";
-import { type CourseLesson, learnerCourse } from "../../_shell/lessons.ts";
+import { type CourseLesson, learnerCourse, lessonTabTitle } from "../../_shell/lessons.ts";
 import { type Progress, progressOf } from "../../_shell/next-step.ts";
 import {
   BidiText,
@@ -86,7 +86,12 @@ import {
   WritingStatus,
 } from "../terms.tsx";
 
-export const metadata: Metadata = { title: "الدرس" };
+export async function generateMetadata({
+  params,
+}: PageProps<"/lesson/[lessonId]">): Promise<Metadata> {
+  const { lessonId } = await params;
+  return { title: lessonTabTitle(learnerCourse()?.states, lessonId, "lesson") };
+}
 
 // What the page shows: nothing yet before the plan, a lesson the plan lacks, a lesson the quiz gate
 // keeps shut, a lesson being written, or a lesson, the seed's (`sample`) or the learner's.

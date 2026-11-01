@@ -1,8 +1,8 @@
 "use client";
 
-// The simulated clock's controls (#23): +1 hour, +1 day, jump to day 2, 5, 10 or 17, and reset,
-// through useSimClock, so the time shown is live across tabs. Like the demo bar, the forward moves
-// wait for the learner's plan after the intake (#61); reset does not.
+// The simulated clock's controls (#23): +1 hour, +1 day, jump to a day of the coach's ladder (the
+// demo bar's days, #64), and reset, through useSimClock, so the time shown is live across tabs. Like
+// the demo bar, the forward moves wait for the learner's plan after the intake (#61); reset does not.
 
 import { CalendarPlus, FastForward, Info, RotateCcw } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +16,7 @@ import { buttonClass, SimClockPill } from "../_shell/ui.tsx";
 import { type SimMove, useSimClock, WAITS_FOR_PLAN } from "../_shell/use-sim-clock.ts";
 import styles from "./settings.module.css";
 
-const JUMP_DAYS = [2, 5, 10, 17];
+const PASSED = "بلغت الساعة هذا اليوم. أعد الضبط لتعود إليه.";
 
 function firedNote(events: CoachEvent[]): ReactNode {
   if (events.length === 0) return "لم يحلّ موعد أي رسالة من المدرب.";
@@ -29,7 +29,7 @@ function firedNote(events: CoachEvent[]): ReactNode {
   );
 }
 
-export function ClockControls({ sessionId }: { sessionId: string }) {
+export function ClockControls({ sessionId, days }: { sessionId: string; days: number[] }) {
   const { now, busy, move: moveClock, waitsForPlan } = useSimClock(sessionId);
   const [note, setNote] = useState<ReactNode>(null);
 
@@ -46,6 +46,7 @@ export function ClockControls({ sessionId }: { sessionId: string }) {
   const forward = {
     disabled: disabled || waitsForPlan,
     "aria-describedby": waitsForPlan ? "clock-waits" : undefined,
+    title: waitsForPlan ? WAITS_FOR_PLAN : undefined,
   };
 
   return (
@@ -84,12 +85,13 @@ export function ClockControls({ sessionId }: { sessionId: string }) {
           help="تنتقل الساعة إلى بداية اليوم، ٩:٠٠ ص، وتُطلق في طريقها كل رسالة حلّ موعدها. الساعة لا تعود إلى الوراء، فالأيام التي مضت معطّلة حتى تعيد الضبط."
         >
           <fieldset className={styles.buttons} aria-labelledby="clock-jump" {...forward}>
-            {JUMP_DAYS.map((day) => (
+            {days.map((day) => (
               <button
                 key={day}
                 type="button"
                 className={buttonClass("secondary", "sm")}
                 disabled={passed(day)}
+                title={passed(day) && !waitsForPlan ? PASSED : undefined}
                 onClick={() => move({ action: "set", body: { day } })}
               >
                 {simDay(day)}

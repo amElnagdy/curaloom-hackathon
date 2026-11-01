@@ -19,6 +19,7 @@ import { savedProfile } from "../../server/agents/intake/intake.ts";
 import { savedLessons } from "../../server/agents/lesson/lesson.ts";
 import { createFileStore, type Store } from "../../server/store/store.ts";
 import { type CourseModule, latestPlan, lessonPlace, type Session } from "./course.ts";
+import { ordinal } from "./format.ts";
 
 export type PlannedLesson = CoursePlan["committed"]["lessons"][number];
 
@@ -56,6 +57,18 @@ export function courseLessons(
       best: own && own.attempts > 0 ? own.best_score : undefined,
     };
   });
+}
+
+// The tab title of a lesson's page or its quiz's (#64), numbered so that two lessons' tabs differ:
+// «الدرس الأول», «اختبار الدرس الأول». A lesson outside the plan has no number.
+export function lessonTabTitle(
+  lessons: CourseLesson[] | undefined,
+  lessonId: string,
+  page: "lesson" | "quiz",
+): string {
+  const state = lessons?.find((l) => l.planned.id === lessonId);
+  const lesson = state ? `الدرس ${ordinal(state.position)}` : "الدرس";
+  return page === "quiz" ? `اختبار ${lesson}` : lesson;
 }
 
 // The lesson the learner is on: the first open one not passed yet, or the last once all are passed.

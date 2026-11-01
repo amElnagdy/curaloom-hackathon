@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
 import { contentHash, createFileStore } from "../../server/store/store";
 import { latestPlan } from "./course";
-import { courseLessons, currentLesson, planKind } from "./lessons";
+import { courseLessons, currentLesson, lessonTabTitle, planKind } from "./lessons";
 
 describe("planKind", () => {
   const seed = loadOmarSeed("x");
@@ -100,5 +100,28 @@ describe("currentLesson", () => {
     }));
 
     expect(currentLesson(courseLessons(plan(), new Set(), mastery))?.planned.id).toBe("L2");
+  });
+});
+
+describe("lessonTabTitle", () => {
+  it("numbers each lesson's page and its quiz's, so no two tabs share a title", () => {
+    const lessons = courseLessons(plan(), new Set(["L1"]), []);
+    const titles = ["L1", "L2"].flatMap((id) =>
+      (["lesson", "quiz"] as const).map((page) => lessonTabTitle(lessons, id, page)),
+    );
+
+    expect(titles).toEqual([
+      "الدرس الأول",
+      "اختبار الدرس الأول",
+      "الدرس الثاني",
+      "اختبار الدرس الثاني",
+    ]);
+  });
+
+  it("names a lesson outside the plan, or before there is one, without a number", () => {
+    const lessons = courseLessons(plan(), new Set(), []);
+
+    expect(lessonTabTitle(lessons, "L9", "lesson")).toBe("الدرس");
+    expect(lessonTabTitle(undefined, "L1", "quiz")).toBe("اختبار الدرس");
   });
 });

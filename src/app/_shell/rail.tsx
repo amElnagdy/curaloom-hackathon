@@ -161,7 +161,6 @@ export function Rail({ appName, learnerName }: { appName: string; learnerName: s
             <BrandMark />
             <span className={styles.brandText}>
               <bdi className={styles.brandName}>{appName}</bdi>
-              <span className={styles.brandNote}>اسم مؤقت</span>
             </span>
           </Link>
         </div>
