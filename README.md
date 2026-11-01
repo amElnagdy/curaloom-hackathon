@@ -115,6 +115,8 @@ pnpm demo:live
 
 `pnpm demo:live` builds the app first. It then serves the app on port 3107, on 127.0.0.1 only, with its data in `.live-data/`, which it empties at start. When the server prints `Ready`, open http://localhost:3107/intake. The live demo uses the recorded topic, "Excel pivot tables for data analysis", unless `DEMO_TOPIC` is set in `.env` or the shell. Without a key, it stops before the build and says where to set the key. `config/.env.example` lists every setting with its default. Live calls cost money, and the trace shows each call's cost.
 
+To run a second demo beside the first, such as the live demo beside the replay, give it another port with `DEMO_PORT`, in `.env` or the shell: `DEMO_PORT=3118 pnpm demo:live`. Each demo command builds into a folder of its own and keeps its own data, so its build leaves a running demo alone. When the port is taken, the command stops before the build and says so. The presenter steps and the video use the default, 3107.
+
 For development only, `pnpm dev` runs the Next.js dev server on port 3000. It listens on every network interface, not on 127.0.0.1 only. Its default mode is `live`, so its model calls cost money too. Unlike `pnpm demo:live`, it does not fall back to the recorded topic. Without `DEMO_TOPIC` in `.env`, its topic is the placeholder `<DEMO_TOPIC>`. It keeps its data in `data/`.
 
 | Command                                       | What it does                                                                                        |

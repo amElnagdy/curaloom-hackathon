@@ -4,11 +4,11 @@ The demo runs the app on port 3107 for one sample learner, Omar. In replay, ever
 
 ## Commands
 
-Each command except the reset builds the app and serves it on `http://localhost:3107`. `pnpm dev` keeps its own port and its own `data/`.
+Each command except the reset builds the app and serves it on `http://localhost:3107`, or on the port `DEMO_PORT` sets in `.env` or the shell, from 1024 to 65535. When the port is taken, the command stops before the build and says so. Each command builds into its own folder, `.next/` for the replay, `.next-preview/` and `.next-live/`, and keeps its own data, so any two can run side by side on different ports, such as `DEMO_PORT=3118 pnpm demo:live` beside `pnpm demo:replay`. The presenter steps below use 3107. `pnpm demo:reset` empties all three demos' data, whatever their ports. `pnpm dev` keeps its own port and its own `data/`.
 
 | Command            | Models                                | Pace                   | Data                               |
 | ------------------ | ------------------------------------- | ---------------------- | ---------------------------------- |
-| `pnpm demo:replay` | recorded                              | 0.3 × recorded latency | `.preview-data/`, emptied at start |
+| `pnpm demo:replay` | recorded                              | 0.3 × recorded latency | `.replay-data/`, emptied at start  |
 | `pnpm preview`     | recorded                              | none                   | `.preview-data/`, emptied at start |
 | `pnpm demo:live`   | live; needs `MODEL_API_KEY` in `.env` | real                   | `.live-data/`, emptied at start    |
 | `pnpm demo:reset`  | none                                  | none                   | empties both folders               |

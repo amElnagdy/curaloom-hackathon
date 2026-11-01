@@ -59,11 +59,11 @@ Replay finds each recording by a hash of the full request, the API path and the 
   1. `git clone https://github.com/amElnagdy/curaloom.git` checked out `f780c93`.
   2. `pnpm install --frozen-lockfile --store-dir <empty folder>` downloaded all 65 packages from the registry and finished in 18.1 s.
   3. The replay build ran the same steps as `pnpm demo:replay`. It called `demoServer("replay", env)` from `demo/run.ts`, emptied `.preview-data/` and ran `next build` with the server's settings: `PROVIDER_PROFILE=replay`, `DEMO_TOPIC="Excel pivot tables for data analysis"`, `REPLAY_LATENCY=0.3`. The build passed and generated 13 static pages.
-  4. `next start -H 127.0.0.1 -p 3111` printed `Ready in 70ms`. `pnpm demo:replay` always uses port 3107, and another server held that port during the check, so the check used port 3111.
+  4. `next start -H 127.0.0.1 -p 3111` printed `Ready in 70ms`. `pnpm demo:replay` then always used port 3107, and another server held that port during the check, so the check used port 3111. Since #63, `DEMO_PORT=3111 pnpm demo:replay` does steps 3 and 4 in one command.
   5. `curl http://127.0.0.1:3111/intake` returned HTTP 200 and 35,111 bytes, titled `المقابلة | CuraLoom`, with the «ردود مسجّلة» `REPLAY` badge.
   6. `pnpm check` in the same clone passed: lint, typecheck, and 762 tests in 45 files.
 - [x] **Install from a ZIP download.** GitHub's "Download ZIP" gives a folder with no `.git`. There, `pnpm install` failed with exit code 128, because the `prepare` script ran `git config core.hooksPath .githooks`. Fixed in `package.json`: the script now ends with `|| exit 0`. The same install then passes. A clone still gets the pre-commit hook.
-- [ ] **Run the check again on the final commit. Owner: whoever publishes.** Since #43 the Noto fonts ship in `src/app/fonts/`, so the build needs no network.
+- [ ] **Run the check again on the final commit. Owner: whoever publishes.** In a fresh clone, run `pnpm install --frozen-lockfile`, then `pnpm demo:replay`. If another server holds port 3107, add `DEMO_PORT=3111` (any free port), and the command says so before it builds. When it prints `Ready`, `curl http://127.0.0.1:<port>/intake` must return HTTP 200 with the «ردود مسجّلة» `REPLAY` badge. Then run `pnpm check`. Since #43 the Noto fonts ship in `src/app/fonts/`, so the build needs no network.
 
 ## Personal data
 
