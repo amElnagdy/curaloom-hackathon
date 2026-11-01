@@ -69,7 +69,7 @@ it.each([
   ).toEqual(["evt_0001"]);
 });
 
-it("traces a request replay has no recording for as an error that names its hash, for the UI to show", () => {
+it("traces a request replay has no recording for as an error that names its hash in English only", () => {
   const store = createFileStore(mkdtempSync(join(tmpdir(), "trace-")));
   const tracer = createTracer(store, "s_1", clock);
 
@@ -91,6 +91,8 @@ it("traces a request replay has no recording for as an error that names its hash
   });
 
   expect(traced).toMatchObject({ kind: "error", missing_recording: "0123456789abcdef" });
-  expect(traced.summary_ar).toContain("0123456789abcdef");
+  // A Latin hash in brackets inside an Arabic sentence reorders it (#56).
+  expect(traced.summary_ar).toMatch(/\p{Script=Arabic}/u);
+  expect(traced.summary_ar).not.toMatch(/[A-Za-z0-9()]/);
   expect(traced.summary_en).toContain("0123456789abcdef");
 });

@@ -27,7 +27,12 @@ import type { CoursePlan, Resource } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../../demo/session.ts";
 import { config } from "../../config.ts";
-import { architectBrief, limitsOf, planFor } from "../../server/agents/architect/architect.ts";
+import {
+  architectBrief,
+  limitsOf,
+  planFor,
+  stuckBuild,
+} from "../../server/agents/architect/architect.ts";
 import { lighterWeek } from "../../server/agents/architect/replan.ts";
 import { type Limits, SESSION_MINUTES, weekMinutes } from "../../server/agents/architect/rules.ts";
 import { levelName, recordedLevelNote, savedProfile } from "../../server/agents/intake/intake.ts";
@@ -209,6 +214,8 @@ export default async function PlanPage({ searchParams }: PageProps<"/plan">) {
   const profile = learner ?? seed.profile;
   // Only a plan built for this learner's profile is theirs; any other waits for a rebuild.
   const saved = learner && planFor(store, DEMO_SESSION_ID, learner);
+  // A build that missed a recording misses again, so the page offers the way back instead (#58).
+  const stuck = !!learner && stuckBuild(store, DEMO_SESSION_ID, learner) !== undefined;
   const latest = saved?.versions.at(-1);
   const example = latestPlan(seed);
   // In replay, a level with no recordings is planned as the recorded one (#55).
@@ -449,7 +456,12 @@ export default async function PlanPage({ searchParams }: PageProps<"/plan">) {
   return (
     <div className={styles.plan}>
       {/* Keyed by the profile, so a page refreshed after the profile changed builds for the new one. */}
-      <Building key={contentHash(profile)} sessionId={DEMO_SESSION_ID} build={!shown}>
+      <Building
+        key={contentHash(profile)}
+        sessionId={DEMO_SESSION_ID}
+        build={!shown && !stuck}
+        stuck={stuck}
+      >
         {article}
       </Building>
 

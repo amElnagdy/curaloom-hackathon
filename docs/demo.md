@@ -98,14 +98,15 @@ The walk clicks the typed-text chips, not the voice chip in step 2, and it check
 
 ## When a recording is missing
 
-A request with no recording fails at once. It does not wait for a timeout.
+A request with no recording fails at once. It does not wait for a timeout. A page the scout fetches with no recording fails the same way.
 
-- The server log prints `[replay] No recorded response for request <hash> (/responses, responses-<model>-<hash>.json)`.
-- The trace drawer shows the failed call with the same hash.
-- A red banner under the top bar names the agent and the hash.
-- The page's step fails as a model failure does, with its retry button. The coach is the exception. It sends its template message instead, and the banner still shows.
+- The server log prints `[replay] No recorded response for request <hash> (/responses, responses-<model>-<hash>.json)`, or `[replay] No recorded page for <url> (<file>)` for a page.
+- The trace drawer shows the failed call. Its English summary names the hash or the page file; its Arabic summary does not.
+- A red banner under the top bar says in Arabic which step stopped, that this part of the demo or one of the sources' pages is not recorded, and that a retry will not help. It does not guess why. It offers «ابدأ العرض من جديد» and «التفاصيل في سجل الوكلاء», and shows no hash or file name. Its close button hides it in this tab. At phone width it scrolls with the page.
+- The page's step fails as a model failure does. Where the lesson, its quiz or its diagram stopped on the missing recording, the failure shows no «حاول مرة أخرى», and the banner's restart is the way back. The quiz page keeps its retry. The coach is the exception. It sends its template message instead, and the banner still shows.
+- The plan page is the exception for the scout and the architect. When a plan build stopped on a missing recording, the page says so as soon as the build answers and from the first render after that, offers «ابدأ العرض من جديد» in place of «حاول مرة أخرى», and does not build again when reloaded. It shows no banner.
 
-The banner stays until the next reset. The failed step can still play its recording. In the intake, click the chip and send the recorded text again.
+«ابدأ العرض من جديد» empties the demo's data as the reset does and opens the interview. The banner goes with it in this tab, also when the simulated clock is off and the restart only forgets the interview. It also goes after a reset, or when the failed step later plays its recording. In the intake, click the chip and send the recorded text again.
 
 To fix it, record the request as described next. The hash names the file the recording goes in.
 

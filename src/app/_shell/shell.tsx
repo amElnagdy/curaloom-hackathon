@@ -7,10 +7,11 @@ import type { ReactNode } from "react";
 import type { ProviderProfile } from "../../config.ts";
 import { LiveSimClockPill } from "./activity-feed.tsx";
 import { DemoBar, type DemoMark } from "./demo-bar.tsx";
+import { MissingRecordingAlert } from "./missing-recording.tsx";
 import { Rail } from "./rail.tsx";
 import styles from "./shell.module.css";
 import { TopBar } from "./top-bar.tsx";
-import { MissingRecordingAlert, TraceDrawer } from "./trace-drawer.tsx";
+import { TraceDrawer } from "./trace-drawer.tsx";
 
 export function Shell({
   appName,

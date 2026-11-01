@@ -1,0 +1,53 @@
+/* ===================================================================== missing recording (#30, #56) */
+.banner {
+  position: sticky;
+  top: var(--top-h);
+  z-index: 19;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s-2) var(--s-3);
+  padding: var(--s-3) var(--s-6);
+  border-bottom: 1px solid var(--fail-200);
+  background: var(--fail-50);
+  color: var(--fail-ink);
+  font-size: var(--text-sm);
+}
+.message {
+  flex: 1 1 24rem;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+.message > :global(.lucide) {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.4rem;
+  color: var(--fail);
+}
+.text {
+  flex: 1;
+  margin: 0;
+  padding-top: 0.2rem;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.dismiss {
+  color: var(--fail-ink);
+}
+.note {
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 760px) {
+  /* On a phone it would hold a quarter of the screen while the page scrolls. */
+  .banner {
+    position: static;
+    padding-inline: var(--s-4);
+  }
+}

@@ -22,6 +22,7 @@ import {
 import { flushSync } from "react-dom";
 import type { GlossaryEntry } from "../../../contracts/index.ts";
 import { Callout } from "../_shell/blocks.tsx";
+import { useStoppedOnMiss } from "../_shell/missing-recording.tsx";
 import {
   BidiText,
   buttonClass,
@@ -83,20 +84,23 @@ export function WritingHint({
   name: string;
 }) {
   const { failed, retry } = useContext(Writing);
+  const stopped = useStoppedOnMiss("lesson_builder");
   return failed ? (
     <p className={className} data-failed role="alert">
       <TriangleAlert aria-hidden />
       تعذّرت كتابة {name}.
-      <button
-        type="button"
-        className={buttonClass("ghost", "sm")}
-        onClick={() => {
-          document.getElementById(titleId)?.focus();
-          retry();
-        }}
-      >
-        حاول مرة أخرى
-      </button>
+      {!stopped && (
+        <button
+          type="button"
+          className={buttonClass("ghost", "sm")}
+          onClick={() => {
+            document.getElementById(titleId)?.focus();
+            retry();
+          }}
+        >
+          حاول مرة أخرى
+        </button>
+      )}
     </p>
   ) : (
     <p className={className} data-locked>
@@ -122,6 +126,7 @@ export function QuizBuilding({
 }) {
   const url = `/api/sessions/${encodeURIComponent(sessionId)}/quizzes/${encodeURIComponent(lessonId)}`;
   const { failed, done, retry } = useBuild(build ? url : null);
+  const stopped = useStoppedOnMiss("examiner");
   const note = useRef<HTMLParagraphElement>(null);
   return (
     <>
@@ -139,19 +144,21 @@ export function QuizBuilding({
             </p>
           )}
           {failed ? (
-            <button
-              type="button"
-              className={buttonClass("secondary")}
-              onClick={() => {
-                // The button goes with the failure; focus moves to the note that replaces it, which
-                // keeps the reader at the foot of a long lesson.
-                flushSync(retry);
-                note.current?.focus();
-              }}
-            >
-              <RotateCcw aria-hidden />
-              حاول مرة أخرى
-            </button>
+            !stopped && (
+              <button
+                type="button"
+                className={buttonClass("secondary")}
+                onClick={() => {
+                  // The button goes with the failure; focus moves to the note that replaces it,
+                  // which keeps the reader at the foot of a long lesson.
+                  flushSync(retry);
+                  note.current?.focus();
+                }}
+              >
+                <RotateCcw aria-hidden />
+                حاول مرة أخرى
+              </button>
+            )
           ) : (
             <Link href={`/quiz/${lessonId}`} className={buttonClass("secondary")}>
               إلى الاختبار
@@ -172,14 +179,17 @@ export function QuizBuilding({
 export function DiagramsBuilding({ sessionId, lessonId }: { sessionId: string; lessonId: string }) {
   const url = `/api/sessions/${encodeURIComponent(sessionId)}/diagrams/${encodeURIComponent(lessonId)}`;
   const { failed, retry } = useBuild(url);
+  const stopped = useStoppedOnMiss("diagrams");
   return failed ? (
     <p className={styles.figureWaiting} data-failed role="alert">
       <TriangleAlert aria-hidden />
       تعذّر إعداد رسم لهذا الدرس هذه المرة.
-      <button type="button" className={buttonClass("ghost", "sm")} onClick={retry}>
-        <RotateCcw aria-hidden />
-        حاول مرة أخرى
-      </button>
+      {!stopped && (
+        <button type="button" className={buttonClass("ghost", "sm")} onClick={retry}>
+          <RotateCcw aria-hidden />
+          حاول مرة أخرى
+        </button>
+      )}
     </p>
   ) : (
     <p className={styles.figureWaiting} role="status">
@@ -202,6 +212,18 @@ export function WritingDone() {
 
 export function WritingBody() {
   const { failed, retry } = useContext(Writing);
+  const stopped = useStoppedOnMiss("lesson_builder");
+  // The banner above offers the restart.
+  if (failed && stopped) {
+    return (
+      <div className={styles.writeFailed} role="alert">
+        <Callout icon={TriangleAlert} tone="attention">
+          تعذّرت كتابة درسك، وخطتك محفوظة كما هي. هذا الجزء من العرض غير مسجّل، فلن تنجح إعادة
+          المحاولة.
+        </Callout>
+      </div>
+    );
+  }
   if (failed) {
     return (
       <div className={styles.writeFailed} role="alert">

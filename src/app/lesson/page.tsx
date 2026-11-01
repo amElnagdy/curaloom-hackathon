@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { currentLesson, learnerCourse } from "../_shell/lessons.ts";
+import { progressOf } from "../_shell/next-step.ts";
 import { LessonWaiting } from "./states.tsx";
 
 export const metadata: Metadata = { title: "الدرس" };
@@ -12,5 +13,5 @@ export default async function CurrentLessonPage() {
   const course = learnerCourse();
   const current = course && currentLesson(course.states);
   if (current) redirect(`/lesson/${current.planned.id}`);
-  return <LessonWaiting />;
+  return <LessonWaiting progress={progressOf(course)} />;
 }

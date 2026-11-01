@@ -26,7 +26,8 @@ export type TraceEvent = {
   total_cost_usd?: number;
   latency_ms?: number;
   payload_ref?: string;
-  // The hash of a request replay has no recording for (#30): the shell shows it as an alert.
+  // The hash of a request, or the name of a page, that replay has no recording for (#30): the shell
+  // offers the way back to the recorded path, and the English summary names it for developers.
   missing_recording?: string;
 };
 
@@ -112,7 +113,7 @@ export function createTracer(
         summary_ar: e.ok
           ? e.summary_ar
           : e.missing_recording
-            ? `لا تسجيل لهذا الطلب (${e.missing_recording}): ${e.summary_ar}`
+            ? `لا ردّ مسجّلًا لهذا الطلب في العرض المسجّل: ${e.summary_ar}`
             : `فشل استدعاء النموذج (محاولة ${e.attempt}): ${e.summary_ar}`,
         summary_en: e.ok
           ? e.summary_en

@@ -5,22 +5,29 @@ import { EmptyState, Page, PageHead } from "../_shell/blocks.tsx";
 import { ordinal, percent } from "../_shell/format.ts";
 import { LessonStrip } from "../_shell/lesson-strip.tsx";
 import { type CourseLesson, currentLesson } from "../_shell/lessons.ts";
+import { nextStep, type Progress } from "../_shell/next-step.ts";
 import { BidiText, buttonClass, DirIcon, StatusPill } from "../_shell/ui.tsx";
 
 // The lesson and quiz pages' states around a lesson (#34): before the plan, for a lesson the plan
 // lacks, and for one the quiz gate keeps shut.
 
-// Before the learner's plan is ready: the lesson builder starts once it is.
-export function LessonWaiting() {
+// Before the learner's plan is ready: the lesson builder starts once it is. Before the interview,
+// a lesson the example plan has but its seed never wrote.
+export function LessonWaiting({ progress }: { progress: Progress }) {
+  const next = nextStep(progress);
   return (
     <Page width="reading">
       <PageHead title="الدرس الأول" pill={<StatusPill status="waiting">لم يُكتب بعد</StatusPill>} />
       <EmptyState
         icon={BookOpen}
-        text="يكتب صانع الدروس درسك الأول بعد أن تجهز خطتك، ويظهر هنا بجانب نصه الأصلي."
+        text={
+          progress === "new"
+            ? "لم يُكتب هذا الدرس في المثال. يكتب صانع الدروس دروسك أنت بعد المقابلة، ويظهر كل درس هنا بجانب نصه الأصلي."
+            : "يكتب صانع الدروس درسك الأول بعد أن تجهز خطتك، ويظهر هنا بجانب نصه الأصلي."
+        }
         actions={
-          <Link href="/plan" className={buttonClass("secondary")}>
-            إلى الخطة
+          <Link href={next.href} className={buttonClass("secondary")}>
+            {next.label}
             <DirIcon icon={ArrowRight} />
           </Link>
         }
@@ -30,18 +37,25 @@ export function LessonWaiting() {
 }
 
 // A lesson id the plan lacks: an old or cut link.
-export function MissingLesson() {
+export function MissingLesson({ progress }: { progress: Progress }) {
+  const next = nextStep(progress);
   return (
     <Page width="reading">
       <EmptyState
         icon={SearchX}
         heading="h1"
-        title="ليس في خطتك درس بهذا الرابط"
+        title={
+          progress === "new" ? "ليس في خطة المثال درس بهذا الرابط" : "ليس في خطتك درس بهذا الرابط"
+        }
         titleId="missing-title"
-        text="ربما تغيّرت خطتك أو نُسخ الرابط ناقصًا. دروسك كلها في خطتك."
+        text={
+          progress === "new"
+            ? "ربما نُسخ الرابط ناقصًا. ابدأ المقابلة لنبني خطتك ونكتب دروسك أنت."
+            : "ربما تغيّرت خطتك أو نُسخ الرابط ناقصًا. دروسك كلها في خطتك."
+        }
         actions={
-          <Link href="/plan" className={buttonClass("primary", "lg")}>
-            اذهب إلى خطتك
+          <Link href={next.href} className={buttonClass("primary", "lg")}>
+            {next.label}
             <DirIcon icon={ArrowRight} />
           </Link>
         }

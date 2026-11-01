@@ -42,6 +42,7 @@ import {
   WEEKS,
 } from "../_shell/format.ts";
 import { type CourseLesson, currentLesson, learnerCourse } from "../_shell/lessons.ts";
+import { nextStep, progressOf } from "../_shell/next-step.ts";
 import {
   changeLines,
   type DayMark,
@@ -334,6 +335,7 @@ export default async function ProgressPage() {
   await connection();
   const course = learnerCourse();
   if (!course) {
+    const next = nextStep(progressOf(course));
     return (
       <Page width="narrow">
         <PageHead title="تقدّمك" />
@@ -342,8 +344,8 @@ export default async function ProgressPage() {
           title="لا تقدّم بعد"
           text="يبدأ تقدّمك حين تجهز خطتك: دروسها واختباراتها وأيامها."
           actions={
-            <Link href="/plan" className={buttonClass("primary")}>
-              إلى خطتك
+            <Link href={next.href} className={buttonClass("primary")}>
+              {next.label}
               <DirIcon icon={ArrowRight} />
             </Link>
           }

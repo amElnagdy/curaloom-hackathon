@@ -58,6 +58,7 @@ import {
   QUESTIONS,
 } from "../../_shell/format.ts";
 import { type CourseLesson, learnerCourse } from "../../_shell/lessons.ts";
+import { type Progress, progressOf } from "../../_shell/next-step.ts";
 import {
   BidiText,
   buttonClass,
@@ -90,8 +91,8 @@ export const metadata: Metadata = { title: "الدرس" };
 // What the page shows: nothing yet before the plan, a lesson the plan lacks, a lesson the quiz gate
 // keeps shut, a lesson being written, or a lesson, the seed's (`sample`) or the learner's.
 type Shown =
-  | { kind: "waiting" }
-  | { kind: "missing"; lessonId: string }
+  | { kind: "waiting"; progress: Progress }
+  | { kind: "missing"; lessonId: string; progress: Progress }
   | { kind: "locked"; state: CourseLesson; lessons: CourseLesson[] }
   | { kind: "writing"; name: string; state: CourseLesson }
   | {
@@ -119,15 +120,18 @@ const quotedSources = (lesson: Lesson, resources: Resource[]): QuotedSource[] =>
 
 function shownLesson(lessonId: string): Shown {
   const course = learnerCourse();
-  if (!course) return { kind: "waiting" };
+  const progress = progressOf(course);
+  if (!course) return { kind: "waiting", progress };
   const state = course.states.find((s) => s.planned.id === lessonId);
-  if (!state) return { kind: "missing", lessonId };
+  if (!state) return { kind: "missing", lessonId, progress };
   if (!state.open) {
     return { kind: "locked", state, lessons: course.states };
   }
   const lesson = course.lessons[lessonId];
   if (!lesson) {
-    return course.sample ? { kind: "waiting" } : { kind: "writing", name: course.name, state };
+    return course.sample
+      ? { kind: "waiting", progress }
+      : { kind: "writing", name: course.name, state };
   }
   const quiz: LessonQuiz = course.sample
     ? { sample: true, quiz: course.quizzes.quizzes.find((q) => q.lesson_id === lessonId) }
@@ -596,8 +600,8 @@ export default async function LessonPage({ params }: PageProps<"/lesson/[lessonI
   const { lessonId } = await params;
   const shown = shownLesson(lessonId);
 
-  if (shown.kind === "waiting") return <LessonWaiting />;
-  if (shown.kind === "missing") return <MissingLesson />;
+  if (shown.kind === "waiting") return <LessonWaiting progress={shown.progress} />;
+  if (shown.kind === "missing") return <MissingLesson progress={shown.progress} />;
 
   const { state } = shown;
   const head = headOf(shown);

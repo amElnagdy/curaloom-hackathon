@@ -6,7 +6,13 @@ import Type from "typebox";
 import { BadRequest, jsonBody, parse, stillBuilding } from "../../clock/http.ts";
 import { StepFailed } from "../../orchestrator/orchestrator.ts";
 import { InvalidNameError } from "../../store/store.ts";
-import { PlanConflict, PlanEditRejected, type Planner, type SavedPlan } from "./architect.ts";
+import {
+  BuildStuck,
+  PlanConflict,
+  PlanEditRejected,
+  type Planner,
+  type SavedPlan,
+} from "./architect.ts";
 
 const Empty = Type.Object({}, { additionalProperties: false });
 const SessionId = Type.String({ maxLength: 64 });
@@ -68,6 +74,8 @@ export async function planResponse(
       return Response.json({ error }, { status: 400 });
     }
     if (e instanceof PlanConflict) return Response.json({ error }, { status: 409 });
+    // A build replay cannot finish (#58): the page shows the way back, not a retry.
+    if (e instanceof BuildStuck) return Response.json({ error, stuck: true }, { status: 409 });
     // The scout or the architect failed its step twice; the trace has why.
     if (e instanceof StepFailed) return Response.json({ error }, { status: 502 });
     throw e;

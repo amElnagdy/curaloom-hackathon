@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../../demo/seed.ts";
 import { StepFailed } from "../../orchestrator/orchestrator.ts";
-import { PlanConflict, PlanEditRejected, type Planner, type SavedPlan } from "./architect.ts";
+import {
+  BuildStuck,
+  PlanConflict,
+  PlanEditRejected,
+  type Planner,
+  type SavedPlan,
+} from "./architect.ts";
 import { planResponse } from "./http.ts";
 
 const seed = loadOmarSeed("Pivot tables");
@@ -146,5 +152,16 @@ describe("plan routes", () => {
     const { planner } = stubPlanner(new StepFailed("Step architect failed: timeout"));
 
     expect((await post(planner, "build", {})).status).toBe(502);
+  });
+
+  it("answer 409 with stuck for a build that stopped on a missing recording, which a retry misses again", async () => {
+    const error = "Step scout failed: No recorded response";
+    const { planner } = stubPlanner(new BuildStuck(error));
+
+    const res = await post(planner, "build", {});
+
+    expect(res.status).toBe(409);
+    expect(res.headers.get("retry-after")).toBeNull();
+    expect(await res.json()).toEqual({ error, stuck: true });
   });
 });

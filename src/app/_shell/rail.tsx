@@ -157,7 +157,7 @@ export function Rail({ appName, learnerName }: { appName: string; learnerName: s
         data-sheet={sheet ? "open" : undefined}
       >
         <div className={styles.brand}>
-          <Link href="/plan" className={styles.brandLink} onClick={closeSheet}>
+          <Link href="/" className={styles.brandLink} onClick={closeSheet}>
             <BrandMark />
             <span className={styles.brandText}>
               <bdi className={styles.brandName}>{appName}</bdi>

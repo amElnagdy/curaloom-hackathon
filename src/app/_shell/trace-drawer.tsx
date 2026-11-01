@@ -284,24 +284,3 @@ export function TraceDrawer({
     </>
   );
 }
-
-// A request the recorded run has no recording for stops the demo there (#30). Whichever page made
-// it, the shell says so at once with the request's hash, which the server log names too; replay
-// never retries it, so nothing waits on it. docs/demo.md says how to record it.
-export function MissingRecordingAlert() {
-  const missing = useTrace().events.findLast((e) => e.missing_recording);
-  if (!missing?.missing_recording) return null;
-  return (
-    <div className={styles.missing} role="alert">
-      <TriangleAlert aria-hidden />
-      <p>
-        <b>لا تسجيل لهذا الطلب، فتوقف العرض المسجّل هنا.</b> {agentName(missing.agent)}: طلب جديد لم
-        يُسجَّل في التشغيل الأصلي. بصمته{" "}
-        <bdi className={styles.missingHash} dir="ltr" lang="en">
-          {missing.missing_recording}
-        </bdi>
-        ، وطريقة تسجيله في <bdi dir="ltr">docs/demo.md</bdi>.
-      </p>
-    </div>
-  );
-}

@@ -40,6 +40,17 @@ export type ImageOutcome = { ok: true; final_url: string; mime: string; b64: str
 
 export type Trace = (event: Omit<TraceInput, "agent">) => void;
 
+// Replay was asked for a page it has no recording of. Like the provider's MissingRecording, the
+// same page is missing on a retry, so the fetch is traced with `missing_recording` for the shell.
+export class MissingPage extends Error {
+  page: string;
+
+  constructor(url: string, name: string) {
+    super(`No recorded page for ${url} (${name}); run once with PROVIDER_PROFILE=record`);
+    this.page = name;
+  }
+}
+
 export type PageFetcher = {
   fetchPage(url: string, trace: Trace): Promise<FetchOutcome>;
   fetchView<T>(url: string, view: PageView<T>, trace: Trace): Promise<ViewOutcome<T>>;
@@ -160,9 +171,9 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     const path = join(fixturesDir, name);
     if (profile === "replay") {
       if (!existsSync(path)) {
-        throw new Error(
-          `No recorded page for ${url} (${name}); run once with PROVIDER_PROFILE=record`,
-        );
+        const missing = new MissingPage(url, name);
+        console.error(`[replay] ${missing.message}`);
+        throw missing;
       }
       return JSON.parse(readFileSync(path, "utf8")) as Observation;
     }
@@ -248,9 +259,26 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     });
   }
 
+  // Fails the caller as before, with the page traced as missing from the recording.
+  async function replayed<T>(work: Promise<T>, trace: Trace): Promise<T> {
+    try {
+      return await work;
+    } catch (e) {
+      if (e instanceof MissingPage) {
+        trace({
+          kind: "error",
+          summary_ar: "لا نسخة مسجّلة لهذه الصفحة في العرض المسجّل",
+          summary_en: e.message,
+          missing_recording: e.page,
+        });
+      }
+      throw e;
+    }
+  }
+
   return {
     async fetchPage(url, trace) {
-      const followed = await followAllowed(url, "page", trace);
+      const followed = await replayed(followAllowed(url, "page", trace), trace);
       const outcome: FetchOutcome =
         "refused" in followed
           ? { ok: false, url, reason: followed.refused }
@@ -266,7 +294,7 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     },
 
     async fetchView<T>(url: string, view: PageView<T>, trace: Trace): Promise<ViewOutcome<T>> {
-      const followed = await followAllowed(url, "html", trace);
+      const followed = await replayed(followAllowed(url, "html", trace), trace);
       const reason = "refused" in followed ? followed.refused : whyUnread(followed.seen, "html");
       const seen = "seen" in followed ? followed.seen : null;
       const final_url = followed.hops.at(-1) ?? url;
@@ -280,7 +308,7 @@ export function createPageFetcher(options: PageFetcherOptions): PageFetcher {
     },
 
     async fetchImage(url, trace) {
-      const followed = await followAllowed(url, "image", trace);
+      const followed = await replayed(followAllowed(url, "image", trace), trace);
       const reason = "refused" in followed ? followed.refused : whyUnread(followed.seen, "image");
       const seen = "seen" in followed ? followed.seen : null;
       const outcome: ImageOutcome =

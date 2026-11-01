@@ -20,6 +20,7 @@ import { createTracer, type TraceEvent } from "../../trace/trace.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
 import {
   architectBrief,
+  BuildStuck,
   createPlanner,
   limitsOf,
   PlanConflict,
@@ -30,6 +31,7 @@ import {
   runArchitect,
   type SavedPlan,
   savedPlan,
+  stuckBuild,
 } from "./architect.ts";
 import type { ReplanRequest } from "./replan.ts";
 import { planViolations, weekMinutes } from "./rules.ts";
@@ -440,6 +442,108 @@ describe("planner", () => {
       expect.stringMatching(/refused.*s3.*60/),
     ]);
     expect(told.map((e) => e.kind)).toEqual(["output", "output"]);
+  });
+});
+
+// A planner whose scout replays from an empty folder, so the scout's first request has no
+// recording, as an unrecorded quick-check answer leaves it (#55).
+function unrecordedPlanner() {
+  const dir = mkdtempSync(join(tmpdir(), "planner-unrecorded-"));
+  dirs.push(dir);
+  const store = createFileStore(dir);
+  const none = join(dir, "no-recordings");
+  const orchestrator = createOrchestrator({
+    store,
+    makeProvider: (onTrace) =>
+      createProvider({ models: loadModels(), profile: "replay", fixturesDir: none, onTrace }),
+  });
+  const pages = createPageFetcher({ profile: "replay", userAgent: "test", fixturesDir: none });
+  const cache = createFileCache(dir);
+  const tracer = createTracer(store, "s1");
+  let scout = async (learner: typeof profile) =>
+    (await runScout({ orchestrator, sessionId: "s1", brief: scoutBrief(learner), pages, cache }))
+      .resources;
+  const planner = createPlanner({
+    orchestrator,
+    store,
+    tracer,
+    sessionId: "s1",
+    profile: () => profile,
+    findResources: (learner) => scout(learner),
+    forgetLesson: () => {},
+  });
+  const missed = () => store.readTrace<TraceEvent>("s1").flatMap((e) => e.missing_recording ?? []);
+  return {
+    planner,
+    missed,
+    stuck: (learner = profile) => stuckBuild(store, "s1", learner),
+    // From now on the scout fails some other way, such as a network error, after `meanwhile`.
+    failOtherwise(meanwhile = () => {}) {
+      scout = async () => {
+        meanwhile();
+        throw new StepFailed("Step scout failed: timed out");
+      };
+    },
+    // Another agent's request with no recording, as a lesson written in another tab may have.
+    otherAgentMisses: () =>
+      tracer.emit({
+        agent: "lesson_builder",
+        kind: "error",
+        summary_ar: "لا ردّ مسجّلًا",
+        summary_en: "No recorded response",
+        missing_recording: "0123456789abcdef",
+      }),
+  };
+}
+
+describe("a build replay cannot finish", () => {
+  it("is remembered for the learner's profile with the recording it missed last", async () => {
+    const { planner, missed, stuck } = unrecordedPlanner();
+
+    await expect(planner.build()).rejects.toThrow(BuildStuck);
+
+    // The scout's first request, then the orchestrator's retry with the failure appended.
+    expect(missed()).toHaveLength(2);
+    expect(stuck()).toBe(missed()[1]);
+    expect(stuck({ ...profile, hours_per_week: 2 })).toBeUndefined();
+  });
+
+  it("is forgotten when the plan is reset", async () => {
+    const { planner, stuck } = unrecordedPlanner();
+    await expect(planner.build()).rejects.toThrow(BuildStuck);
+
+    planner.reset();
+
+    expect(stuck()).toBeUndefined();
+  });
+
+  it("is not a failure that may pass, such as a network error", async () => {
+    const { planner, stuck, failOtherwise } = unrecordedPlanner();
+    failOtherwise();
+
+    await expect(planner.build()).rejects.toThrow(StepFailed);
+
+    expect(stuck()).toBeUndefined();
+  });
+
+  it("is not a build that fails otherwise after an earlier build missed", async () => {
+    const { planner, stuck, failOtherwise } = unrecordedPlanner();
+    await expect(planner.build()).rejects.toThrow(BuildStuck);
+    planner.reset();
+    failOtherwise();
+
+    await expect(planner.build()).rejects.not.toThrow(BuildStuck);
+
+    expect(stuck()).toBeUndefined();
+  });
+
+  it("is not a build that fails otherwise while another agent misses a recording (#83)", async () => {
+    const { planner, stuck, failOtherwise, otherAgentMisses } = unrecordedPlanner();
+    failOtherwise(otherAgentMisses);
+
+    await expect(planner.build()).rejects.not.toThrow(BuildStuck);
+
+    expect(stuck()).toBeUndefined();
   });
 });
 

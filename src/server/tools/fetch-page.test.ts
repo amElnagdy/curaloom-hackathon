@@ -6,6 +6,7 @@ import type { TraceInput } from "../trace/trace.ts";
 import {
   createPageFetcher,
   isPublicAddress,
+  MissingPage,
   type PageFetcherOptions,
   type PageView,
   publicTransport,
@@ -147,6 +148,22 @@ describe("fetchPage", () => {
     const { pages, trace } = fetcher({ profile: "replay", transport: noNetwork });
 
     await expect(pages.fetchPage(PAGE, trace)).rejects.toThrow(/PROVIDER_PROFILE=record/);
+  });
+
+  // The shell reads `missing_recording` to offer the way back to the recorded path (#56).
+  it("traces a page replay has no recording of as missing, in Arabic without its name", async () => {
+    const { pages, events, trace } = fetcher({ profile: "replay", transport: noNetwork });
+
+    await expect(pages.fetchPage(PAGE, trace)).rejects.toThrow(MissingPage);
+
+    expect(events).toEqual([
+      {
+        kind: "error",
+        summary_ar: expect.stringMatching(/^[\p{Script_Extensions=Arabic}\s]+$/u),
+        summary_en: expect.stringContaining(`No recorded page for ${ROBOTS}`),
+        missing_recording: expect.stringMatching(/^open\.example\.org-[0-9a-f]{16}\.json$/),
+      },
+    ]);
   });
 
   it("does not fetch a page that robots.txt disallows for every crawler", async () => {
@@ -404,13 +421,14 @@ describe("fetchView and fetchImage", () => {
     await expect(replayer.pages.fetchPage(PAGE, replayer.trace)).rejects.toThrow(
       /PROVIDER_PROFILE=record/,
     );
-    expect(replayer.events.slice(-2)).toMatchObject([
+    expect(replayer.events.slice(-3)).toMatchObject([
       {
         kind: "tool_call",
         summary_ar: "قرأ عناوين صفحة (open.example.org)",
         summary_en: `fetch_page[titles] ${PAGE}: read`,
       },
       { kind: "tool_call", summary_en: `fetch_page[headings] ${PAGE}: read` },
+      { kind: "error", missing_recording: expect.stringMatching(/^open\.example\.org-/) },
     ]);
   });
 

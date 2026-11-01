@@ -41,6 +41,7 @@ import {
   QUESTIONS,
 } from "../../_shell/format.ts";
 import { type CourseLesson, learnerCourse } from "../../_shell/lessons.ts";
+import { nextStep, type Progress, progressOf } from "../../_shell/next-step.ts";
 import { BidiText, buttonClass, cx, DirIcon, StatusPill } from "../../_shell/ui.tsx";
 import { LockedBody, MissingLesson } from "../../lesson/states.tsx";
 import {
@@ -80,7 +81,7 @@ type Course = {
 // quiz graded (the seed's, as a `sample`, before the intake).
 type Shown =
   | { kind: "waiting"; lessonId: string | undefined }
-  | { kind: "missing" }
+  | { kind: "missing"; progress: Progress }
   | { kind: "locked"; state: CourseLesson; lessons: CourseLesson[] }
   | ({ kind: "writing" } & Course)
   | ({ kind: "answering"; quiz: Quiz } & Course)
@@ -90,7 +91,7 @@ function shownQuiz(lessonId: string): Shown {
   const course = learnerCourse();
   if (!course) return { kind: "waiting", lessonId: undefined };
   const state = course.states.find((s) => s.planned.id === lessonId);
-  if (!state) return { kind: "missing" };
+  if (!state) return { kind: "missing", progress: progressOf(course) };
   if (!state.open) return { kind: "locked", state, lessons: course.states };
   const lesson = course.lessons[lessonId];
   if (!lesson) return { kind: "waiting", lessonId };
@@ -269,6 +270,7 @@ function ScoreBar({ score, gate }: { score: number; gate: number }) {
 
 function Result({ shown }: { shown: Extract<Shown, { kind: "result" }> }) {
   const { quiz, attempt, sample, next } = shown;
+  const after = nextStep(sample ? "new" : "ready");
   const graded = quiz.items.flatMap((item, index) => {
     const answer = attempt.answers.find((a) => a.item_id === item.id);
     return answer ? [{ item, index, answer }] : [];
@@ -321,13 +323,13 @@ function Result({ shown }: { shown: Extract<Shown, { kind: "result" }> }) {
                   تابع إلى الدرس {ordinal(next.position)}
                   <DirIcon icon={ArrowRight} />
                 </Link>
-                <Link href="/plan" className={buttonClass("ghost", "lg")}>
-                  إلى خطتك
+                <Link href={after.href} className={buttonClass("ghost", "lg")}>
+                  {after.label}
                 </Link>
               </div>
             ) : (
-              <Link href="/plan" className={buttonClass("primary", "lg")}>
-                اذهب إلى خطتك
+              <Link href={after.href} className={buttonClass("primary", "lg")}>
+                {after.label}
                 <DirIcon icon={ArrowRight} />
               </Link>
             )}
@@ -426,7 +428,7 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[lessonId]">
   const shown = shownQuiz(lessonId);
 
   if (shown.kind === "waiting") return <QuizWaiting lessonId={shown.lessonId} />;
-  if (shown.kind === "missing") return <MissingLesson />;
+  if (shown.kind === "missing") return <MissingLesson progress={shown.progress} />;
   if (shown.kind === "locked") {
     return (
       <Page width="reading">

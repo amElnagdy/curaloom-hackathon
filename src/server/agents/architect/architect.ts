@@ -20,7 +20,7 @@ import {
   withFeedback,
 } from "../../orchestrator/orchestrator.ts";
 import { contentHash, type Store } from "../../store/store.ts";
-import type { Tracer } from "../../trace/trace.ts";
+import type { TraceEvent, Tracer } from "../../trace/trace.ts";
 import { requestLevel } from "../recorded-level.ts";
 import {
   MAX_NOTE,
@@ -232,6 +232,31 @@ export function planFor(
   return saved?.for_profile === contentHash(profile) ? saved : undefined;
 }
 
+const STUCK_DOC = "plan_stuck";
+
+// A build that failed on a request replay has no recording of (#58). Building again for the same
+// profile sends the same requests and misses again, so the plan page stops asking.
+type StuckBuild = { for_profile: string; missing_recording: string };
+
+// What build() throws for such a build, so the route can say a retry will not pass.
+export class BuildStuck extends StepFailed {}
+
+// The agents a build runs. A miss by any other agent, such as the lesson builder in another tab,
+// does not stop the build (#83).
+const BUILD_AGENTS = new Set(["scout", "architect"]);
+
+// The recording the last build for this profile missed while it has no plan, or undefined while a
+// build may still pass.
+export function stuckBuild(
+  store: Store,
+  sessionId: string,
+  profile: LearnerProfile,
+): string | undefined {
+  if (planFor(store, sessionId, profile)) return undefined;
+  const stuck = store.readDoc<StuckBuild>(sessionId, STUCK_DOC);
+  return stuck?.for_profile === contentHash(profile) ? stuck.missing_recording : undefined;
+}
+
 export type PlannerDeps = {
   orchestrator: Pick<ReturnType<typeof createOrchestrator>, "runStep">;
   store: Store;
@@ -280,16 +305,29 @@ export function createPlanner({
       const learner = profile();
       const existing = planFor(store, sessionId, learner);
       if (existing) return existing;
-      const resources = await findResources(learner);
-      const brief = architectBrief(learner, resources);
-      const plan = await runArchitect({ orchestrator, sessionId, brief });
-      return save({
-        for_profile: contentHash(learner),
-        versions: [plan],
-        resources,
-        limits: limitsOf(brief),
-        pending: null,
-      });
+      const since = store.readTrace(sessionId).at(-1)?.id;
+      try {
+        const resources = await findResources(learner);
+        const brief = architectBrief(learner, resources);
+        const plan = await runArchitect({ orchestrator, sessionId, brief });
+        return save({
+          for_profile: contentHash(learner),
+          versions: [plan],
+          resources,
+          limits: limitsOf(brief),
+          pending: null,
+        });
+      } catch (e) {
+        const missed = store
+          .readTrace<TraceEvent>(sessionId, since)
+          .findLast(
+            (event) => event.missing_recording && BUILD_AGENTS.has(event.agent),
+          )?.missing_recording;
+        if (!missed) throw e;
+        const stuck: StuckBuild = { for_profile: contentHash(learner), missing_recording: missed };
+        store.writeDoc(sessionId, STUCK_DOC, stuck);
+        throw new BuildStuck(e instanceof Error ? e.message : String(e), { cause: e });
+      }
     },
 
     // Throws PlanEditRejected, with the broken rules, for an edit the plan cannot take.
@@ -355,6 +393,7 @@ export function createPlanner({
     // Back to no plan: the pages fall back to the seed's, and the next build reads the saved step.
     reset() {
       store.deleteDoc(sessionId, PLAN_DOC);
+      store.deleteDoc(sessionId, STUCK_DOC);
     },
   };
 }

@@ -25,6 +25,7 @@ import {
 import { Callout } from "../_shell/blocks.tsx";
 import { type Session, sessionsOf, simDay } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, ordinalF, WEEKS } from "../_shell/format.ts";
+import { RestartDemoButton, TraceDetailsButton } from "../_shell/missing-recording.tsx";
 import { startDay } from "../_shell/plans.ts";
 import { BidiText, buttonClass, cx, LangBadge, StatusPill } from "../_shell/ui.tsx";
 import { useBuild } from "../_shell/use-build.ts";
@@ -43,28 +44,32 @@ const post = (sessionId: string, action: string, body: object, signal?: AbortSig
     signal,
   });
 
-const BuildFailed = createContext({ failed: false, retry: () => {} });
+// `stuck`: the build failed on a request replay has no recording of, so a retry cannot pass.
+const BuildFailed = createContext({ failed: false, stuck: false, retry: () => {} });
 
 // The page keys it by the learner's profile, so a new profile starts a new build. It stays mounted
-// once the plan is shown, so the page keeps its focus when the plan arrives.
+// once the plan is shown, so the page keeps its focus when the plan arrives. A build the server
+// knows is stuck (stuckBuild) is not asked for again: the page says so from its first render. A
+// build that gets stuck here says so as soon as the server answers.
 export function Building({
   sessionId,
   build,
+  stuck,
   children,
 }: {
   sessionId: string;
   build: boolean;
+  stuck: boolean;
   children: ReactNode;
 }) {
-  return (
-    <BuildFailed value={useBuild(build ? planUrl(sessionId, "build") : null)}>
-      {children}
-    </BuildFailed>
-  );
+  const built = useBuild(build ? planUrl(sessionId, "build") : null);
+  const value = { failed: built.failed || stuck, stuck: built.stuck || stuck, retry: built.retry };
+  return <BuildFailed value={value}>{children}</BuildFailed>;
 }
 
 export function BuildingLede({ name }: { name: string }) {
-  const { failed } = useContext(BuildFailed);
+  const { failed, stuck } = useContext(BuildFailed);
+  if (stuck) return <b>لم نتمكن من بناء خطتك في هذا العرض يا {name}.</b>;
   if (failed) return <b>لم نتمكن من بناء خطتك هذه المرة يا {name}.</b>;
   return (
     <>
@@ -84,7 +89,19 @@ export function BuildingStatus() {
 }
 
 export function BuildingBody() {
-  const { failed, retry } = useContext(BuildFailed);
+  const { failed, stuck, retry } = useContext(BuildFailed);
+  if (stuck) {
+    return (
+      <div className={styles.buildFailed} role="alert">
+        <Callout icon={TriangleAlert} tone="attention">
+          <b>هذا الجزء من العرض غير مسجّل،</b> فلن تنجح إعادة المحاولة. ابدأ العرض من جديد واتبع
+          الإجابات المسجّلة.
+        </Callout>
+        <RestartDemoButton />
+        <TraceDetailsButton />
+      </div>
+    );
+  }
   if (failed) {
     return (
       <div className={styles.buildFailed} role="alert">

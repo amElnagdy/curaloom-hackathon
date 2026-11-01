@@ -324,6 +324,13 @@
   color: var(--ink);
   font-weight: 600;
 }
+/* Only the 404 page (not-found.tsx) has a title with this id. */
+.crumb .crumbNotFound {
+  display: none;
+}
+.column:has(:global(#not-found-title)) .crumb .crumbNotFound {
+  display: flex;
+}
 
 /* ===================================================================== phone menu */
 .menu {
