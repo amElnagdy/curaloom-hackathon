@@ -37,7 +37,8 @@ ARABIC = (
     " U+FE70-FEFC"
 )
 CJK_PUNCTUATION = "U+3000-303F U+FF00-FFEF"
-# Only Noto Sans SC has arrows, such as the ← on the plan page.
+# Only Noto Sans SC has arrows, such as the ← on the plan page. They show where no system face
+# before it in the stack has them, as on Linux without Arial; on macOS Arial draws them.
 ARROWS = "U+2190-21FF"
 
 

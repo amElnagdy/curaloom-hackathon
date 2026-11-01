@@ -10,8 +10,8 @@ import { TraceProvider } from "./_shell/trace-provider.tsx";
 import "./globals.css";
 
 // The fonts are subsets made by scripts/fonts.py, so the build needs no network.
-// Arabic leads; Latin and Cyrillic source text use Noto Sans. No size-adjusted fallback face for the
-// Arabic font, so Latin text falls through to Noto Sans instead of a system face.
+// Arabic leads. Its subset keeps the Latin range, so Latin inside Arabic text uses its Latin glyphs, and
+// Cyrillic falls through to Noto Sans. No size-adjusted fallback face for the Arabic font.
 const arabic = localFont({
   src: "./fonts/NotoSansArabic.woff2",
   weight: "100 900",
