@@ -135,7 +135,7 @@ components:
 
 The product is the category standard for learning apps, built at the polish of Duolingo, Notion and Coursera or Khan Academy, and written Arabic-first. Ahmed chose that register on purpose over three distinctive worlds. The distinction is precision, not novelty: a white page, ink type, one blue, and a course that visibly assembles from licensed sources while the learner watches.
 
-The density is calm and document-like. The plan is a page you read, with disclosure rows rather than a grid of cards, and a narrow pinned column («ما يحدث الآن») that narrates the agents' work in plain Arabic. The technical layer (models, costs, latency) lives in a drawer behind a tab on the left edge. It covers exactly the activity column when open, so one layer replaces the other.
+The density is calm and document-like. The plan is a page you read, with disclosure rows rather than a grid of cards, and a narrow pinned column («ما يحدث الآن») that narrates the agents' work in plain Arabic. The technical layer (models, costs, latency) lives in a drawer behind a tab on the inline end, the left edge in Arabic, opposite the rail. It covers exactly the activity column when open, so one layer replaces the other.
 
 Rejected on record: generic dashboard filler (stat tiles, charts for their own sake), wireframe-grey placeholders, busy screens and novelty styling.
 
@@ -187,7 +187,7 @@ A restrained palette: neutrals plus one blue, with a small set of status colours
 ### Named Rules
 **The Script Face Rule.** Foreign text carries its `lang` and is isolated with `<bdi>` or `dir="auto"`. `:lang(en|ru|fr)` switches to the Latin face and `:lang(zh)` to the CJK face.
 
-**The Two Digit Systems Rule.** Learner-facing numbers use Arabic-Indic digits (٤٥ دقيقة). Trace values (cost, latency, ids, model names) use Western digits with tabular numerals.
+**The Two Digit Systems Rule.** Learner-facing numbers use Arabic-Indic digits (٤٥ دقيقة), and so does every Arabic line of the trace: its summaries, counts and simulated times. Trace values (cost, latency, ids, model names) and the English technical line under each event use Western digits with tabular numerals.
 
 **The No Dot Separator Rule.** Never put a middle dot «·» beside Arabic-Indic digits, because it reads as ٠. Separate meta with the hairline separator component.
 
@@ -198,7 +198,7 @@ The shell is a fixed frame:
 - a top bar (3.5rem) with breadcrumb, sample-data badge and sim-clock pill;
 - the page in between.
 
-The plan page is a document column beside the pinned activity column (27rem; 23.5rem at 1280px and below). Pages keep their left edge clear of the trace tab (2.5rem plus the page gutter).
+The plan page is a document column beside the pinned activity column (27rem; 23.5rem at 1280px and below). Pages keep their inline end (the left edge in Arabic) clear of the trace tab (2.5rem plus the page gutter).
 
 Spacing runs on a 4px grid. Groups are tight (8–12px), sections are generous (32–64px), and there is more space above a heading than below it.
 
@@ -258,8 +258,13 @@ The course outline is a list of disclosure rows, not cards. Each module head has
 - It ends in the page's primary action.
 
 ### Trace Drawer
-- Opened from a tab on the left edge that carries a live count. It floats over the activity column, and Esc closes it and returns focus to the tab.
-- Each event shows the agent, the Arabic summary with the English summary secondary, the kind, model, cost, latency and running total, in tabular Western digits.
+- **Placement (#60).** The tab and the drawer sit on the inline end, the left edge in Arabic, opposite the rail. The drawer covers the activity column it replaces (the One Layer Rule), and never the rail or the start of the page, where an Arabic reader begins. Beside the rail it would cover the navigation or push the page. The CSS uses logical properties, so the layer moves to the right under `dir="ltr"`.
+- The tab shows an icon, «سجل الوكلاء» upright on two short lines (rotated Arabic is hard to read) and a badge with the number of events in the session.
+- Open, the drawer sits over a scrim and the page behind it is inert. Esc, the close button, the tab or a click on the scrim closes it, and focus returns to what opened it.
+- Filters narrow the list by agent and by kind. «دمج المتكرر» folds identical events that follow each other at the same simulated moment into one row with a count, so the same line on another day, or after other events, keeps its own row. «أحداث الجلسة» always counts the whole session. A status line says how many of those events the list shows, or under the fold how many rows hold how many events («١٧٦ سطرًا تضم ١٧٩ حدثًا»). It hides when nothing matches and the empty state shows.
+- Each event row shows the agent, the kind and the simulated time in Arabic, then the Arabic summary. Under them sits the technical line in English, left to right and wrapping anywhere: the ids, then the English summary. Last come the model, the role, latency, cost and running total, with values in tabular Western digits.
+- Agents, kinds and model roles have Arabic names, and an Arabic summary names a step by its work, never by an id.
+- **The Arabic Line Rule (#59).** An Arabic line holds no Latin words except model ids, tool or library names, and URLs or hosts. It names the language and the count instead of quoting («صاغ عبارتي بحث بالفرنسية»), and calls an image «الرسم». Search queries, image file names, SPDX licence ids and glossary labels such as «BUZZ CUT» stay in `summary_en`, on the English line just below. A glossary correction gives the two Arabic readings: «صحّح جدول المصطلحات المعتمدة ترجمة النموذج لنصوص الرسم من «قصة قصيرة» إلى «قَصّة شعر قصيرة»». `src/server/trace/arabic-line.ts` holds the rule, and the tests of the modules that trace check their lines against it.
 - In development, a «تشغيل تجريبي» button starts the dummy run.
 
 ### Navigation Rail

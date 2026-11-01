@@ -12,6 +12,7 @@ import { createOrchestrator, StepFailed } from "../../orchestrator/orchestrator.
 import type { ModelResult, Provider } from "../../providers/provider.ts";
 import { createFileStore } from "../../store/store.ts";
 import type { PageFetcher, PageView } from "../../tools/fetch-page.ts";
+import { arabicLineProblems, tracedIn } from "../../trace/arabic-line.ts";
 import type { TraceEvent } from "../../trace/trace.ts";
 import { createDiagramsBuilder, diagramsBrief, LessonNotWritten } from "./diagrams.ts";
 import { diagramImageResponse } from "./http.ts";
@@ -136,8 +137,11 @@ const file = (licences: string[]): FileInfo => ({
 });
 
 const dirs: string[] = [];
+// Every Arabic trace line a test here wrote reads as Arabic (#59).
 afterEach(() => {
+  const traced = dirs.flatMap(tracedIn);
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const e of traced) expect(arabicLineProblems(e.summary_ar), e.summary_ar).toEqual([]);
 });
 
 const result = <J>(json: J, image: ModelResult["image"] = null): ModelResult<J> => ({
@@ -421,7 +425,9 @@ describe("a lesson's diagrams", () => {
           'Pivottable-Pivoted.PNG: the override table corrects "BUZZ CUT" from «قصة قصيرة» to the approved «قَصّة شعر قصيرة»',
       }),
     ]);
-    expect(said[0]?.summary_ar).toMatch(/BUZZ CUT.*قَصّة شعر قصيرة/);
+    expect(said[0]?.summary_ar).toBe(
+      "صحّح جدول المصطلحات المعتمدة ترجمة النموذج لنصوص الرسم من «قصة قصيرة» إلى «قَصّة شعر قصيرة»",
+    );
   });
 
   it("falls back to the legend, with no second sample, when a sample passes drawn with the reading's Arabic for an overridden term", async () => {

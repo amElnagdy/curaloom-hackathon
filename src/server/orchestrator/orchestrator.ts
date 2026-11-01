@@ -40,6 +40,31 @@ export type OrchestratorOptions = {
 
 const SESSION_DOC = "session";
 
+// The Arabic name of a step, for the trace's Arabic summaries. A key holds run ids, lesson ids and
+// hashes, which the English summary keeps and the Arabic one does not. One entry per key an agent
+// passes to runStep; any other key is "the step", and the drawer names its agent beside it.
+const STEP_NAMES: [RegExp, (m: RegExpExecArray) => string][] = [
+  [/^intake:[^:]+:message:(\d+):/, (m) => `الرد على رسالتك رقم ${m[1]}`],
+  [/^intake:[^:]+:diagnostic$/, () => "كتابة أسئلة الاختبار القصير"],
+  [/^intake:[^:]+:profile$/, () => "بناء ملفك التعليمي"],
+  [/^scout:/, () => "البحث عن مصادر مفتوحة الترخيص"],
+  [/^architect:/, () => "تصميم خطة دورتك"],
+  [/^replan:v(\d+):/, (m) => `شرح النسخة ${m[1]} المقترحة من خطتك`],
+  [/^lesson:L(\d+):/, (m) => `كتابة الدرس ${m[1]}`],
+  [/^quiz:L(\d+):/, (m) => `كتابة اختبار الدرس ${m[1]}`],
+  [/^grade:q_L(\d+)_/, (m) => `تصحيح محاولتك في اختبار الدرس ${m[1]}`],
+  [/^diagrams:L(\d+):/, (m) => `إعداد رسم الدرس ${m[1]}`],
+  [/^coach:[a-z]+_a\d+_d(\d+):/, (m) => `صياغة رسالة المدرب لليوم ${m[1]}`],
+];
+
+function stepName(key: string): string {
+  for (const [pattern, name] of STEP_NAMES) {
+    const match = pattern.exec(key);
+    if (match) return `خطوة ${name(match)}`;
+  }
+  return "الخطوة";
+}
+
 export function createOrchestrator({ store, makeProvider, clock }: OrchestratorOptions) {
   const tracers = new Map<string, Tracer>();
   const tracerFor = (sessionId: string) => {
@@ -67,12 +92,13 @@ export function createOrchestrator({ store, makeProvider, clock }: OrchestratorO
       store.writeDoc(sessionId, SESSION_DOC, { ...now, steps: { ...now.steps, [key]: step } });
     };
     const emit = (event: Omit<TraceInput, "agent">) => tracer.emit({ agent: agent.name, ...event });
+    const step = stepName(key);
 
     const done = state.steps[key];
     if (done?.status === "done") {
       emit({
         kind: "decision",
-        summary_ar: "الخطوة مكتملة من قبل؛ استئناف بنتيجتها المحفوظة",
+        summary_ar: `${step} مكتملة من قبل، فتُستأنف بنتيجتها المحفوظة`,
         summary_en: `Step ${key} already done; resuming with its saved output`,
         payload_ref: done.output_ref,
       });
@@ -81,7 +107,7 @@ export function createOrchestrator({ store, makeProvider, clock }: OrchestratorO
 
     emit({
       kind: "decision",
-      summary_ar: `بدء خطوة ${key}`,
+      summary_ar: `بدأت ${step}`,
       summary_en: `Starting step ${key}`,
     });
     const provider = makeProvider((event) => tracer.fromProvider(event));
@@ -101,7 +127,7 @@ export function createOrchestrator({ store, makeProvider, clock }: OrchestratorO
     if (result.errors.length) {
       emit({
         kind: "error",
-        summary_ar: `نتيجة ${key} غير صالحة؛ إعادة المحاولة مرة واحدة`,
+        summary_ar: `نتيجة ${step} غير صالحة، فيعيد المحاولة مرة واحدة`,
         summary_en: `${key} attempt 1 failed; retrying once: ${result.errors.join("; ")}`,
       });
       result = await attempt(result.errors);
@@ -110,7 +136,7 @@ export function createOrchestrator({ store, makeProvider, clock }: OrchestratorO
       const reason = result.errors.join("; ");
       emit({
         kind: "error",
-        summary_ar: `فشلت خطوة ${key} بعد إعادة المحاولة`,
+        summary_ar: `فشلت ${step} بعد إعادة المحاولة`,
         summary_en: `${key} attempt 2 failed; giving up: ${reason}`,
       });
       record({ status: "failed", error: reason });
@@ -120,7 +146,7 @@ export function createOrchestrator({ store, makeProvider, clock }: OrchestratorO
     const ref = store.writeBlob(sessionId, result.output);
     emit({
       kind: "output",
-      summary_ar: `نتيجة ${key} مطابقة للعقد`,
+      summary_ar: `نتيجة ${step} مطابقة للعقد`,
       summary_en: `${key} output matches its contract`,
       payload_ref: ref,
     });

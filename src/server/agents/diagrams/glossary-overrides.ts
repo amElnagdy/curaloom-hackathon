@@ -44,9 +44,8 @@ export function overrideLabels<L extends { src: string; ar: string }>(
 export function overridesNote(overridden: Overridden[]): { ar: string; en: string } {
   const unique = (lines: string[]) => [...new Set(lines)];
   return {
-    ar: unique(
-      overridden.map((o) => `«${o.src.trim()}» من «${o.model_ar.trim()}» إلى «${o.ar}»`),
-    ).join("، "),
+    // The Arabic line leaves the source text to the English one (#59).
+    ar: unique(overridden.map((o) => `من «${o.model_ar.trim()}» إلى «${o.ar}»`)).join("، و"),
     en: unique(
       overridden.map(
         (o) => `"${o.src.trim()}" from «${o.model_ar.trim()}» to the approved «${o.ar}»`,

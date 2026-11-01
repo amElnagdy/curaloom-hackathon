@@ -16,6 +16,7 @@ import { loadModels } from "../../providers/models.ts";
 import { createProvider, type ModelResult, type Provider } from "../../providers/provider.ts";
 import { createFileCache, createFileStore } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
+import { arabicLineProblems, tracedIn } from "../../trace/arabic-line.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
 import { runScout, scoutBrief } from "../scout/scout.ts";
 import {
@@ -147,8 +148,11 @@ function fakeProvider(drafts: unknown[]) {
 }
 
 const dirs: string[] = [];
+// Every Arabic trace line a test here wrote reads as Arabic (#59).
 afterEach(() => {
+  const traced = dirs.flatMap(tracedIn);
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const e of traced) expect(arabicLineProblems(e.summary_ar), e.summary_ar).toEqual([]);
 });
 
 function setup(drafts: PlanDraft[]) {

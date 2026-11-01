@@ -204,7 +204,7 @@ export function imageLicence(info: FileInfo, fileUrl: string): ImageLicence {
     return {
       ok: false,
       reason: `its file page states ${off.name}, which is not on the allowlist`,
-      reason_ar: `تذكر صفحة ملفه ترخيص ${off.name}، وهو ليس من التراخيص المقبولة`,
+      reason_ar: "ترخيصه في صفحة ملفه ليس من التراخيص المقبولة",
     };
   }
   const cited = rest.reduce((a, b) => (moreRestrictive(b, a) ? b : a), first);
@@ -212,7 +212,7 @@ export function imageLicence(info: FileInfo, fileUrl: string): ImageLicence {
     return {
       ok: false,
       reason: `${cited.name} needs an author to credit, and its file page names none`,
-      reason_ar: `يشترط ترخيص ${cited.name} ذكر المؤلف، ولا تذكره صفحة ملفه`,
+      reason_ar: "يشترط ترخيصه ذكر المؤلف، ولا تذكره صفحة ملفه",
     };
   }
   return {

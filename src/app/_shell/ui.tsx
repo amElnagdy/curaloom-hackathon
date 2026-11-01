@@ -240,7 +240,7 @@ export function RowGroup({ label, children }: { label: string; children: ReactNo
   );
 }
 
-const MODE: Record<ProviderProfile, { label: string; code: string; about: string }> = {
+export const MODE: Record<ProviderProfile, { label: string; code: string; about: string }> = {
   replay: {
     label: "ردود مسجّلة",
     code: "REPLAY",

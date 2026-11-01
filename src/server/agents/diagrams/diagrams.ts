@@ -141,7 +141,7 @@ async function readOnce(
     role: "diagram_labels",
     trace: {
       agent: "diagrams",
-      summary_ar: `يقرأ نصوص الرسم ${title} ويترجمها بمصطلحات المسرد`,
+      summary_ar: "يقرأ نصوص الرسم ويترجمها بمصطلحات المسرد",
       summary_en: `Reading and translating the labels of ${title}${misses.length ? " again, told the glossary misses" : ""}`,
     },
     input: [
@@ -174,7 +174,7 @@ async function readLabels(
   if (!misses.length) return first;
   ctx.trace({
     kind: "decision",
-    summary_ar: `ترجمة نصوص الرسم ${title} خالفت المسرد؛ يعيد القراءة مرة واحدة`,
+    summary_ar: "ترجمة نصوص الرسم خالفت المسرد؛ يعيد القراءة مرة واحدة",
     summary_en: `${title}: labels off the glossary, reading once more: ${misses.join("; ")}`,
   });
   const second = await readOnce(ctx, brief, title, image, misses);
@@ -182,7 +182,7 @@ async function readLabels(
   if (still.length) {
     ctx.trace({
       kind: "decision",
-      summary_ar: `بقيت في ترجمة نصوص الرسم ${title} مصطلحات لا تطابق المسرد: ${still.length}`,
+      summary_ar: `بقيت في ترجمة نصوص الرسم مصطلحات لا تطابق المسرد: ${still.length}`,
       summary_en: `${title}: labels still off the glossary after two readings: ${still.join("; ")}`,
     });
   }
@@ -239,7 +239,7 @@ async function relabel(
       role: "image_edit",
       trace: {
         agent: "diagrams",
-        summary_ar: `يعيد رسم ${title} بالنصوص العربية`,
+        summary_ar: "يضع النصوص العربية في الرسم مكان نصوصه الأصلية",
         summary_en: `Redrawing ${title} with the Arabic labels (sample ${sample})`,
       },
       prompt: editPrompt(labels, problems),
@@ -255,7 +255,8 @@ async function relabel(
       if ("error" in read) {
         ctx.trace({
           kind: "decision",
-          summary_ar: `تعذّر نسخ نصوص الرسم الأصلي ${title}، فلا يُفحص الرسم المعرَّب؛ يعرض الأصل مع جدول نصوصه بالعربية`,
+          summary_ar:
+            "تعذّر نسخ نصوص الرسم الأصلي، فلا يُفحص الرسم المعرَّب؛ يعرض الأصل مع جدول نصوصه بالعربية",
           summary_en: `${title}: the source could not be transcribed, so no sample can be checked: ${read.error}`,
         });
         return {
@@ -281,7 +282,7 @@ async function relabel(
         ];
         ctx.trace({
           kind: "decision",
-          summary_ar: `اجتاز الرسم المعرَّب ${title} فحص الكود لكنه كُتب بترجمة النموذج لمصطلح صحّحه جدول المصطلحات المعتمدة (${note.ar})؛ يعرض الأصل مع جدول نصوصه بالعربية`,
+          summary_ar: `اجتاز الرسم المعرَّب فحص الكود لكنه كُتب بترجمة النموذج لمصطلح صحّحه جدول المصطلحات المعتمدة (${note.ar})؛ يعرض الأصل مع جدول نصوصه بالعربية`,
           summary_en: `${title} sample ${sample} passes the code check but carries the reading's Arabic for an overridden term (${note.en}); showing the legend`,
           payload_ref: saveImage(ctx, output).ref,
         });
@@ -290,7 +291,8 @@ async function relabel(
       if (!problems.length) {
         ctx.trace({
           kind: "decision",
-          summary_ar: `اجتاز الرسم المعرَّب ${title} فحص الكود: كل تسمية عربية بعددها وترتيبها، ولا نص من الأصل باقٍ، والأرقام كما هي`,
+          summary_ar:
+            "اجتاز الرسم المعرَّب فحص الكود: كل تسمية عربية بعددها وترتيبها، ولا نص من الأصل باقٍ، والأرقام كما هي",
           summary_en: `${title} relabelled: sample ${sample} passes the code check`,
         });
         return {
@@ -304,8 +306,8 @@ async function relabel(
       kind: "decision",
       summary_ar:
         sample < MAX_SAMPLES
-          ? `لم يجتز الرسم المعرَّب ${title} فحص الكود؛ يعيد رسمه مرة واحدة`
-          : `لم يجتز الرسم المعرَّب ${title} فحص الكود مرتين؛ يعرض الأصل مع جدول نصوصه بالعربية`,
+          ? "لم يجتز الرسم المعرَّب فحص الكود؛ يعيد رسمه مرة واحدة"
+          : "لم يجتز الرسم المعرَّب فحص الكود مرتين؛ يعرض الأصل مع جدول نصوصه بالعربية",
       summary_en: `${title} sample ${sample} fails the code check: ${problems.join("; ")}`,
       ...(output && { payload_ref: saveImage(ctx, output).ref }),
     });
@@ -323,7 +325,7 @@ async function diagramOf(
   const skip = (ar: string, en: string) => {
     ctx.trace({
       kind: "decision",
-      summary_ar: `ترك الرسم ${title}: ${ar}`,
+      summary_ar: `ترك رسمًا: ${ar}`,
       summary_en: `Skipping ${title}: ${en}`,
     });
     return null;
@@ -354,7 +356,7 @@ async function diagramOf(
     const note = overridesNote(overridden);
     ctx.trace({
       kind: "decision",
-      summary_ar: `صحّح جدول المصطلحات المعتمدة ترجمة نصوص الرسم ${title}: ${note.ar}`,
+      summary_ar: `صحّح جدول المصطلحات المعتمدة ترجمة النموذج لنصوص الرسم ${note.ar}`,
       summary_en: `${title}: the override table corrects ${note.en}`,
     });
   }
@@ -376,7 +378,7 @@ async function diagramOf(
       : { ar: "ليس من التراخيص التي يعدّل الكود رسومها", en: "which code does not adapt" };
     ctx.trace({
       kind: "decision",
-      summary_ar: `ترخيص الرسم ${title}، ${licence.name}، ${why.ar}؛ يعرضه كما هو مع جدول نصوصه بالعربية`,
+      summary_ar: `ترخيص الرسم ${why.ar}؛ يعرضه كما هو مع جدول نصوصه بالعربية`,
       summary_en: `${title} is under ${licence.name}, ${why.en}: shown as it is with an Arabic legend`,
     });
     return { ...diagram, method: "legend", output: null, check: { attempts: 0, problems: [] } };
@@ -408,7 +410,7 @@ const diagramsAgent = (
         failures.push(e);
         ctx.trace({
           kind: "decision",
-          summary_ar: `تعذّر إعداد الرسم ${fileTitle(figure.file_page)}؛ ينتقل إلى الرسم التالي`,
+          summary_ar: "تعذّر إعداد رسم؛ ينتقل إلى الرسم التالي",
           summary_en: `${fileTitle(figure.file_page)} failed (${messageOf(e)}); trying the next image`,
         });
       }

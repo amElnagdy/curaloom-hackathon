@@ -209,4 +209,39 @@ describe("guardrail", () => {
     expect(events.map((e) => e.kind)).toEqual(["decision", "error", "error"]);
     expect(events.at(-1)?.summary_en).toMatch(/model timed out/);
   });
+
+  it("names each step in Arabic by its work, and leaves its key to the English summaries", async () => {
+    const { store, orchestrator } = setup();
+    const lesson = "lesson:L2:3c7ab98e8e70";
+    const quiz = "quiz:L2:d80d19461e19";
+
+    await orchestrator.runStep("s_1", flaky([{ weeks: 1 }]), null, { key: lesson });
+    await expect(
+      orchestrator.runStep("s_1", flaky([{ weeks: "two" }, { weeks: "two" }]), null, { key: quiz }),
+    ).rejects.toBeInstanceOf(StepFailed);
+    await orchestrator.runStep("s_1", flaky([]), null, { key: lesson });
+    await orchestrator.runStep("s_1", flaky([{ weeks: 1 }]), null, { key: "planner:1" });
+
+    const events = store.readTrace<TraceEvent>("s_1");
+    expect(events.map((e) => e.summary_ar)).toEqual([
+      "بدأت خطوة كتابة الدرس 2",
+      "نتيجة خطوة كتابة الدرس 2 مطابقة للعقد",
+      "بدأت خطوة كتابة اختبار الدرس 2",
+      "نتيجة خطوة كتابة اختبار الدرس 2 غير صالحة، فيعيد المحاولة مرة واحدة",
+      "فشلت خطوة كتابة اختبار الدرس 2 بعد إعادة المحاولة",
+      "خطوة كتابة الدرس 2 مكتملة من قبل، فتُستأنف بنتيجتها المحفوظة",
+      "بدأت الخطوة",
+      "نتيجة الخطوة مطابقة للعقد",
+    ]);
+    expect(events.map((e) => e.summary_en.match(/(lesson|quiz|planner):\S+/)?.[0])).toEqual([
+      lesson,
+      lesson,
+      quiz,
+      quiz,
+      quiz,
+      lesson,
+      "planner:1",
+      "planner:1",
+    ]);
+  });
 });

@@ -1,8 +1,11 @@
 "use client";
 
-// The technical trace (#15): a tab on the left edge with a live event count opens a drawer that
-// overlays the left side. One row per trace event: agent, Arabic and English summary, kind, role, model,
-// latency, cost and the running total. Esc closes it and focus returns to what opened it.
+// The technical trace (#15, #59, #60): a tab on the inline end (the left edge in Arabic) with a live
+// event count opens a drawer over that side, above a scrim that keeps the page out of reach until
+// it closes. One row per trace event: the agent, the kind and the simulated time in Arabic, the
+// Arabic summary, then a technical line in English (ids and the English summary), and the role,
+// model, latency, cost and running total. Filters narrow the list by agent and kind. Esc or the
+// scrim closes it, and focus returns to what opened it.
 
 import {
   ChevronDown,
@@ -18,13 +21,37 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { TraceEvent, TraceKind } from "../../server/trace/trace.ts";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import type { ProviderProfile } from "../../config.ts";
+import { parseSimTime } from "../../server/clock/time.ts";
+import type { TraceKind } from "../../server/trace/trace.ts";
 import { agentName } from "./agents.ts";
-import { arabicNumber, countOf, EVENTS, latency, techTime, usd } from "./format.ts";
+import { simTimeText } from "./course.ts";
+import {
+  arabicDigits,
+  arabicNumber,
+  arabicTime,
+  countOf,
+  EVENTS,
+  latency,
+  TIMES,
+  techTime,
+  usd,
+} from "./format.ts";
 import styles from "./trace-drawer.module.css";
 import { useTrace } from "./trace-provider.tsx";
-import { BidiText, buttonClass, cx, DirIcon } from "./ui.tsx";
+import {
+  KIND_AR,
+  NO_FILTER,
+  roleName,
+  shownText,
+  TRACE_KINDS,
+  type TraceFilter,
+  type TraceRow,
+  traceAgents,
+  traceRows,
+} from "./trace-view.ts";
+import { BidiText, buttonClass, cx, DirIcon, MODE } from "./ui.tsx";
 import { useStickToBottom } from "./use-stick-to-bottom.ts";
 
 const KIND_ICON: Record<TraceKind, LucideIcon> = {
@@ -34,57 +61,68 @@ const KIND_ICON: Record<TraceKind, LucideIcon> = {
   output: FileCheck,
   error: TriangleAlert,
 };
-const KIND_AR: Record<TraceKind, string> = {
-  model_call: "استدعاء نموذج",
-  tool_call: "استدعاء أداة",
-  decision: "قرار",
-  output: "مخرج",
-  error: "خطأ",
-};
 
-function TraceEventRow({ event }: { event: TraceEvent }) {
+// Arabic lines take Arabic-Indic digits; the technical line and the meta values keep Western
+// tabular ones (DESIGN.md, «The Two Digit Systems Rule»).
+function TraceEventRow({ row: { event, repeats } }: { row: TraceRow }) {
   const Icon = KIND_ICON[event.kind];
-  const meta: [string, string][] = [];
-  if (event.role) meta.push(["الدور", event.role]);
-  if (event.model) meta.push(["النموذج", event.model]);
-  if (event.latency_ms !== undefined) meta.push(["الزمن", latency(event.latency_ms)]);
-  if (event.cost_usd !== undefined) meta.push(["التكلفة", usd(event.cost_usd)]);
-  if (event.total_cost_usd !== undefined) meta.push(["الإجمالي", usd(event.total_cost_usd)]);
+  const meta: [string, ReactNode][] = [];
+  if (event.model) {
+    meta.push([
+      "النموذج",
+      <bdi key="model" className={styles.techValue} dir="ltr" lang="en">
+        {event.model}
+      </bdi>,
+    ]);
+  }
+  if (event.role) meta.push(["الدور", roleName(event.role)]);
+  const tech = (value: string) => (
+    <bdi className={styles.techValue} dir="ltr" lang="en">
+      {value}
+    </bdi>
+  );
+  if (event.latency_ms !== undefined) meta.push(["الزمن", tech(latency(event.latency_ms))]);
+  if (event.cost_usd !== undefined) meta.push(["التكلفة", tech(usd(event.cost_usd))]);
+  if (event.total_cost_usd !== undefined) meta.push(["الإجمالي", tech(usd(event.total_cost_usd))]);
 
   return (
     <li className={cx(styles.ev, event.kind === "error" && styles.evError)}>
-      <div className={styles.evHead}>
-        <span className={styles.evIcon}>
-          <Icon aria-hidden />
-        </span>
-        <span className={styles.evAgent} title={event.agent}>
-          {agentName(event.agent)}
-        </span>
-        <span className={styles.evKind} title={KIND_AR[event.kind]} lang="en">
-          {event.kind}
-        </span>
-        <span className={styles.evId} dir="ltr" lang="en" title={techTime(event.ts)}>
-          {event.id}
-          <span className={styles.evIdSep} aria-hidden />
-          {event.sim_ts ?? techTime(event.ts)}
-        </span>
+      <span className={styles.evIcon}>
+        <Icon aria-hidden />
+      </span>
+      <div className={styles.evBody}>
+        <div className={styles.evHead}>
+          <span className={styles.evAgent}>{agentName(event.agent)}</span>
+          <span className={styles.evKind}>{KIND_AR[event.kind]}</span>
+          {repeats > 1 && <span className={styles.evRepeat}>تكرر {countOf(repeats, TIMES)}</span>}
+          <span className={styles.evWhen}>
+            {event.sim_ts ? simTimeText(parseSimTime(event.sim_ts)) : arabicTime(event.ts)}
+          </span>
+        </div>
+        <p className={styles.evAr}>
+          <BidiText text={arabicDigits(event.summary_ar)} />
+        </p>
+        <div className={styles.evTech} dir="ltr" lang="en">
+          <p className={styles.evIds}>
+            <span>{event.id}</span>
+            <span>{event.agent}</span>
+            <span>{event.kind}</span>
+            {event.role && <span>{event.role}</span>}
+            <span>{techTime(event.ts)}</span>
+          </p>
+          <p className={styles.evEn}>{event.summary_en}</p>
+        </div>
+        {meta.length > 0 && (
+          <dl className={styles.evMeta}>
+            {meta.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
-      <p className={styles.evAr}>
-        <BidiText text={event.summary_ar} />
-      </p>
-      <p className={styles.evEn} dir="ltr" lang="en">
-        {event.summary_en}
-      </p>
-      {meta.length > 0 && (
-        <dl className={styles.evMeta}>
-          {meta.map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd lang="en">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
     </li>
   );
 }
@@ -128,19 +166,92 @@ function DummyRunButton({ sessionId }: { sessionId: string }) {
   );
 }
 
+function TraceFilters({
+  agents,
+  filter,
+  onChange,
+  agentRef,
+}: {
+  agents: string[];
+  filter: TraceFilter;
+  onChange(filter: TraceFilter): void;
+  agentRef: RefObject<HTMLSelectElement | null>;
+}) {
+  return (
+    // The first option of each list names it («كل الوكلاء»), so the lists carry no visible label and
+    // the row fits the drawer at 150% zoom.
+    <div className={styles.filters}>
+      <select
+        ref={agentRef}
+        className={styles.filter}
+        aria-label="الوكيل"
+        value={filter.agent ?? ""}
+        onChange={(e) => onChange({ ...filter, agent: e.target.value || null })}
+      >
+        <option value="">كل الوكلاء</option>
+        {agents.map((agent) => (
+          <option key={agent} value={agent}>
+            {agentName(agent)}
+          </option>
+        ))}
+      </select>
+      <select
+        className={styles.filter}
+        aria-label="نوع الحدث"
+        value={filter.kind ?? ""}
+        onChange={(e) =>
+          onChange({
+            ...filter,
+            kind: TRACE_KINDS.find((kind) => kind === e.target.value) ?? null,
+          })
+        }
+      >
+        <option value="">كل الأنواع</option>
+        {TRACE_KINDS.map((kind) => (
+          <option key={kind} value={kind}>
+            {KIND_AR[kind]}
+          </option>
+        ))}
+      </select>
+      <label className={styles.fold}>
+        <input
+          type="checkbox"
+          checked={filter.foldRepeats}
+          onChange={(e) => onChange({ ...filter, foldRepeats: e.target.checked })}
+        />
+        دمج المتكرر
+      </label>
+    </div>
+  );
+}
+
+// The page under the open drawer: dimmed by the scrim and inert, so neither a click nor Tab reaches
+// it until the drawer closes.
+export function BehindTrace({ className, children }: { className?: string; children: ReactNode }) {
+  const { drawerOpen } = useTrace();
+  return (
+    <div className={className} inert={drawerOpen}>
+      {children}
+    </div>
+  );
+}
+
 export function TraceDrawer({
   providerProfile,
   devTools,
 }: {
-  providerProfile: string;
+  providerProfile: ProviderProfile;
   devTools: boolean;
 }) {
   const trace = useTrace();
   const { events, drawerOpen, openDrawer, closeDrawer, drawerOpener } = trace;
+  const [filter, setFilter] = useState<TraceFilter>(NO_FILTER);
+  const rows = traceRows(events, filter);
   const tabRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const agentRef = useRef<HTMLSelectElement>(null);
   const wasOpen = useRef(false);
-  const list = useStickToBottom<HTMLOListElement>(events.length);
+  const list = useStickToBottom<HTMLOListElement>(rows.length);
   const { jump } = list;
 
   // Opening moves focus into the drawer and shows the newest event; closing returns focus.
@@ -166,12 +277,22 @@ export function TraceDrawer({
   }, [drawerOpen, closeDrawer]);
 
   const count = events.length;
-  const tabLabel = drawerOpen
-    ? "أغلق سجل الوكلاء"
-    : `افتح سجل الوكلاء، ${count === 0 ? "لا أحداث بعد" : countOf(count, EVENTS)}`;
+  const sessionCount = count === 0 ? "لا أحداث بعد" : `${countOf(count, EVENTS)} في الجلسة`;
+  const tabLabel = drawerOpen ? "أغلق سجل الوكلاء" : `افتح سجل الوكلاء، ${sessionCount}`;
+  // The reset button goes with the empty state, so focus moves to the first filter.
+  const showAll = () => {
+    setFilter(NO_FILTER);
+    agentRef.current?.focus();
+  };
 
   return (
     <>
+      {/* Pointer only: Esc and the close button are the keyboard's way out. */}
+      <div
+        className={cx(styles.scrim, drawerOpen && styles.scrimOn)}
+        onClick={closeDrawer}
+        aria-hidden
+      />
       <button
         ref={tabRef}
         type="button"
@@ -183,8 +304,11 @@ export function TraceDrawer({
       >
         {/* LTR names: closed points toward the content (mirrored: right), open points back. */}
         <DirIcon icon={drawerOpen ? ChevronRight : ChevronLeft} className={styles.tabHandle} />
-        <Logs aria-hidden />
-        <span className={styles.tabLabel}>سجل الوكلاء</span>
+        <Logs aria-hidden className={styles.tabIcon} />
+        <span className={styles.tabLabel} aria-hidden>
+          <span>سجل</span>
+          <span>الوكلاء</span>
+        </span>
         {/* An Arabic-Indic zero is a dot: with no events the badge would read as a status dot. */}
         {count > 0 && (
           <span key={count} className={styles.tabCount}>
@@ -205,7 +329,8 @@ export function TraceDrawer({
               سجل الوكلاء
             </h2>
             <p className={styles.sub}>
-              كل استدعاء نموذج أو أداة، وكل قرار، مع النموذج والتكلفة والزمن.
+              كل استدعاء نموذج أو أداة، وكل قرار، مع النموذج والتكلفة والزمن. وتحت كل حدث سطره
+              التقني بالإنجليزية.
             </p>
           </div>
           {devTools && <DummyRunButton sessionId={trace.sessionId} />}
@@ -222,7 +347,7 @@ export function TraceDrawer({
 
         <dl className={styles.sum}>
           <div>
-            <dt>الأحداث</dt>
+            <dt>أحداث الجلسة</dt>
             <dd>{arabicNumber(count)}</dd>
           </div>
           <div>
@@ -233,9 +358,7 @@ export function TraceDrawer({
           </div>
           <div>
             <dt>وضع النماذج</dt>
-            <dd className={styles.tech} lang="en">
-              {providerProfile}
-            </dd>
+            <dd>{MODE[providerProfile].label}</dd>
           </div>
         </dl>
 
@@ -244,6 +367,18 @@ export function TraceDrawer({
             انقطع الاتصال بالسجل، ويُعاد الآن.
           </p>
         )}
+
+        {count > 0 && (
+          <TraceFilters
+            agents={traceAgents(events)}
+            filter={filter}
+            onChange={setFilter}
+            agentRef={agentRef}
+          />
+        )}
+        <p className={styles.shown} role="status">
+          {shownText(rows, count, filter)}
+        </p>
 
         {count === 0 ? (
           <div className={styles.empty}>
@@ -255,6 +390,13 @@ export function TraceDrawer({
                 : "تظهر هنا كل خطوة يخطوها الوكلاء لحظة بلحظة."}
             </p>
           </div>
+        ) : rows.length === 0 ? (
+          <div className={styles.empty}>
+            <p>لا أحداث تطابق هذا الاختيار.</p>
+            <button type="button" className={buttonClass("secondary", "sm")} onClick={showAll}>
+              اعرض كل الأحداث
+            </button>
+          </div>
         ) : (
           <ol
             ref={list.ref}
@@ -264,8 +406,8 @@ export function TraceDrawer({
             tabIndex={0}
             aria-label="الأحداث، الأقدم أولًا"
           >
-            {events.map((event) => (
-              <TraceEventRow key={event.id} event={event} />
+            {rows.map((row) => (
+              <TraceEventRow key={row.event.id} row={row} />
             ))}
           </ol>
         )}

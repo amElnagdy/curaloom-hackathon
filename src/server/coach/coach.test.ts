@@ -1,7 +1,7 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CheckinReply, CoursePlan, Quiz } from "../../../contracts/index.ts";
 import { RECORDED_TOPIC } from "../../../demo/script.ts";
 import { loadOmarSeed } from "../../../demo/seed";
@@ -17,6 +17,7 @@ import { createOrchestrator, StepFailed } from "../orchestrator/orchestrator";
 import { loadModels } from "../providers/models";
 import { createProvider, type ModelResult, type Provider } from "../providers/provider";
 import { contentHash, createFileStore, type Store } from "../store/store";
+import { arabicLineProblems } from "../trace/arabic-line";
 import type { TraceEvent } from "../trace/trace";
 import {
   CHOICE_LABEL,
@@ -32,6 +33,14 @@ import { sessionSim } from "./session";
 
 const seed = loadOmarSeed(RECORDED_TOPIC);
 
+// Every Arabic trace line a test's setup traced reads as Arabic (#59), the templates' included.
+const traced: (() => TraceEvent[])[] = [];
+afterEach(() => {
+  for (const trace of traced.splice(0)) {
+    for (const e of trace()) expect(arabicLineProblems(e.summary_ar), e.summary_ar).toEqual([]);
+  }
+});
+
 // `steps` writes the coach's messages; none sends the templates.
 function setup(steps: (store: Store) => CoachDeps["steps"] = () => null) {
   const store = createFileStore(mkdtempSync(join(tmpdir(), "coach-")));
@@ -40,6 +49,7 @@ function setup(steps: (store: Store) => CoachDeps["steps"] = () => null) {
   const sim = () => sessionSim(store, "s_1", seed, writer).sim;
   const phone = () => readInbox(store, "s_1");
   const trace = () => store.readTrace<TraceEvent>("s_1");
+  traced.push(trace);
   return { store, sim, phone, trace };
 }
 
@@ -154,7 +164,7 @@ describe("the coach's ladder on the seed's Omar", () => {
       [
         "day 10 09:00",
         "checkin_a0_d10: 10 days without a quiz since day 0 -> checkin_d10",
-        "مرّت عشرة أيام دون دراسة، فسأل المدرب عمّا يناسبه",
+        "مرّت عشرة أيام دون دراسة، فسأل المدرب عمّا يناسبك",
       ],
       [
         "day 17 09:00",
@@ -386,6 +396,9 @@ describe("activity", () => {
     const resets = store.readTrace<TraceEvent>("s_1").filter((e) => e.agent === "coach");
     expect(resets.map((e) => e.sim_ts)).toEqual(["day 3 10:00"]);
     expect(resets[0]?.summary_en).toMatch(/comeback after 3 days/);
+    expect(resets[0]?.summary_ar).toBe(
+      "أجبتَ عن اختبار في اليوم ٣ بعد غياب، فبدأ المدرب العدّ من جديد",
+    );
   });
 
   it("ends a pause when the learner takes a quiz", async () => {

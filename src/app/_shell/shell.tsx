@@ -1,6 +1,7 @@
 // The app shell (#15), layout C: icon rail on the right, top bar, the page in <main>, and the trace
-// tab and drawer on the left edge. Rendered once by the root layout; pages render inside <main>,
-// which has no padding of its own (pages use --page-gutter and --page-gutter-end from globals.css).
+// tab and drawer on the left edge, the inline end; the open drawer makes the rest inert (#60).
+// Rendered once by the root layout; pages render inside <main>, which has no padding of its own
+// (pages use --page-gutter and --page-gutter-end from globals.css).
 // At phone width the rail and the trace tab move into the top bar's two ends (#35).
 
 import type { ReactNode } from "react";
@@ -11,7 +12,7 @@ import { MissingRecordingAlert } from "./missing-recording.tsx";
 import { Rail } from "./rail.tsx";
 import styles from "./shell.module.css";
 import { TopBar } from "./top-bar.tsx";
-import { TraceDrawer } from "./trace-drawer.tsx";
+import { BehindTrace, TraceDrawer } from "./trace-drawer.tsx";
 
 export function Shell({
   appName,
@@ -36,10 +37,11 @@ export function Shell({
 
   return (
     <>
-      <a href="#main" className={styles.skip}>
-        تخطَّ إلى المحتوى
-      </a>
-      <div className={styles.frame}>
+      <BehindTrace className={styles.frame}>
+        {/* Fixed, so it takes no grid cell; inert with the rest while the trace is open. */}
+        <a href="#main" className={styles.skip}>
+          تخطَّ إلى المحتوى
+        </a>
         <Rail appName={appName} learnerName={learnerName} />
         <div className={styles.column}>
           <TopBar clock={clock} profile={providerProfile} />
@@ -56,7 +58,7 @@ export function Shell({
             />
           )}
         </div>
-      </div>
+      </BehindTrace>
       <TraceDrawer providerProfile={providerProfile} devTools={devTools} />
     </>
   );

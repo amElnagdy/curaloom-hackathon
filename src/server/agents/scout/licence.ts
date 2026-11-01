@@ -355,7 +355,7 @@ export function classifyLicence(pageText: string, url: string): LicenceCheck {
       offList.spdx,
       offList.findings,
       `${offList.spdx} is not on the allowlist`,
-      `ترخيصه ${offList.spdx} ليس من التراخيص المقبولة`,
+      "ترخيصه ليس من التراخيص المقبولة",
     );
   }
   const [cited, ...others] = named.filter(allowed).toSorted(citedFirst);

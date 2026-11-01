@@ -180,27 +180,27 @@ export function createNotifier({
   const traceResult = (entry: OutboxEntry, at: SimTime, deferredBefore: boolean) => {
     const { template, to } = entry.message;
     const reason = consent().opted_out ? "opted out" : "no consent";
-    const reasonAr = consent().opted_out ? "أوقف الرسائل بطلبه" : "لم يوافق على الرسائل";
+    const reasonAr = consent().opted_out ? "أوقفتَ الرسائل" : "لم توافق على الرسائل بعد";
     switch (entry.status) {
       case "sent":
         return trace(
           at,
           deferredBefore
-            ? `وصلت رسالة المدرب المؤجلة إلى ${to} بعد ساعات الهدوء`
-            : `أُرسلت رسالة المدرب إلى ${to}`,
+            ? "وصلتك رسالة المدرب المؤجلة بعد ساعات الهدوء"
+            : "أُرسلت إليك رسالة المدرب",
           `${deferredBefore ? "Delivered deferred" : "Sent"} ${template} to ${to} via ${entry.message.channel}`,
         );
       case "deferred":
         return trace(
           at,
-          `أُجّلت رسالة المدرب إلى ${to} حتى تنتهي ساعات الهدوء: ${arabicSimTime(parseSimTime(entry.deliver_at))}`,
+          `أُجّلت رسالة المدرب إليك حتى تنتهي ساعات الهدوء: ${arabicSimTime(parseSimTime(entry.deliver_at))}`,
           `Deferred ${template} for ${to}: quiet hours until ${entry.deliver_at}`,
         );
       case "suppressed_opt_out":
       case "suppressed_quiet_hours":
         return trace(
           at,
-          `لم تُرسل رسالة المدرب إلى ${to}، لأنه ${reasonAr}`,
+          `لم تُرسل إليك رسالة المدرب، لأنك ${reasonAr}`,
           `Suppressed ${template} for ${to}: ${reason}`,
         );
     }
@@ -297,7 +297,7 @@ export function createNotifier({
       const quiet = next.quiet_hours;
       trace(
         at,
-        `حدّث ${learner} حدود المتابعة: الرسائل ${choice.messages ? "مفعّلة" : "متوقفة"}، ${quiet ? `الهدوء من ${quiet.start} حتى ${quiet.end}` : "بلا ساعات هدوء"}، بأسلوب ${next.intensity === "gentle" ? "لطيف" : "عادي"}`,
+        `حدّثتَ حدود المتابعة: الرسائل ${choice.messages ? "مفعّلة" : "متوقفة"}، ${quiet ? `الهدوء من ${quiet.start} حتى ${quiet.end}` : "بلا ساعات هدوء"}، بأسلوب ${next.intensity === "gentle" ? "لطيف" : "عادي"}`,
         `Consent saved by ${learner}: messages ${choice.messages ? "on" : "off"}, quiet hours ${quiet ? `${quiet.start}-${quiet.end}` : "none"}, intensity ${next.intensity}`,
       );
       return next;
@@ -308,14 +308,14 @@ export function createNotifier({
     receive(text: string, at: SimTime): ReplyResult {
       adapter.received({ from: learner, text, sim_ts: formatSimTime(at) });
       if (!isStopWord(text)) {
-        trace(at, `وصل ردّ من ${learner}`, `Reply from ${learner}`);
+        trace(at, "وصل ردّك", `Reply from ${learner}`);
         return { opted_out: consent().opted_out, confirmed: false };
       }
       const before = consent();
       if (before.opted_out) {
         trace(
           at,
-          `وصلت كلمة إيقاف من ${learner}، والرسائل متوقفة من قبل`,
+          "وصلت منك كلمة إيقاف، والرسائل متوقفة من قبل",
           `Stop word from ${learner}: already opted out, no second confirmation`,
         );
         return { opted_out: true, confirmed: false };
@@ -329,7 +329,7 @@ export function createNotifier({
       cancelDeferred();
       trace(
         at,
-        `أوقف ${learner} الرسائل بكلمة إيقاف، فأُلغيت كل رسالة مؤجلة`,
+        "أوقفتَ الرسائل بكلمة إيقاف، فأُلغيت كل رسالة مؤجلة",
         `Stop word from ${learner}: opted out; deferred messages cancelled`,
       );
 
@@ -343,7 +343,7 @@ export function createNotifier({
         sim_ts: formatSimTime(at),
       };
       dispatch(confirmation, at, "opt_out_confirmation");
-      trace(at, `أُرسل تأكيد الإيقاف إلى ${learner}`, `Sent the opt-out confirmation to ${learner}`);
+      trace(at, "أُرسل إليك تأكيد الإيقاف", `Sent the opt-out confirmation to ${learner}`);
       return { opted_out: true, confirmed: true };
     },
   };

@@ -33,6 +33,7 @@ import {
 } from "../../providers/provider.ts";
 import { createFileCache, createFileStore, type Store } from "../../store/store.ts";
 import { createPageFetcher } from "../../tools/fetch-page.ts";
+import { arabicLineProblems, tracedIn } from "../../trace/arabic-line.ts";
 import { createTracer, type TraceEvent } from "../../trace/trace.ts";
 import { createPlanner, planFor, type SavedPlan } from "../architect/architect.ts";
 import { planResponse } from "../architect/http.ts";
@@ -137,8 +138,11 @@ function unused(): never {
 }
 
 const dirs: string[] = [];
+// Every Arabic trace line a test here wrote reads as Arabic (#59).
 afterEach(() => {
+  const traced = dirs.flatMap(tracedIn);
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const e of traced) expect(arabicLineProblems(e.summary_ar), e.summary_ar).toEqual([]);
 });
 
 function setup(
@@ -529,6 +533,50 @@ describe("intake, replaying Omar's recorded interview", () => {
     expect(modelsOf(store, "architect").length).toBeGreaterThan(0);
     expect(new Set(modelsOf(store, "architect"))).toEqual(new Set(["muse-wonder-1.0"]));
   }, 600_000);
+
+  // The afterEach above checks their Arabic lines against the rule (#59).
+  it.each([
+    ["it cannot read", async (url: string) => ({ ok: false as const, url, reason: "HTTP 503" })],
+    [
+      "whose licence it no longer finds",
+      async (url: string) => ({
+        ok: true as const,
+        page: {
+          url,
+          final_url: url,
+          status: 200,
+          content_type: "text/html",
+          truncated: false,
+          text: "All rights reserved.",
+        },
+      }),
+    ],
+  ])(
+    "names a source %s by its site in the Arabic trace, and by its id in English",
+    async (_, fetchPage) => {
+      const { store, orchestrator, saved } = await planned();
+      const builder = createLessonBuilder({
+        orchestrator,
+        store,
+        sessionId: "s1",
+        pages: { fetchPage },
+        profile: () => savedProfile(store, "s1") as LearnerProfile,
+        mastery: () => [],
+      });
+      const first = (saved.versions[0] as CoursePlan).committed.lessons[0]?.id ?? "";
+
+      await expect(builder.build(first)).rejects.toThrow(StepFailed);
+      const unquoted = store
+        .readTrace<TraceEvent>("s1")
+        .filter((e) => e.agent === "lesson_builder" && e.summary_en.startsWith("Not quoting"));
+      expect(unquoted.length).toBeGreaterThan(0);
+      for (const e of unquoted) {
+        expect(e.summary_en).toMatch(/r_[0-9a-f]{8}/);
+        expect(e.summary_ar).toMatch(/\.(wikipedia|wikibooks)\.org/);
+      }
+    },
+    600_000,
+  );
 
   // The lesson page asks for the quiz while Omar reads lesson 1.
   it("writes the quiz for his first lesson", async () => {

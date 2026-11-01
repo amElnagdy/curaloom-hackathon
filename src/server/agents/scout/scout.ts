@@ -79,6 +79,9 @@ const EXTRA_ROUND_LANGS = 2;
 const MAX_QUERIES = 2;
 const FETCH_CONCURRENCY = 4;
 
+// The queries keep their own language in summary_en; the Arabic line counts them (#59).
+const QUERIES_AR: Record<number, string> = { 1: "عبارة بحث واحدة", 2: "عبارتي بحث" };
+
 const LANGUAGE: Record<Lang, { en: string; ar: string }> = {
   en: { en: "English", ar: "بالإنجليزية" },
   ru: { en: "Russian", ar: "بالروسية" },
@@ -274,7 +277,7 @@ async function planQueries(
     const queries = written.length ? written : [brief.topic];
     ctx.trace({
       kind: "decision",
-      summary_ar: `صاغ عبارات بحث ${LANGUAGE[lang].ar}: ${queries.join("، ")}`,
+      summary_ar: `صاغ ${QUERIES_AR[queries.length] ?? `${queries.length} عبارات بحث`} ${LANGUAGE[lang].ar}`,
       summary_en: `Queries (${lang}): ${queries.map((q) => JSON.stringify(q)).join(", ")}`,
     });
     return { lang, queries };
@@ -434,7 +437,7 @@ async function checkPage(ctx: ScoutContext, candidate: Candidate): Promise<Check
   if (check.use === "rejected") return reject(check.reason, check.reason_ar);
   ctx.trace({
     kind: "tool_call",
-    summary_ar: `تحقّق من ترخيص صفحة من ${hostOf(candidate.url)}: ${check.spdx}${check.use === "personal_study" ? "، للدراسة الشخصية فقط" : ""}`,
+    summary_ar: `تحقّق من ترخيص صفحة من ${hostOf(candidate.url)}، فوجده ${check.use === "personal_study" ? "يسمح بالدراسة الشخصية فقط" : "من التراخيص المقبولة"}`,
     summary_en: `licence_check ${candidate.url}: ${check.spdx} (${check.use}), ${check.reason}`,
   });
   return { ok: true, candidate, check: { ...check, use: check.use } };

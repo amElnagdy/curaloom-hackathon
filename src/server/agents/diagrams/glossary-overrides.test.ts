@@ -17,7 +17,7 @@ describe("the glossary override table", () => {
       { src: "BUZZ CUT", model_ar: "قصة قصيرة", ar: "قَصّة شعر قصيرة" },
     ]);
     expect(overridesNote(overridden)).toEqual({
-      ar: "«buzz  cut» من «قصة قصيرة» إلى «قَصّة شعر قصيرة»، «BUZZ CUT» من «قصة قصيرة» إلى «قَصّة شعر قصيرة»",
+      ar: "من «قصة قصيرة» إلى «قَصّة شعر قصيرة»",
       en: '"buzz  cut" from «قصة قصيرة» to the approved «قَصّة شعر قصيرة»; "BUZZ CUT" from «قصة قصيرة» to the approved «قَصّة شعر قصيرة»',
     });
   });

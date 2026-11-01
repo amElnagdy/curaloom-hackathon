@@ -88,6 +88,8 @@ export const CHOICE_LABEL: Record<CheckinChoice, string> = {
 };
 const ASKED_AR = { shrink: "جلسات أقصر", switch: "مصدرًا آخر" } as const;
 const arabicDay = (n: number) => n.toLocaleString("ar-EG");
+// «اليوم ٠» reads as a dot, so day 0 is «يوم البدء», as on the pages (src/app/_shell/course.ts).
+const dayName = (day: number) => (day === 0 ? "يوم البدء" : `اليوم ${arabicDay(day)}`);
 
 // What the coach knows of the learner's study: the days of their quizzes, the only activity with a
 // record yet, the lesson they are on, and whether they have a plan of their own to re-plan.
@@ -174,7 +176,7 @@ const RUNG_MESSAGES: Record<RungKind, RungMessage> = {
       action: "choose",
       options: CHECKIN_CHOICES.map((choice) => ({ choice, label_ar: CHOICE_LABEL[choice] })),
     }),
-    why_ar: "مرّت عشرة أيام دون دراسة، فسأل المدرب عمّا يناسبه",
+    why_ar: "مرّت عشرة أيام دون دراسة، فسأل المدرب عمّا يناسبك",
     purpose:
       "a check-in ten days after their last quiz: say a break is fine, and ask what suits them now",
     score: false,
@@ -510,7 +512,7 @@ export function createCoach({
       agent: "coach",
       kind: "decision",
       at,
-      summary_ar: `عدتَ بعد غيابك منذ اليوم ${arabicDay(anchor)}، فتبدأ عودتك بمراجعة قصيرة ثم خطة مقترحة`,
+      summary_ar: `عدتَ بعد غيابك منذ ${dayName(anchor)}، فتبدأ عودتك بمراجعة قصيرة ثم خطة مقترحة`,
       summary_en: `comeback_detected: ${learner.id} back after ${comeback.away_days} days (via ${via})`,
     });
     return comeback;
@@ -606,7 +608,7 @@ export function createCoach({
         agent: "coach",
         kind: "decision",
         at,
-        summary_ar: `أنهيتَ عودتك، فبدأ المدرب العدّ من جديد من اليوم ${arabicDay(at.day)}`,
+        summary_ar: `أنهيتَ عودتك، فبدأ المدرب العدّ من جديد من ${dayName(at.day)}`,
         summary_en: `active: ladder reset on day ${at.day}`,
       });
       return { comeback: comebackAt(at), replanned };
@@ -683,7 +685,7 @@ export function createCoach({
         agent: "coach",
         kind: "decision",
         at,
-        summary_ar: `أجبت عن اختبار في اليوم ${anchor}${comeback ? " بعد غياب" : ""}، فبدأ المدرب العدّ من جديد${dropped ? " دون مراجعة العودة أو خطة جديدة" : ""}`,
+        summary_ar: `أجبتَ عن اختبار في ${dayName(anchor)}${comeback ? " بعد غياب" : ""}، فبدأ المدرب العدّ من جديد${dropped ? " دون مراجعة العودة أو خطة جديدة" : ""}`,
         summary_en: `Ladder reset for ${learner.id}: a quiz on day ${anchor}, ${away} days after day ${seen}${comeback ? `; comeback after ${away} days` : ""}${dropped ? "; the open comeback ends with no recap or re-plan" : ""}`,
       });
     },

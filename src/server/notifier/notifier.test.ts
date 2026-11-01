@@ -85,24 +85,34 @@ describe("notifier", () => {
     ).toThrow(/longer than 1000/);
   });
 
-  it("traces each decision in Arabic and English with the learner id and no message text", () => {
+  it("traces each decision in Arabic to the learner and in English with their id, and no message text", () => {
     const { store, notifier } = setup();
 
     notifier.send(message("m1", "day 2 19:00"));
     notifier.send(message("m2", "day 2 23:00"));
     notifier.receive("توقف", parseSimTime("day 2 23:30"));
+    notifier.receive("شكرا", parseSimTime("day 2 23:40"));
+    notifier.setConsent(
+      { messages: true, quiet_hours: { start: "22:00", end: "08:00" }, intensity: "gentle" },
+      parseSimTime("day 3 09:00"),
+    );
 
     const events = store.readTrace<TraceEvent>("s_1");
-    expect(events.length).toBeGreaterThanOrEqual(4);
     for (const e of events) {
       expect(e.agent).toBe("notifier");
       expect(e.summary_ar).toMatch(/[؀-ۿ]/);
+      expect(e.summary_ar).not.toMatch(/[A-Za-z]/);
       expect(e.summary_en).toContain("l_omar");
       expect(`${e.summary_ar} ${e.summary_en}`).not.toMatch(/رسالة m\d|توقف"/);
     }
-    expect(events.map((e) => e.sim_ts)).toEqual(
-      events.map((_, i) => (i === 0 ? "day 2 19:00" : i === 1 ? "day 2 23:00" : "day 2 23:30")),
-    );
+    expect(events.map((e) => e.sim_ts)).toEqual([
+      "day 2 19:00",
+      "day 2 23:00",
+      "day 2 23:30",
+      "day 2 23:30",
+      "day 2 23:40",
+      "day 3 09:00",
+    ]);
   });
 });
 

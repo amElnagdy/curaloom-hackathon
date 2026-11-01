@@ -127,6 +127,7 @@ export const TERMS: CountForms = {
   many: "مصطلحًا",
 };
 export const VERSIONS: CountForms = { one: "نسخة واحدة", two: "نسختان", few: "نسخ", many: "نسخة" };
+export const TIMES: CountForms = { one: "مرة واحدة", two: "مرتين", few: "مرات", many: "مرة" };
 export const CHANGES: CountForms = {
   one: "تغيير واحد",
   two: "تغييران",

@@ -188,15 +188,16 @@ const lessonBuilder = (
         brief.resources.map(async (r) => {
           const quotable = quotableText(r.licence, await pages.fetchPage(r.url, ctx.trace));
           if (!quotable.ok) {
+            const host = URL.parse(r.url)?.host ?? r.url;
             ctx.trace({
               kind: "decision",
               ...(quotable.why === "unread"
                 ? {
-                    summary_ar: `لم يقتبس من مصدر ${r.id} لأن الكود لم يقرأ صفحته كاملة الآن`,
+                    summary_ar: `لم يقتبس من صفحة مصدره على ${host}، لأن الكود لم يقرأها كاملة الآن`,
                     summary_en: `Not quoting ${r.id}: its page could not be read in full now`,
                   }
                 : {
-                    summary_ar: `لم يقتبس من مصدر ${r.id} لأن الكود لم يجد على صفحته الآن ترخيصه ${r.licence.spdx}`,
+                    summary_ar: `لم يقتبس من صفحة مصدره على ${host}، لأن الكود لم يعد يجد عليها الترخيص الذي قُبلت به`,
                     summary_en: `Not quoting ${r.id}: its page no longer reads as ${r.licence.spdx}`,
                   }),
             });

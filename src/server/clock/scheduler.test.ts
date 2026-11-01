@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { loadOmarSeed } from "../../../demo/seed";
 import { readInbox } from "../notifier/adapters";
 import { createFileStore } from "../store/store";
+import { arabicLineProblems } from "../trace/arabic-line";
 import type { TraceEvent } from "../trace/trace";
 import type { CoachRule, RuleSource } from "./scheduler";
 import { createSim } from "./sim";
@@ -153,5 +154,6 @@ describe("coach scheduler", () => {
     const last = trace().at(-1);
     expect(last?.summary_en).toMatch(/reset to the seed.*consent/i);
     expect(last?.summary_ar).toMatch(/الموافقة/);
+    expect(arabicLineProblems(last?.summary_ar ?? "")).toEqual([]);
   });
 });

@@ -190,6 +190,9 @@ const quizWriter: Agent<QuizBrief, typeof Quiz> = {
 
 export type GradeBrief = { quiz: Quiz; responses: Answer[]; sim_day: number };
 
+// The short answers the judge grades, for the trace: Arabic has its own forms for one and two.
+const SHORTS_AR: Record<number, string> = { 1: "الإجابة القصيرة", 2: "الإجابتين القصيرتين" };
+
 // A score from the judge, to the nearest half and within 0 to 1.
 const halfStep = (score: number) => Math.min(1, Math.max(0, Math.round(score * 2) / 2));
 
@@ -207,7 +210,7 @@ const grader: Agent<GradeBrief, typeof QuizAttempt> = {
               role: "judge",
               trace: {
                 agent: "examiner",
-                summary_ar: `يصحّح ${shorts.length === 1 ? "الإجابة القصيرة" : `${shorts.length} إجابات قصيرة`} بمعيار كل سؤال`,
+                summary_ar: `يصحّح ${SHORTS_AR[shorts.length] ?? `${shorts.length} إجابات قصيرة`} بمعيار كل سؤال`,
                 summary_en: `Grading ${shorts.length} short answers on quiz ${quiz.id} by their rubrics`,
               },
               instructions: GRADE,

@@ -1,9 +1,31 @@
-/* Trace tab on the left edge and the drawer it opens (trace-drawer.tsx). */
+/* Trace tab on the inline end (the left edge in Arabic), the drawer it opens and the scrim under it
+   (trace-drawer.tsx). Logical properties, so both follow `dir`; --out is the side the drawer hides
+   toward: 1 (right) in LTR, -1 (left) in RTL. */
+
+.scrim {
+  position: fixed;
+  z-index: 59;
+  inset: 0;
+  background: rgb(17 24 39 / 0.22);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    visibility 0s linear var(--dur-3);
+}
+.scrimOn {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    visibility 0s linear 0s;
+}
 
 .tab {
+  --out: 1;
   position: fixed;
   z-index: 61;
-  left: 0;
+  inset-inline-end: 0;
   top: calc(var(--top-h) + (100vh - var(--top-h)) / 2);
   transform: translate(0, -50%);
   display: flex;
@@ -13,7 +35,10 @@
   width: var(--tab-w);
   padding: var(--s-3) 0;
   border: 0;
-  border-radius: 0 var(--r-md) var(--r-md) 0;
+  border-start-start-radius: var(--r-md);
+  border-end-start-radius: var(--r-md);
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
   background: var(--surface);
   color: var(--ink-2);
   box-shadow: var(--shadow-1);
@@ -26,19 +51,29 @@
   color: var(--ink);
   background: var(--fill);
 }
+/* Open, the tab rides on the drawer's edge as its handle. */
 .tab[aria-expanded="true"] {
-  transform: translate(var(--trace-w), -50%);
+  transform: translate(calc(-1 * var(--out) * var(--trace-w)), -50%);
 }
 .tabHandle {
   width: 1rem;
   height: 1rem;
   color: var(--ink-3);
 }
+.tab .tabIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+/* Upright Arabic on two short lines: rotated text is hard to read. */
 .tabLabel {
-  writing-mode: vertical-rl;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
   font-size: var(--text-xs);
-  font-weight: 600;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .tabCount {
   display: inline-grid;
@@ -59,7 +94,7 @@
   .tab,
   .tab[aria-expanded="true"] {
     top: calc((var(--top-h) - 2.75rem) / 2);
-    left: var(--s-3);
+    inset-inline-end: var(--s-3);
     transform: none;
     justify-content: center;
     width: 2.75rem;
@@ -80,7 +115,7 @@
   .tabCount {
     position: absolute;
     top: 0.125rem;
-    right: 0.125rem;
+    inset-inline-start: 0.125rem;
     min-width: 1.125rem;
     height: 1.125rem;
     padding: 0 0.25rem;
@@ -88,9 +123,10 @@
 }
 
 .drawer {
+  --out: 1;
   position: fixed;
   z-index: 60;
-  left: 0;
+  inset-inline-end: 0;
   top: var(--top-h);
   bottom: 0;
   width: var(--trace-w);
@@ -98,7 +134,7 @@
   flex-direction: column;
   background: var(--surface);
   box-shadow: var(--shadow-float);
-  transform: translateX(-102%);
+  transform: translateX(calc(var(--out) * 102%));
   visibility: hidden;
   transition:
     transform var(--dur-3) var(--ease-out),
@@ -110,6 +146,10 @@
   transition:
     transform var(--dur-3) var(--ease-out),
     visibility 0s linear 0s;
+}
+:global([dir="rtl"]) .tab,
+:global([dir="rtl"]) .drawer {
+  --out: -1;
 }
 
 .head {
@@ -175,6 +215,43 @@
   color: var(--attn-ink);
 }
 
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  margin: 0 var(--s-5) var(--s-2);
+}
+.filter {
+  height: 2rem;
+  max-width: 10rem;
+  padding-inline: var(--s-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  color: var(--ink);
+}
+.fold {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+.fold input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+.shown {
+  margin: 0 var(--s-5) var(--s-2);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+.shown:empty {
+  display: none;
+}
+
 .list {
   flex: 1;
   overflow-y: auto;
@@ -214,23 +291,17 @@
   color: var(--ink-3);
 }
 
-/* One event */
+/* One event: the kind's icon beside a column of lines. */
 .ev {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  column-gap: var(--s-2);
   padding: var(--s-3) 0;
   border-top: 1px solid var(--line);
   animation: var(--motion-arrive);
 }
 .ev:first-child {
   border-top: 0;
-}
-.evHead {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  min-width: 0;
 }
 .evIcon {
   display: grid;
@@ -240,7 +311,6 @@
   border-radius: var(--r-xs);
   background: var(--fill);
   color: var(--ink-2);
-  flex: none;
 }
 .evIcon :global(.lucide) {
   width: 0.875rem;
@@ -250,11 +320,25 @@
   background: var(--fail-50);
   color: var(--fail-ink);
 }
+.evBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.evHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+  min-height: 1.5rem;
+}
 .evAgent {
   font-size: var(--text-sm);
   font-weight: 600;
 }
-.evKind {
+.evKind,
+.evRepeat {
   font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--ink-3);
@@ -262,48 +346,53 @@
   border-radius: var(--r-xs);
   border: 1px solid var(--line);
 }
+.evRepeat {
+  border-color: transparent;
+  background: var(--fill);
+  color: var(--ink-2);
+}
 .evError .evKind {
   color: var(--fail-ink);
   border-color: var(--fail-200);
 }
-.evId {
-  display: inline-flex;
-  align-items: center;
+.evWhen {
   margin-inline-start: auto;
   font-size: var(--text-2xs);
   color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-.evIdSep {
-  width: 1px;
-  height: 0.75em;
-  margin-inline: 0.45em;
-  background: var(--line-strong);
 }
 .evAr {
   font-size: var(--text-sm);
   color: var(--ink);
   line-height: 1.7;
-  padding-inline-start: 2rem;
-}
-.evEn {
-  font-size: var(--text-xs);
-  color: var(--ink-3);
-  line-height: 1.5;
-  text-align: right;
-  padding-inline-end: 2rem;
-  overflow-wrap: anywhere;
 }
 .evError .evAr {
   color: var(--fail-ink);
+}
+/* The technical line: English, left to right and aligned to its own start, wrapping anywhere so a
+   long URL or key never runs out of the drawer. */
+.evTech {
+  text-align: start;
+  overflow-wrap: anywhere;
+  color: var(--ink-3);
+}
+.evIds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--text-2xs);
+  line-height: 1.6;
+}
+.evEn {
+  font-size: var(--text-xs);
+  line-height: 1.5;
 }
 .evMeta {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-1) var(--s-4);
   margin-top: 0.2rem;
-  padding-inline-start: 2rem;
 }
 .evMeta div {
   display: flex;
@@ -318,7 +407,15 @@
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-  direction: ltr;
-  unicode-bidi: isolate;
+}
+.techValue {
+  font-family: var(--font-lat);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .scrimOn {
+    transition: none;
+  }
 }
