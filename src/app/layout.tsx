@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans, Noto_Sans_Arabic, Noto_Sans_SC } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { loadOmarSeed } from "../../demo/seed.ts";
 import { DEMO_SESSION_ID } from "../../demo/session.ts";
@@ -9,16 +9,28 @@ import { Shell } from "./_shell/shell.tsx";
 import { TraceProvider } from "./_shell/trace-provider.tsx";
 import "./globals.css";
 
+// The fonts are subsets made by scripts/fonts.py, so the build needs no network.
 // Arabic leads; Latin and Cyrillic source text use Noto Sans. No size-adjusted fallback face for the
 // Arabic font, so Latin text falls through to Noto Sans instead of a system face.
-const arabic = Noto_Sans_Arabic({
-  subsets: ["arabic"],
+const arabic = localFont({
+  src: "./fonts/NotoSansArabic.woff2",
+  weight: "100 900",
   variable: "--font-arabic",
   adjustFontFallback: false,
 });
-const latin = Noto_Sans({ subsets: ["latin", "cyrillic"], variable: "--font-latin" });
-// Chinese is large and rare on a page: not preloaded; the browser fetches the slices it needs.
-const chinese = Noto_Sans_SC({ variable: "--font-zh", preload: false });
+const latin = localFont({
+  src: "./fonts/NotoSans.woff2",
+  weight: "100 900",
+  variable: "--font-latin",
+});
+// Chinese is the largest file and rare on a page, so it is not preloaded. A page loads it when its
+// text needs it.
+const chinese = localFont({
+  src: "./fonts/NotoSansSC.woff2",
+  weight: "100 900",
+  variable: "--font-zh",
+  preload: false,
+});
 
 export const metadata: Metadata = {
   title: { default: config.appName, template: `%s | ${config.appName}` },

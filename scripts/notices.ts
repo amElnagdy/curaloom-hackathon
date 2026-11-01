@@ -23,7 +23,7 @@ const OUT = "THIRD_PARTY_NOTICES.md";
 const PAGES = "demo/fixtures/pages";
 const RESPONSES = "demo/fixtures/responses";
 
-// next/font/google does not carry a font's licence, so each family the layout loads needs a row.
+// Each font file the layout loads needs a row, keyed by the family its file name spells.
 const FONT_LICENCES: Record<string, string> = {
   "Noto Sans": "OFL-1.1",
   "Noto Sans Arabic": "OFL-1.1",
@@ -232,11 +232,9 @@ function dependencySection(installed: InstalledPackage[], platform: LockedPackag
 
 function fontSection(): string[] {
   const layout = readFileSync(join(ROOT, "src/app/layout.tsx"), "utf8");
-  const imported = layout.match(/import\s*\{([^}]+)\}\s*from\s*"next\/font\/google"/)?.[1] ?? "";
-  const families = imported
-    .split(",")
-    .map((name) => name.trim().replaceAll("_", " "))
-    .filter(Boolean);
+  const families = [...layout.matchAll(/src:\s*"\.\/fonts\/(\w+)\.woff2"/g)]
+    .map(([, file = ""]) => file.replace(/([a-z])([A-Z])/g, "$1 $2"))
+    .sort();
   const rows = families.map((family) => {
     const licence = FONT_LICENCES[family];
     if (!licence) throw new Error(`Add the licence of ${family} to FONT_LICENCES`);
@@ -246,7 +244,7 @@ function fontSection(): string[] {
   return [
     "## Fonts",
     "",
-    "`src/app/layout.tsx` loads these through `next/font/google`, which downloads them at build time and serves them from the app (ADR-007).",
+    "The repository bundles subsets of these fonts in `src/app/fonts/`. `scripts/fonts.py` makes them from the Google Fonts repository. `src/app/layout.tsx` loads them through `next/font/local`, so the build fetches no fonts (ADR-007). `src/app/fonts/OFL.txt` holds their copyright lines and the licence text.",
     "",
     "| Font | Licence | Source |",
     "| --- | --- | --- |",

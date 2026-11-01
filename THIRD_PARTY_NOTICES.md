@@ -53,7 +53,7 @@ Platform binaries, such as the compiler, bundler, CSS and image binaries, come i
 
 ## Fonts
 
-`src/app/layout.tsx` loads these through `next/font/google`, which downloads them at build time and serves them from the app (ADR-007).
+The repository bundles subsets of these fonts in `src/app/fonts/`. `scripts/fonts.py` makes them from the Google Fonts repository. `src/app/layout.tsx` loads them through `next/font/local`, so the build fetches no fonts (ADR-007). `src/app/fonts/OFL.txt` holds their copyright lines and the licence text.
 
 | Font             | Licence | Source                                             |
 | ---------------- | ------- | -------------------------------------------------- |
