@@ -42,6 +42,7 @@ import {
   type Violation,
   weekMinutes,
 } from "./rules.ts";
+import { checkTopic } from "./topic.ts";
 
 export const COMMITTED_WEEKS = 2;
 
@@ -178,6 +179,7 @@ const architect: Agent<ArchitectBrief, typeof CoursePlan> = {
     if (violations.length) {
       throw new Error(`The plan breaks its rules: ${violations.map((v) => v.en).join("; ")}`);
     }
+    checkTopic(ctx, plan, brief);
     const weeks = plan.road.reduce((sum, step) => sum + step.weeks, 0);
     const minutes = weekMinutes(plan);
     ctx.trace({
