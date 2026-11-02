@@ -3,7 +3,7 @@
 .plan {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--feed-w);
-  min-height: calc(100vh - var(--top-h));
+  min-height: 100%;
 }
 
 /* Primary action at the end of the activity column */

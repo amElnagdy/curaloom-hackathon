@@ -79,10 +79,10 @@ export class BadRequest extends Error {
   }
 }
 
-// A 409 that clears by waiting: another request is still building what this one asks for. The page
-// asks again after Retry-After; a 409 without it, such as one before there is a plan, does not clear.
+// A 202 that clears by waiting: another request is still building what this one asks for. The page
+// asks again after Retry-After. A 409, such as one before there is a plan, does not clear.
 export const stillBuilding = (error: string) =>
-  Response.json({ error }, { status: 409, headers: { "retry-after": "3" } });
+  Response.json({ error }, { status: 202, headers: { "retry-after": "3" } });
 
 export function parse<S extends TSchema>(schema: S, value: unknown): Static<S> {
   const errors = contractErrors(schema, value);

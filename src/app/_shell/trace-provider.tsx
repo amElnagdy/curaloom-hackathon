@@ -16,7 +16,13 @@ import {
 } from "react";
 import type { SimTime } from "../../server/clock/time.ts";
 import type { TraceEvent } from "../../server/trace/trace.ts";
-import { type ActivityItem, clockNow, stepsRunning, toActivityItem } from "./activity.ts";
+import {
+  type ActivityItem,
+  clockNow,
+  PLAN_AGENTS,
+  stepsRunning,
+  toActivityItem,
+} from "./activity.ts";
 
 export type TraceConnection = "connecting" | "open" | "reconnecting";
 
@@ -27,6 +33,8 @@ type TraceState = {
   activity: ActivityItem[];
   // True while the newest activity line is a step still in progress.
   running: boolean;
+  // True only while the scout, architect or re-planner is in progress: the plan's own work.
+  planRunning: boolean;
   // Ids of the events the stream replayed on connecting (the session's history so far), once that
   // first flush has settled; null until then. Only events after it are new to this page.
   replayed: ReadonlySet<string> | null;
@@ -118,6 +126,7 @@ export function TraceProvider({ sessionId, children }: { sessionId: string; chil
       events,
       activity,
       running: stepsRunning(events),
+      planRunning: stepsRunning(events, PLAN_AGENTS),
       replayed,
       totalCostUsd: events.reduce((sum, e) => sum + (e.cost_usd ?? 0), 0),
       simNow: replayed === null ? null : clockNow(events),

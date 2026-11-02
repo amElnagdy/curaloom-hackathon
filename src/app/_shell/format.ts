@@ -189,3 +189,14 @@ export function creditLine(
 ): string {
   return `«${source.title}»، ${source.url}، بترخيص ${source.licence.spdx}. الشرح العربي في ${appName} مبني على مقتطفات منه، مع تغييرات.`;
 }
+
+// A URL as a source card shows it: no scheme, percent-encoded letters decoded. The href stays
+// encoded; this is display only. A malformed escape is left as written.
+export function displayUrl(url: string): string {
+  const stripped = url.replace(/^https?:\/\//, "");
+  try {
+    return decodeURI(stripped);
+  } catch {
+    return stripped;
+  }
+}

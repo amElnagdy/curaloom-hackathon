@@ -13,7 +13,7 @@ import { parseModels } from "../../server/providers/models";
 import { createProvider } from "../../server/providers/provider";
 import { createFileStore } from "../../server/store/store";
 import { createTracer, type TraceEvent } from "../../server/trace/trace";
-import { clockNow, stepsRunning, toActivityItem } from "./activity";
+import { clockNow, PLAN_AGENTS, stepsRunning, toActivityItem } from "./activity";
 
 const MODELS = parseModels(`
 roles:
@@ -271,5 +271,29 @@ describe("stepsRunning", () => {
     ).rejects.toThrow();
 
     expect(stepsRunning(trace())).toBe(false);
+  });
+
+  it("can ask whether only the plan's agents are at work", async () => {
+    const { orchestrator, store, trace } = setup();
+    let during = false;
+    const writer: Agent<null, typeof Count> = {
+      name: "lesson_builder",
+      output: Count,
+      async run() {
+        during = stepsRunning(trace(), PLAN_AGENTS);
+        return { found: 1 };
+      },
+    };
+    await orchestrator.runStep("s_1", writer, null);
+
+    expect(during).toBe(false);
+    expect(stepsRunning(trace())).toBe(false);
+    createTracer(store, "s_1").emit({
+      agent: "architect",
+      kind: "decision",
+      summary_ar: "بدأت الخطة",
+      summary_en: "Starting step architect:plan",
+    });
+    expect(stepsRunning(trace(), PLAN_AGENTS)).toBe(true);
   });
 });

@@ -2,7 +2,7 @@
 
 .feed {
   position: sticky;
-  top: var(--top-h);
+  top: 0;
   align-self: start;
   height: calc(100vh - var(--top-h) - var(--demo-bar-h));
   background: var(--canvas);

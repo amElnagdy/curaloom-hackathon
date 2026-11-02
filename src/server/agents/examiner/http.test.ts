@@ -71,7 +71,7 @@ describe("quiz route", () => {
     expect(early.headers.get("retry-after")).toBeNull();
   });
 
-  it("answers 409 with Retry-After while the lesson's quiz is still being written, and 502 when writing fails", async () => {
+  it("answers 202 with Retry-After while the lesson's quiz is still being written, and 502 when writing fails", async () => {
     let finish = () => {};
     const { examiner } = stubExaminer({ wait: new Promise((resolve) => (finish = resolve)) });
 
@@ -79,7 +79,7 @@ describe("quiz route", () => {
     const second = await quizResponse(request({}), "busy", "L1", examiner);
     finish();
 
-    expect(second.status).toBe(409);
+    expect(second.status).toBe(202);
     expect(second.headers.get("retry-after")).toBe("3");
     expect((await first).status).toBe(200);
     const failed = stubExaminer({ fail: new StepFailed("Step quiz:L1 failed") }).examiner;

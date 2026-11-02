@@ -1,15 +1,15 @@
-/* Demo bar (demo-bar.tsx): docked at the bottom of the page column, over the page as it scrolls.
-   At the end of the page it sits after it, so it never hides the page's last line. The bar
-   measures the room it takes into --demo-bar-h (globals.css), so full-height columns and sticky
-   actions end above it. */
+/* Demo bar (demo-bar.tsx): a reserved strip at the bottom of the page column. The page scrolls in
+   the space above it, so the bar never covers lesson text, quiz options or the plan's cards. It
+   measures the room it takes into --demo-bar-h (globals.css), so full-height columns fill that
+   space. */
 
 .dock {
-  position: sticky;
-  bottom: var(--s-4);
   z-index: 25;
   display: flex;
   justify-content: center;
-  padding-inline: var(--page-gutter) var(--page-gutter-end);
+  flex: none;
+  padding: var(--s-3) var(--page-gutter) var(--s-4);
+  padding-inline-end: var(--page-gutter-end);
   pointer-events: none;
 }
 
@@ -50,6 +50,7 @@
 .now {
   font-size: var(--text-sm);
   color: var(--ink-3);
+  unicode-bidi: isolate;
 }
 .controls {
   display: flex;
@@ -223,8 +224,8 @@
 }
 
 /* No choice saved: the bar on a roomy screen; the chip on a phone, or on a screen too short for the
-   bar, such as 1440×900 at 150% zoom (#66). Collapsed on a phone, the chip sits after the page
-   instead of over it. */
+   bar, such as 1440×900 at 150% zoom (#66). Either way the dock stays in the column, so it covers
+   no page content. */
 .dock[data-shown="auto"] .chip {
   display: none;
 }
@@ -234,11 +235,5 @@
   }
   .dock[data-shown="auto"] .bar {
     display: none;
-  }
-}
-@media (max-width: 760px) {
-  .dock:not([data-shown="open"]) {
-    position: static;
-    padding-bottom: var(--s-4);
   }
 }

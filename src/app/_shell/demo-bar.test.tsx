@@ -50,6 +50,7 @@ describe("the demo bar's day buttons", () => {
     expect(marks.length).toBeGreaterThan(0);
     expect(marks.some(off)).toBe(false);
     expect(html).not.toContain(WAITS_FOR_PLAN);
+    expect(html).toContain("يوم البدء، <bdi>٩:٠٠\u00a0ص</bdi>");
   });
 
   it("stay off between the intake and the learner's plan, and say why", () => {

@@ -22,13 +22,14 @@ import {
   type Violation,
   weekMinutes,
 } from "../../server/agents/architect/rules.ts";
+import { agentName } from "../_shell/agents.ts";
 import { Callout } from "../_shell/blocks.tsx";
 import { type Session, sessionsOf, simDay } from "../_shell/course.ts";
 import { arabicNumber, countOf, MINUTES, ordinal, ordinalF, WEEKS } from "../_shell/format.ts";
 import { RestartDemoButton, TraceDetailsButton } from "../_shell/missing-recording.tsx";
 import { startDay } from "../_shell/plans.ts";
 import { BidiText, buttonClass, cx, LangBadge, ReplayNote, StatusPill } from "../_shell/ui.tsx";
-import { useBuild } from "../_shell/use-build.ts";
+import { useBuild, whileBusy } from "../_shell/use-build.ts";
 import styles from "./plan.module.css";
 
 type Op = PlanEdit["op"];
@@ -43,6 +44,16 @@ const post = (sessionId: string, action: string, body: object, signal?: AbortSig
     body: JSON.stringify(body),
     signal,
   });
+
+// Posts an edit until the session is free to take it. A 202 (busy) waits and posts again, as
+// useBuild does; a 200 is saved; a 409 without Retry-After is a real conflict.
+export function postPlanEdit(
+  sessionId: string,
+  edit: PlanEdit,
+  pause?: (ms: number) => Promise<void>,
+): Promise<Response> {
+  return whileBusy(() => post(sessionId, "edit", edit), pause);
+}
 
 // `stuck`: the build failed on a request replay has no recording of, so a retry cannot pass.
 const BuildFailed = createContext({ failed: false, stuck: false, retry: () => {} });
@@ -73,8 +84,8 @@ export function BuildingLede({ name }: { name: string }) {
   if (failed) return <b>لم نتمكن من بناء خطتك هذه المرة يا {name}.</b>;
   return (
     <>
-      <b>نبني خطتك الآن يا {name}.</b> يبحث الكشّاف عن مصادر مفتوحة الترخيص، ثم يقسّم المعماري الطريق
-      على وقتك. قد يستغرق ذلك دقيقتين.
+      <b>نبني خطتك الآن يا {name}.</b> يبحث {agentName("scout")} عن مصادر مفتوحة الترخيص، ثم يقسّم{" "}
+      {agentName("architect")} الطريق على وقتك. قد يستغرق ذلك دقيقتين.
     </>
   );
 }
@@ -388,7 +399,8 @@ function Editor({
     if (!edit || !result?.ok) return;
     setSaving(true);
     try {
-      const res = await post(sessionId, "edit", edit);
+      // 202 is `ok`, but the edit was not taken: wait it out, then refresh only on a real success.
+      const res = await postPlanEdit(sessionId, edit);
       if (res.ok) {
         // The page comes back with the new version, which closes this editor.
         startTransition(() => router.refresh());

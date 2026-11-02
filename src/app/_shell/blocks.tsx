@@ -6,6 +6,7 @@ import { type LucideIcon, Smartphone } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Lesson, Resource } from "../../../contracts/index.ts";
 import styles from "./blocks.module.css";
+import { displayUrl } from "./format.ts";
 import { cx, LangBadge, LicenceTag, Sep } from "./ui.tsx";
 
 // ===================================================================== page frame
@@ -334,13 +335,13 @@ export function SourceExcerpt({
               )}
               <a
                 href={resource.url}
-                title={resource.url}
+                title={displayUrl(resource.url)}
                 dir="ltr"
                 lang="en"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {resource.url.replace(/^https?:\/\//, "")}
+                {displayUrl(resource.url)}
                 <span className="sr-only"> (يفتح في نافذة جديدة)</span>
               </a>
             </span>

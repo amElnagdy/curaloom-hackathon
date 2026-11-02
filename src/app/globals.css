@@ -136,9 +136,9 @@
 }
 
 html {
+  height: 100%;
+  overflow: hidden;
   font-size: 100%;
-  /* Keyboard focus scrolls clear of the floating demo bar (WCAG 2.4.11). */
-  scroll-padding-block-end: var(--demo-bar-h);
 }
 @media (min-width: 1800px) {
   html {
@@ -157,7 +157,8 @@ body {
   margin: 0;
 }
 body {
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
   font-family: var(--font-ar);
   font-size: var(--text-base);
   line-height: var(--lh);

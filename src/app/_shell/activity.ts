@@ -6,6 +6,10 @@ import type { TraceEvent } from "../../server/trace/trace.ts";
 import { agentJob, agentName } from "./agents.ts";
 import { arabicDigits } from "./format.ts";
 
+// Agents whose work is the plan itself. Lesson, quiz and diagram steps leave the plan's status
+// pill and the plan nav item idle.
+export const PLAN_AGENTS: ReadonlySet<string> = new Set(["scout", "architect", "replanner"]);
+
 export type ActivityTone = "working" | "retrying" | "warning" | "done" | "failed";
 
 export type ActivityItem = {
@@ -82,17 +86,21 @@ export function toActivityItem(event: TraceEvent): ActivityItem | null {
 // Whether an agent is at work: a step that started and has neither its output nor its final
 // failure yet. A decision outside any step, such as the coach resetting its ladder, is done when
 // it is traced.
-export function stepsRunning(events: readonly TraceEvent[]): boolean {
-  const open = new Set<string>();
-  for (const { summary_en: en } of events) {
+export function stepsRunning(events: readonly TraceEvent[], of?: ReadonlySet<string>): boolean {
+  const open = new Map<string, string>();
+  for (const { summary_en: en, agent } of events) {
     const started = /^Starting step (.+)$/.exec(en)?.[1];
-    if (started) open.add(started);
+    if (started) open.set(started, agent);
     const ended = /^(.+) (?:output matches its contract$|attempt 2 failed; giving up)/.exec(
       en,
     )?.[1];
     if (ended) open.delete(ended);
   }
-  return open.size > 0;
+  if (!of) return open.size > 0;
+  for (const agent of open.values()) {
+    if (of.has(agent)) return true;
+  }
+  return false;
 }
 
 // Where the simulated clock is: every move of the clock emits one event under the agent "clock",

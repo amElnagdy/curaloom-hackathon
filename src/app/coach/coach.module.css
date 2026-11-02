@@ -17,7 +17,7 @@
 /* One elevation: the float shadow of an object on the desk. */
 .phone {
   position: sticky;
-  top: calc(var(--top-h) + var(--s-6));
+  top: var(--s-6);
   width: 22rem;
   max-width: 100%;
   padding: 0.625rem;

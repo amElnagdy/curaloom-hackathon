@@ -83,7 +83,7 @@ function NavItem({
 
 export function Rail({ appName, learnerName }: { appName: string; learnerName: string }) {
   const pathname = usePathname();
-  const { running } = useTrace();
+  const { planRunning } = useTrace();
   const [open, setOpen] = useState(false);
   const [sheet, setSheet] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
@@ -131,7 +131,7 @@ export function Rail({ appName, learnerName }: { appName: string; learnerName: s
       key={route.id}
       route={route}
       current={route.id === currentId}
-      busy={running && route.id === "plan"}
+      busy={planRunning && route.id === "plan"}
       onClick={closeSheet}
     />
   );

@@ -82,7 +82,7 @@ describe("lesson route", () => {
   });
 
   // Retry-After tells the page to ask again; a 409 without it will not clear by waiting.
-  it("answers 409 with Retry-After to a second call while the session's lesson is still being written", async () => {
+  it("answers 202 with Retry-After to a second call while the session's lesson is still being written", async () => {
     let finish = () => {};
     const { builder } = stubBuilder(undefined, new Promise((resolve) => (finish = resolve)));
 
@@ -90,7 +90,7 @@ describe("lesson route", () => {
     const second = await post(builder, "L2", {}, "busy");
     finish();
 
-    expect(second.status).toBe(409);
+    expect(second.status).toBe(202);
     expect(second.headers.get("retry-after")).toBe("3");
     expect((await first).status).toBe(200);
     expect((await post(builder, "L2", {}, "busy")).status).toBe(200);

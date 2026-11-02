@@ -18,8 +18,8 @@
   border: var(--edge);
   border-radius: var(--r-lg);
   background: var(--surface);
-  /* A jump to an item clears the top bar, the sticky submit bar and the demo bar. */
-  scroll-margin-block: calc(var(--top-h) + var(--s-4)) calc(9rem + var(--demo-bar-h));
+  /* A jump to an item clears the sticky submit bar. The top bar and demo bar sit outside main. */
+  scroll-margin-block: var(--s-4) 9rem;
 }
 /* The legend leaves the fieldset border alone and lays out as an ordinary block. */
 .qLegend {
@@ -313,7 +313,7 @@
 /* The sticky submit bar. */
 .submitBar {
   position: sticky;
-  bottom: calc(var(--demo-bar-h) + var(--s-4));
+  bottom: var(--s-4);
   z-index: 15;
   display: flex;
   flex-direction: column;
@@ -383,7 +383,7 @@
   border: var(--edge);
   border-radius: var(--r-lg);
   background: var(--surface);
-  scroll-margin-top: calc(var(--top-h) + var(--s-4));
+  scroll-margin-top: var(--s-4);
   animation: var(--motion-arrive);
 }
 .resultTitle {

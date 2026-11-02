@@ -4,6 +4,8 @@
 
 type AgentInfo = { name: string; job: string };
 
+// Learner-facing names. The planning agent is المهندس in every UI string (the feed, the drawer,
+// the plan's building copy); do not also call it المعماري.
 export const AGENTS: Readonly<Record<string, AgentInfo>> = {
   intake: { name: "المحاور", job: "يفهم هدفك ووقتك" },
   scout: { name: "الكشّاف", job: "يبحث عن مصادر مفتوحة الترخيص ويتحقق من تراخيصها في الكود" },

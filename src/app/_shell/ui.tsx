@@ -296,6 +296,15 @@ export function ReplayNote({ children, className, ...rest }: ComponentPropsWitho
   );
 }
 
+// A simulated time with the clock isolated, so «٩:٠٠ ص» cannot reorder next to «اليوم ٢» in RTL.
+export function SimTimeText({ now }: { now: SimTime }) {
+  return (
+    <>
+      {simDay(now.day)}، <bdi>{clockTime(hhmm(now.minute))}</bdi>
+    </>
+  );
+}
+
 // The simulated clock (ADR-004), display only: the day by name and the Arabic time of day. `now` is
 // null while the page has not read the clock yet; then only the icon shows.
 export function SimClockPill({ now, running }: { now: SimTime | null; running: boolean }) {

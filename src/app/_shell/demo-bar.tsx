@@ -1,8 +1,8 @@
 "use client";
 
-// The demo bar (#23, prototype C on prototype/23-demo-bar): a day timeline docked at the bottom
-// of the page column. Each coach rung is a marker that turns ready once the clock passes it; a
-// marker ahead jumps the clock to its day. Demo machinery, so it collapses to a chip.
+// The demo bar (#23, prototype C on prototype/23-demo-bar): a day timeline in a reserved strip at
+// the bottom of the page column. Each coach rung is a marker that turns ready once the clock
+// passes it; a marker ahead jumps the clock to its day. Demo machinery, so it collapses to a chip.
 // Until the viewer chooses, it renders both and CSS picks one: open on a roomy screen, the chip on a
 // phone (#35) or a short screen (#66). Choosing in JS after mount would flash the open bar first.
 // Between the intake and the learner's plan, the controls that move the clock forward are off and
@@ -13,11 +13,11 @@ import { type CSSProperties, type RefObject, useEffect, useId, useRef, useState 
 import type { CoachEvent } from "../../../contracts/index.ts";
 import type { ProviderProfile } from "../../config.ts";
 import { compareSimTime, type SimTime, startOfDay } from "../../server/clock/time.ts";
-import { COACH_TITLE, simDay, simTimeText } from "./course.ts";
+import { COACH_TITLE, simDay } from "./course.ts";
 import styles from "./demo-bar.module.css";
 import { arabicNumber } from "./format.ts";
 import { ModeBadge } from "./mode-badge.tsx";
-import { buttonClass, cx } from "./ui.tsx";
+import { buttonClass, cx, SimTimeText } from "./ui.tsx";
 import { useSimClock, WAITS_FOR_PLAN } from "./use-sim-clock.ts";
 
 export type DemoMark = { day: number; type: CoachEvent["type"] };
@@ -49,9 +49,9 @@ function writeCollapsed(collapsed: boolean) {
   } catch {}
 }
 
-// The room the dock takes over the page, as --demo-bar-h (globals.css), so full-height columns and
-// sticky actions end above it. Measured, since zoom, wrapping and the reset question change it. A
-// dock in the page's flow (the chip on a phone) takes none.
+// The room the dock takes at the bottom of the column, as --demo-bar-h (globals.css), so
+// full-height columns fill the space above it. Measured, since zoom, wrapping and the reset
+// question change it.
 function useDockRoom(dock: RefObject<HTMLDivElement | null>, shown: string) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: the dock's children change with `shown`
   useEffect(() => {
@@ -59,17 +59,14 @@ function useDockRoom(dock: RefObject<HTMLDivElement | null>, shown: string) {
     if (!el) return;
     const root = document.documentElement;
     const measure = () => {
-      const style = getComputedStyle(el);
       const visible = [...el.children].find((child) => child.getClientRects().length > 0);
-      const room =
-        style.position === "sticky" && visible
-          ? visible.getBoundingClientRect().height + Number.parseFloat(style.bottom)
-          : 0;
+      const room = visible ? el.getBoundingClientRect().height : 0;
       root.style.setProperty("--demo-bar-h", `${Math.ceil(room)}px`);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     for (const child of el.children) observer.observe(child);
+    measure();
     return () => {
       observer.disconnect();
       root.style.removeProperty("--demo-bar-h");
@@ -237,7 +234,7 @@ export function DemoBar({
               <ModeBadge profile={profile} />
               {now && (
                 <span className={styles.now} role="timer">
-                  {simTimeText(now)}
+                  <SimTimeText now={now} />
                 </span>
               )}
               {waitsForPlan && (

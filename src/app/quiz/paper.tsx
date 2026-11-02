@@ -31,7 +31,7 @@ import {
   ReplayNote,
   StatusPill,
 } from "../_shell/ui.tsx";
-import { useBuild } from "../_shell/use-build.ts";
+import { retryWaitMs, useBuild } from "../_shell/use-build.ts";
 import styles from "./quiz.module.css";
 
 export const TITLE_ID = "quiz-title";
@@ -343,11 +343,11 @@ export function QuizPaper({
         signal: controller.signal,
       }).catch(() => null);
       if (controller.signal.aborted) return;
-      // While another request grades this session's attempt, the server answers 409 with
+      // While another request grades this session's attempt, the server answers 202 with
       // Retry-After; a 409 without it means the quiz is no longer the one to take.
-      const wait = res?.status === 409 && Number(res.headers.get("retry-after"));
+      const wait = retryWaitMs(res);
       if (wait) {
-        await new Promise((resolve) => setTimeout(resolve, wait * 1000));
+        await new Promise((resolve) => setTimeout(resolve, wait));
         continue;
       }
       if (res?.ok || res?.status === 409) {

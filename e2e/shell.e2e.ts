@@ -24,10 +24,13 @@ type Screen = {
   open: boolean;
 };
 const DESKTOP = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 };
+const JUDGE = { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 };
 const ZOOMED = { viewport: { width: 960, height: 600 }, deviceScaleFactor: 1.5 };
 const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 };
 const SCREENS: Screen[] = [
   { name: "1440×900", ...DESKTOP, open: false },
+  { name: "1280×800", ...JUDGE, open: false },
+  { name: "1280×800, bar open", ...JUDGE, open: true },
   { name: "1440×900 at 150%", ...ZOOMED, open: false },
   { name: "1440×900 at 150%, bar open", ...ZOOMED, open: true },
   { name: "phone", ...PHONE, open: false },
@@ -49,9 +52,10 @@ async function visit(page: Page, path: string) {
   await page.evaluate(() => document.fonts.ready);
 }
 
-// The page's elements the demo bar or the trace tab sits on. The tab is fixed, so it is checked at
-// each scroll position; the bar floats while the page scrolls, so it is checked at the end, where
-// the page's last element must show. The sticky top bar covers what scrolls under it anyway.
+// The page's elements the demo bar or the trace tab sits on. Both are checked at each scroll of
+// main, which is the page scroller. Only parts actually in main's visible box count: overflow
+// below the fold shares the demo strip's screen Y but is clipped, not covered. Overlap with the
+// top bar, which sits above main, is ignored.
 function covered(): string[] {
   const overlays = () =>
     (
@@ -67,25 +71,27 @@ function covered(): string[] {
   const parts = main
     ? [...main.querySelectorAll("a, button, input, label, h1, h2, h3, p, li, img, svg")]
     : [];
-  const scroller = document.scrollingElement ?? document.documentElement;
-  const end = scroller.scrollHeight - innerHeight;
+  const scroller = main ?? document.scrollingElement ?? document.documentElement;
+  const end = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
   const stops = [];
-  for (let y = 0; y < end; y += innerHeight / 3) stops.push(Math.round(y));
+  for (let y = 0; y < end; y += scroller.clientHeight / 3) stops.push(Math.round(y));
   stops.push(end);
 
   const hits = new Set<string>();
   for (const y of stops) {
     scroller.scrollTop = y;
     const topBar = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+    const view = main?.getBoundingClientRect();
     for (const { name, rect: o } of overlays()) {
-      if (name !== "trace tab" && y !== end) continue;
       for (const el of parts) {
         if (!el.checkVisibility({ visibilityProperty: true })) continue;
         const r = el.getBoundingClientRect();
+        // Overflow below or above main is clipped; it is not sitting under the overlay.
+        if (view && (r.bottom <= view.top + 1 || r.top >= view.bottom - 1)) continue;
         const left = Math.max(r.left, o.left);
         const right = Math.min(r.right, o.right);
-        const top = Math.max(r.top, o.top, topBar);
-        const bottom = Math.min(r.bottom, o.bottom, innerHeight);
+        const top = Math.max(r.top, o.top, topBar, view?.top ?? 0);
+        const bottom = Math.min(r.bottom, o.bottom, innerHeight, view?.bottom ?? innerHeight);
         if (right - left <= 1 || bottom - top <= 1) continue;
         const onTop = document.elementFromPoint((left + right) / 2, (top + bottom) / 2);
         if (onTop && !el.contains(onTop) && !onTop.contains(el)) {
@@ -97,6 +103,12 @@ function covered(): string[] {
   }
   return [...hits];
 }
+
+test("the app serves a favicon", async () => {
+  const res = await fetch(`${replay.url}/favicon.ico`);
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toMatch(/image\//);
+});
 
 test("no page content sits under the demo bar or the trace tab", async ({ browser }) => {
   for (const s of SCREENS) {

@@ -49,12 +49,11 @@ import {
   ladderText,
   SAMPLE_PILL,
   simDay,
-  simTimeText,
   stoppedAt,
 } from "../_shell/course.ts";
 import { clockTime, countOf, HOURS } from "../_shell/format.ts";
 import { planKind } from "../_shell/lessons.ts";
-import { BidiText, buttonClass, cx, Meta, StatusPill } from "../_shell/ui.tsx";
+import { BidiText, buttonClass, cx, Meta, SimTimeText, StatusPill } from "../_shell/ui.tsx";
 import styles from "./coach.module.css";
 import { CheckinButtons, RefreshOnCoachEvents, ReplyBox } from "./phone.tsx";
 
@@ -224,18 +223,21 @@ export default async function CoachPage() {
             )}
             {noPlan ? (
               <p className={styles.note}>
-                الساعة الآن {simTimeText(now)}، وتتحرك بعد أن تجهز خطتك.
+                الساعة الآن <SimTimeText now={now} />، وتتحرك بعد أن تجهز خطتك.
               </p>
             ) : (
               <>
                 <p className={styles.note}>{ladderText(ladder, agreed)}</p>
                 {agreed === "on" ? (
                   <p className={styles.note}>
-                    تُرسل الرسالة حين تبلغ الساعة المحاكاة يومها. الساعة الآن {simTimeText(now)}. قدّم
-                    الوقت بأداة العرض أسفل الصفحة لترى متى تصلك رسائل المدرب.
+                    تُرسل الرسالة حين تبلغ الساعة المحاكاة يومها. الساعة الآن{" "}
+                    <SimTimeText now={now} />. قدّم الوقت بأداة العرض أسفل الصفحة لترى متى تصلك رسائل
+                    المدرب.
                   </p>
                 ) : (
-                  <p className={styles.note}>الساعة الآن {simTimeText(now)}.</p>
+                  <p className={styles.note}>
+                    الساعة الآن <SimTimeText now={now} />.
+                  </p>
                 )}
               </>
             )}

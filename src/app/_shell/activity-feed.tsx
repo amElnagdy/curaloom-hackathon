@@ -3,17 +3,16 @@
 // «ما يحدث الآن» (#15): the learner's view of agent work, one plain-Arabic line per trace event
 // (toActivityItem), live from the trace stream. `children` is the column's primary action; the
 // footer opens the technical trace drawer. Used as the pinned column of the plan page.
-// LiveStatusPill shows a course status that follows the same live state, LiveSimClockPill the
+// LiveStatusPill shows a course status that follows plan-building work, LiveSimClockPill the
 // simulated clock.
 
 import { Check, Logs, RotateCcw, TriangleAlert, X } from "lucide-react";
 import { type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect } from "react";
 import type { ActivityItem, ActivityTone } from "./activity.ts";
 import styles from "./activity-feed.module.css";
-import { simTimeText } from "./course.ts";
 import { arabicTime, countOf, UPDATES } from "./format.ts";
 import { useTrace } from "./trace-provider.tsx";
-import { BidiText, cx, SimClockPill, type Status, StatusPill } from "./ui.tsx";
+import { BidiText, cx, SimClockPill, SimTimeText, type Status, StatusPill } from "./ui.tsx";
 import { useStickToBottom } from "./use-stick-to-bottom.ts";
 
 const NOW_NOTE: Record<ActivityTone, string> = {
@@ -66,17 +65,21 @@ function FeedItem({
         <p className={styles.itemHead}>
           <b>{item.agentName}</b>
           <span className={styles.end}>
-            {current
-              ? NOW_NOTE[item.tone]
-              : item.simAt
-                ? simTimeText(item.simAt)
-                : arabicTime(item.at)}
+            {current ? (
+              NOW_NOTE[item.tone]
+            ) : item.simAt ? (
+              <SimTimeText now={item.simAt} />
+            ) : (
+              arabicTime(item.at)
+            )}
           </span>
         </p>
         <p className={styles.text}>
           <BidiText text={item.text} />
         </p>
-        <span className="sr-only">{TONE_SR[item.tone]}</span>
+        <span className="sr-only">
+          {!current && item.tone === "working" ? TONE_SR.done : TONE_SR[item.tone]}
+        </span>
       </div>
     </li>
   );
@@ -110,11 +113,11 @@ function LiveLine({ last, running }: { last: ActivityItem | undefined; running: 
   );
 }
 
-// A course status that turns to «قيد التحديث» while agents are working, and otherwise shows the
-// status the page passes in.
+// A course status that turns to «قيد التحديث» while the plan itself is being built, and otherwise
+// shows the status the page passes in. Lesson, quiz and diagram work do not relabel a ready plan.
 export function LiveStatusPill({ status, label }: { status: Status; label: string }) {
-  const { running } = useTrace();
-  return running ? (
+  const { planRunning } = useTrace();
+  return planRunning ? (
     <StatusPill status="building">قيد التحديث</StatusPill>
   ) : (
     <StatusPill status={status}>{label}</StatusPill>

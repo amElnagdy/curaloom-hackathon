@@ -134,7 +134,7 @@ describe("plan routes", () => {
   });
 
   // Retry-After tells the page to ask again; a 409 without it will not clear by waiting.
-  it("answer 409 with Retry-After to a call while the session's plan is still being built", async () => {
+  it("answer 202 with Retry-After to a call while the session's plan is still being built", async () => {
     let finish = () => {};
     const { planner } = stubPlanner(undefined, new Promise((resolve) => (finish = resolve)));
 
@@ -142,7 +142,7 @@ describe("plan routes", () => {
     const second = await post(planner, "edit", { op: "move", session_id: "s1", day: 2 }, "busy");
     finish();
 
-    expect(second.status).toBe(409);
+    expect(second.status).toBe(202);
     expect(second.headers.get("retry-after")).toBe("3");
     expect((await first).status).toBe(200);
     expect((await post(planner, "build", {}, "busy")).status).toBe(200);

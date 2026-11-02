@@ -26,7 +26,6 @@ import type { ProviderProfile } from "../../config.ts";
 import { parseSimTime } from "../../server/clock/time.ts";
 import type { TraceKind } from "../../server/trace/trace.ts";
 import { agentName } from "./agents.ts";
-import { simTimeText } from "./course.ts";
 import {
   arabicDigits,
   arabicNumber,
@@ -51,7 +50,7 @@ import {
   traceAgents,
   traceRows,
 } from "./trace-view.ts";
-import { BidiText, buttonClass, cx, DirIcon, MODE } from "./ui.tsx";
+import { BidiText, buttonClass, cx, DirIcon, MODE, SimTimeText } from "./ui.tsx";
 import { useStickToBottom } from "./use-stick-to-bottom.ts";
 
 const KIND_ICON: Record<TraceKind, LucideIcon> = {
@@ -96,7 +95,7 @@ function TraceEventRow({ row: { event, repeats } }: { row: TraceRow }) {
           <span className={styles.evKind}>{KIND_AR[event.kind]}</span>
           {repeats > 1 && <span className={styles.evRepeat}>تكرر {countOf(repeats, TIMES)}</span>}
           <span className={styles.evWhen}>
-            {event.sim_ts ? simTimeText(parseSimTime(event.sim_ts)) : arabicTime(event.ts)}
+            {event.sim_ts ? <SimTimeText now={parseSimTime(event.sim_ts)} /> : arabicTime(event.ts)}
           </span>
         </div>
         <p className={styles.evAr}>
