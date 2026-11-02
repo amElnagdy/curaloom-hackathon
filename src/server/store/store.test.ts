@@ -52,6 +52,21 @@ describe("file store", () => {
     expect(store.readBlob("s_1", ref)).toEqual({ big: "x" });
   });
 
+  it("clears a session's trace so the next event starts the log again", () => {
+    const store = createFileStore(tempRoot());
+    store.appendTrace("s_1", { id: "evt_0001" });
+    store.appendTrace("s_1", { id: "evt_0002" });
+    store.writeDoc("s_1", "profile", { name: "عمر" });
+
+    store.clearTrace("s_1");
+
+    expect(store.hasTrace("s_1")).toBe(false);
+    expect(store.readTrace("s_1")).toEqual([]);
+    expect(store.readDoc("s_1", "profile")).toEqual({ name: "عمر" });
+    store.appendTrace("s_1", { id: "evt_0001" });
+    expect(store.readTrace("s_1").map((e) => e.id)).toEqual(["evt_0001"]);
+  });
+
   it("returns trace events in append order, after a cursor, across a restart", async () => {
     const root = tempRoot();
     const store = createFileStore(root);

@@ -9,7 +9,6 @@
 // say why (#61); reset stays on. Reset empties the session's data, so it asks first (#66).
 
 import { ChevronDown, FlaskConical, Plus, RotateCcw } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { type CSSProperties, type RefObject, useEffect, useId, useRef, useState } from "react";
 import type { CoachEvent } from "../../../contracts/index.ts";
 import type { ProviderProfile } from "../../config.ts";
@@ -108,7 +107,6 @@ export function DemoBar({
   const [resetFailed, setResetFailed] = useState(false);
   const askId = useId();
   const resetRef = useRef<HTMLButtonElement>(null);
-  const router = useRouter();
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const refocus = useRef(false);
@@ -150,10 +148,8 @@ export function DemoBar({
       setResetFailed(true);
       return;
     }
-    setNote(null);
-    closeConfirm();
-    // The page on screen still shows the erased plan or lesson until the server renders it again.
-    router.refresh();
+    // A full load, so the trace stream starts from the emptied feed and the clock at day 0 (#119).
+    window.location.reload();
   }
 
   // The badge is a button of its own, so it sits beside the chip's button, not in it.

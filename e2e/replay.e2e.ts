@@ -6,9 +6,10 @@
 // level's recordings (#98). The quiz keys and the plan's lessons come from the session's files, since
 // each level has its own. More tests leave the recorded path where replay keeps the learner on it
 // with a note: their own words, wrong picks and another tone, at the beginner's level and another,
-// and «استراحة أسبوع» at the check-in. Selectors use roles and the app's own words, never banner
-// wording; the borrowed-level note and swap event are matched by text on purpose, the replay notes
-// by their role.
+// and «استراحة أسبوع» at the check-in. One finishes the beginner chase, confirms «إعادة», starts an
+// intermediate interview, and checks that the clock is «يوم البدء» with an empty feed (#119).
+// Selectors use roles and the app's own words, never banner wording; the borrowed-level note and
+// swap event are matched by text on purpose, the replay notes by their role.
 
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -508,6 +509,45 @@ for (const placement of PLACEMENTS.filter((p) => p.level !== "advanced")) {
     expect(events.filter((e) => e.summary_en.includes("recorded gentle tone"))).not.toEqual([]);
   });
 }
+
+// Confirms the demo bar's «إعادة»: the question, then «نعم، ابدأ من الصفر», which reloads.
+async function confirmReset(page: Page) {
+  await page.getByRole("button", { name: "إعادة", exact: true }).click();
+  const confirm = page.getByRole("button", { name: "نعم، ابدأ من الصفر" });
+  await expect(confirm).toBeVisible();
+  const loaded = page.waitForEvent("load");
+  await posted(page, /\/sim\/reset$/, () => confirm.click());
+  await loaded;
+}
+
+test("after the chase, reset starts a new placement on day 0 with an empty feed", async ({
+  page,
+  replay,
+}) => {
+  await interview(page, replay, () => DONT_KNOW);
+  await lessonOne(page, replay);
+  await page.getByRole("link", { name: /^(ابدأ|إلى) الاختبار/ }).click();
+  await passLessonOne(page, replay, "beginner");
+  await consent(page, replay);
+  await toDays(page, replay, ["٢", "٥", "١٠"]);
+  await tap(page, replay, "جلسات أقصر");
+
+  await page.goto(`${replay.url}/plan`);
+  await see(replay, page.getByRole("timer", { name: /اليوم ١٠/ }).first());
+  await expect(page.getByLabel("خطوات الوكلاء، الأقدم أولًا")).toBeVisible();
+
+  await confirmReset(page);
+  await see(replay, page.getByRole("timer", { name: /يوم البدء/ }).first());
+  await expect(page.getByLabel("خطوات الوكلاء، الأقدم أولًا")).toHaveCount(0);
+  await expect(page.getByText("حين يبدأ الوكلاء العمل على دورتك")).toBeVisible();
+
+  const intermediate = PLACEMENTS.find((p) => p.level === "intermediate");
+  if (!intermediate) throw new Error("no intermediate placement");
+  await interview(page, replay, intermediate.pick);
+  await see(replay, page.getByText(`مستواك الآن: ${intermediate.levelAr}`));
+  await expect(page.getByRole("timer", { name: /يوم البدء/ }).first()).toBeVisible();
+  await expect(page.getByRole("timer", { name: /اليوم ١٠/ })).toHaveCount(0);
+});
 
 test("holds the comeback after «استراحة أسبوع», and sends the weekly message on day 17 as its template", async ({
   page,

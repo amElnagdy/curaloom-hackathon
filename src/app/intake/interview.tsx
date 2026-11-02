@@ -1,9 +1,10 @@
 "use client";
 
 // The live interview (#16): the chat on the inline start, «ما فهمناه منك» beside it. Each action
-// posts to /api/sessions/:id/intake/{start,message,answers,reset} and answers the interview as it
-// now stands. Under each learner message, a line names what the interviewer heard from it. The mic
-// button records a voice message whose transcript fills the composer (#37).
+// posts to /api/sessions/:id/intake/{start,message,answers} and answers the interview as it now
+// stands. «ابدأ من جديد» is the demo's full reset (#119), same as the demo bar. Under each learner
+// message, a line names what the interviewer heard from it. The mic button records a voice message
+// whose transcript fills the composer (#37).
 
 import {
   ArrowRight,
@@ -36,6 +37,7 @@ import type { Field, IntakeView, Turn } from "../../server/agents/intake/intake.
 import { MAX_VOICE_SECONDS } from "../../server/agents/intake/wav.ts";
 import { MetaItem, PageHead, Panel } from "../_shell/blocks.tsx";
 import { arabicDigits, arabicNumber, countOf, HOURS, QUESTIONS } from "../_shell/format.ts";
+import { restartDemo } from "../_shell/missing-recording.tsx";
 import {
   BidiText,
   buttonClass,
@@ -52,7 +54,7 @@ import { useStickToBottom } from "../_shell/use-stick-to-bottom.ts";
 import styles from "./intake.module.css";
 import { useVoiceMessage, type VoiceState } from "./use-voice-message.ts";
 
-type Action = "start" | "message" | "answers" | "reset";
+type Action = "start" | "message" | "answers";
 type Heard = IntakeView["heard"];
 type Question = NonNullable<IntakeView["questions"]>[number];
 
@@ -239,14 +241,11 @@ export function Interview({
     setBusy(true);
     setError(null);
     try {
-      await post("reset");
-      setDraft("");
-      setPicked({});
-      setFresh([]);
-      setView(await post("start"));
+      // The same full reset as the demo bar's «إعادة»: clock, session, coach and feed (#119).
+      if (!(await restartDemo(sessionId, []))) throw new Error("reset failed");
+      window.location.reload();
     } catch {
       setError("تعذّر البدء من جديد. حاول مرة أخرى.");
-    } finally {
       setBusy(false);
     }
   }

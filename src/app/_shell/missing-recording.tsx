@@ -80,10 +80,11 @@ function writeDismissed(keys: string[]) {
   }
 }
 
-// The demo bar's «إعادة»: every document of the session goes, so the pages fall back to the seed
-// and the interview starts empty; the trace stays. With the simulated clock off that route is off
-// too, and forgetting the interview restarts the learner's path, but traces no reset (#82), so the
-// misses so far are put aside in this tab as a dismissal is.
+// The demo bar's «إعادة»: every document of the session and its trace go, so the pages fall back
+// to the seed, the interview starts empty and the feed does not keep the previous run (#119). With
+// the simulated clock off that route is off too, and forgetting the interview restarts the
+// learner's path, but traces no reset (#82), so the misses so far are put aside in this tab as a
+// dismissal is.
 export async function restartDemo(
   sessionId: string,
   events: readonly TraceEvent[],

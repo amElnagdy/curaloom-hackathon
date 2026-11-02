@@ -205,7 +205,21 @@ describe("toActivityItem", () => {
     await sim.set(10);
     sim.reset();
 
-    expect(trace().map((e) => e.agent)).toEqual(expect.arrayContaining(["scheduler", "sim"]));
+    expect(trace().map((e) => e.agent)).toEqual(["clock", "sim"]);
+    expect(lines(trace()).every((line) => line === null)).toBe(true);
+  });
+
+  it("forgets the first run's steps on reset, so the feed is empty at day 0", async () => {
+    const { store, orchestrator, trace } = setup();
+    await orchestrator.runStep("s_1", scout([{ found: 3 }]), null);
+    const sim = createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") });
+    await sim.set(10);
+    expect(lines(trace()).some((line) => line !== null)).toBe(true);
+
+    sim.reset();
+
+    expect(clockNow(trace())).toEqual({ day: 0, minute: 540 });
+    expect(sim.now()).toEqual({ day: 0, minute: 540 });
     expect(lines(trace()).every((line) => line === null)).toBe(true);
   });
 });

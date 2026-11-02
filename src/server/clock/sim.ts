@@ -129,10 +129,12 @@ export function createSim({
       return coach.comeback(now);
     },
     finishComeback: (input: RecapAnswers | null) => coach.finishComeback(clock.now(), input),
-    // Back to the seeded demo state: every session document goes and readers fall back to the
-    // seed (ADR-003). The trace stays, and says what came back.
+    // Back to the seeded demo state: every session document and the trace go, and readers fall
+    // back to the seed (ADR-003). The emptied trace then records the reset, so the activity feed
+    // does not keep the previous run (#119).
     reset(): SimResult {
       store.clearDocs(sessionId);
+      store.clearTrace(sessionId);
       const now = clock.reset();
       tracer.emit({
         agent: "sim",

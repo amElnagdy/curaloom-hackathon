@@ -37,7 +37,7 @@ export function ClockControls({ sessionId, days }: { sessionId: string; days: nu
     const outcome = await moveClock(m);
     if (outcome.kind === "past") setNote("لا تعود الساعة إلى الوراء. أعد الضبط أولًا.");
     else if (outcome.kind === "failed") setNote("تعذّر تحريك الساعة.");
-    else if (m.action === "reset") setNote("عادت الجلسة إلى بيانات العرض، والساعة إلى يوم البدء.");
+    else if (m.action === "reset") window.location.reload();
     else setNote(firedNote(outcome.events));
   }
 

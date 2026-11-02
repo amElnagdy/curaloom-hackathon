@@ -23,6 +23,8 @@ export type Store = {
   // Deletes every document of the session, keeping its trace and blobs: readers fall back to the
   // seed, so this restores the seeded state.
   clearDocs(sessionId: string): void;
+  // Deletes the session's trace log. The next event is evt_0001; blobs stay.
+  clearTrace(sessionId: string): void;
   appendTrace(sessionId: string, event: { id: string }): void;
   // Whether the session's trace is on disk: a count kept in memory is stale once it is deleted.
   hasTrace(sessionId: string): boolean;
@@ -118,6 +120,9 @@ function fileStore(root: string): Store {
       for (const name of readdirSync(dir)) {
         if (name.endsWith(".json")) rmSync(join(dir, name));
       }
+    },
+    clearTrace(sessionId) {
+      rmSync(sessionPath(sessionId, "trace.jsonl"), { force: true });
     },
     appendTrace(sessionId, event) {
       appendFileSync(forWrite(sessionPath(sessionId, "trace.jsonl")), `${JSON.stringify(event)}\n`);

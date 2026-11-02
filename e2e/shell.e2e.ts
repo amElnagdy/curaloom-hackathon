@@ -172,8 +172,10 @@ test("the demo bar's «إعادة» asks before it empties the session", async (
   const answer = page.waitForResponse(
     (r) => r.request().method() === "POST" && r.url().endsWith("/sim/reset"),
   );
+  const loaded = page.waitForEvent("load");
   await ask.getByRole("button", { name: "نعم، ابدأ من الصفر" }).click();
   expect((await answer).status()).toBe(200);
-  await expect(ask).toBeHidden();
-  await expect(reset).toBeFocused();
+  await loaded;
+  await expect(page.getByRole("button", { name: "إعادة", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: /أتريد أن تبدأ العرض من الصفر؟/ })).toHaveCount(0);
 });

@@ -47,7 +47,7 @@ function setup(enabled = true) {
       "s_1",
       deps,
     );
-  return { deps, post, reply, consent };
+  return { store, deps, post, reply, consent };
 }
 
 describe("sim and inbox routes", () => {
@@ -63,6 +63,23 @@ describe("sim and inbox routes", () => {
     expect(advance.now).toBe("day 10 12:30");
     expect(advance.events.map((e: { id: string }) => e.id)).toEqual(["checkin_a0_d10"]);
     expect(reset).toEqual({ now: "day 0 09:00", events: [] });
+  });
+
+  it("clears the trace on reset, so a second run does not keep the first's clock", async () => {
+    const { post, store } = setup();
+    await post("set", { day: 10 });
+
+    expect((await post("reset")).status).toBe(200);
+
+    expect(store.readDoc("s_1", "sim_clock")).toEqual({ now: { day: 0, minute: 540 } });
+    expect(
+      store
+        .readTrace<{ id: string; agent: string; sim_ts: string }>("s_1")
+        .map((e) => [e.agent, e.sim_ts]),
+    ).toEqual([
+      ["clock", "day 0 09:00"],
+      ["sim", "day 0 09:00"],
+    ]);
   });
 
   it("fire each message once when two moves of the same session arrive together", async () => {

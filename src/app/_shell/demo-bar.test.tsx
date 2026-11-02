@@ -11,7 +11,6 @@ const clock = vi.hoisted(() => ({
   move: async () => ({ kind: "failed" as const }),
   waitsForPlan: false,
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }) }));
 vi.mock(import("./use-sim-clock.ts"), async (original) => ({
   ...(await original()),
   useSimClock: () => clock,
