@@ -27,7 +27,7 @@ Read `docs/architecture.md` for the component map and layout, and the ADRs in `d
 - **Language:** learner-facing text is Arabic. Code, identifiers, commits and docs are English.
 - **Tests:** Vitest, next to the code as `*.test.ts`. Test behaviour through the module's public interface.
 - **Decisions:** record a hard-to-reverse choice as a new ADR in `docs/adr/`.
-- **Licence:** the code is Apache-2.0 (`LICENSE`). It does not cover the recorded fixtures in `demo/fixtures/pages/` and `demo/fixtures/responses/`, which keep their sources' licences (`demo/fixtures/LICENSE.md`), or the third-party material in `THIRD_PARTY_NOTICES.md`.
+- **Licence:** the code is Apache-2.0 (`LICENSE`). It does not cover the recorded fixtures in `demo/fixtures/pages/` and `demo/fixtures/responses/`, which keep their sources' licences (`demo/fixtures/LICENSE.md`), or the third-party material in `THIRD_PARTY_NOTICES.md`. Content adapted from CC BY-SA sources, such as the recorded calls that quote Wikipedia, is CC BY-SA 4.0 (`LICENSE-CONTENT.md`), and `pnpm notices` writes its credits to `ATTRIBUTION.md`.
 - **Replay freeze:** from Nov 3, 2026, do not change anything that feeds a model request, such as a prompt, a contract, `config/models.yaml`, `demo/script.ts` or `demo/fixtures/`. Replay finds each recording by a hash of the full request, so such a change breaks the demo. `docs/release-checklist.md` ("Replay freeze") lists what is frozen and the checks to run before merging.
 
 ## Agent skills

@@ -174,8 +174,10 @@ A human review then ruled that both models' answer to one disputed diacritics it
 
 The code is licensed under the [Apache License 2.0](LICENSE). Copyright 2026 Ahmed Nagdy.
 
+Content adapted from CC BY-SA sources is shared under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), as [`LICENSE-CONTENT.md`](LICENSE-CONTENT.md) explains. That content is the recorded model calls that quote Wikipedia and Wikibooks text, the lessons and quizzes the model wrote from it, and what the demo GIF shows of them. The code licence does not cover that content, and CC BY-SA 4.0 does not cover the code. [`ATTRIBUTION.md`](ATTRIBUTION.md) credits each source.
+
 Third-party packages, fonts, icons and the recorded source pages keep their own licences. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) lists each one.
 
-The code licence does not cover the recorded pages and model replies in `demo/fixtures/`, which keep the licences of their sources. [`demo/fixtures/LICENSE.md`](demo/fixtures/LICENSE.md) explains them. Replies built on Wikipedia and Wikibooks text are CC BY-SA 4.0, and the stored pages include one CC BY-NC-SA 4.0 page and one MPL-2.0 page.
+The code licence does not cover the recorded pages and model replies in `demo/fixtures/`, which keep the licences of their sources. [`demo/fixtures/LICENSE.md`](demo/fixtures/LICENSE.md) explains them. The stored pages include one CC BY-NC-SA 4.0 page and two MPL-2.0 pages.
 
 The demo GIF, `docs/media/demo.gif`, shows excerpts of the Wikipedia articles [«Tableur»](https://fr.wikipedia.org/wiki/Tableur) (French), [«Сводная таблица»](https://ru.wikipedia.org/wiki/Сводная_таблица) (Russian) and [Pivot table](https://en.wikipedia.org/wiki/Pivot_table) (English), and the Arabic lesson and quiz written from them. That material is by the articles' Wikipedia contributors and stays under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).

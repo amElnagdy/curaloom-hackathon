@@ -94,7 +94,7 @@ evals/               model evals (#8)
 demo/fixtures/       seeded state, recorded responses and recorded pages
 e2e/                 Playwright walk of the presenter steps on a replay server: `pnpm e2e` (#55)
 docs/adr/            decisions
-scripts/             repo upkeep: notices.ts writes THIRD_PARTY_NOTICES.md (#32), fonts.py writes src/app/fonts/ (#43)
+scripts/             repo upkeep: notices.ts writes THIRD_PARTY_NOTICES.md (#32) and ATTRIBUTION.md (#116), fonts.py writes src/app/fonts/ (#43)
 spikes/              throwaway Day-1 spikes (Python, not in CI)
 ```
 

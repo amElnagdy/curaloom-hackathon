@@ -3,8 +3,9 @@
 // `src/app/layout.tsx` loads, the lucide icons `src/` imports, and the source pages, images and
 // model calls recorded in `demo/fixtures/`. Each recorded page's licence comes from the scout's own
 // checker, each image's from the diagrams agent's, and each credit line from the lesson page's. It
-// needs no network and no key, and writes the same file on every system, so CI checks that the
-// committed file is current. Run it again after a dependency, font, icon or fixture change.
+// also writes ATTRIBUTION.md, the credits for the CC BY-SA sources the recordings name. It needs no
+// network and no key, and writes the same files on every system, so CI checks that the committed
+// files are current. Run it again after a dependency, font, icon or fixture change.
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -20,6 +21,7 @@ import { normalizeResponses } from "../src/server/providers/meta.ts";
 
 const ROOT = process.cwd();
 const OUT = "THIRD_PARTY_NOTICES.md";
+const ATTRIBUTION = "ATTRIBUTION.md";
 const PAGES = "demo/fixtures/pages";
 const RESPONSES = "demo/fixtures/responses";
 
@@ -61,6 +63,18 @@ const AUTHORS: [RegExp, string][] = [
   [/(^|\.)wikibooks\.org$/, "Wikibooks contributors"],
   [/(^|\.)wikiversity\.org$/, "Wikiversity contributors"],
 ];
+
+const CC_BY_SA = /^CC-BY-SA-(\d\.\d)$/;
+const SHARE_ALIKE = /-SA(-|$)/;
+
+const WIKI_LINK = /https?:\/\/[a-z-]+\.(?:wikipedia|wikibooks|wikiversity)\.org\/[^\s"'<>)\]]+/g;
+
+// What the model wrote in each kind of recorded call that carries a page's text, one and many.
+const ADAPTATIONS: Record<string, [string, string]> = {
+  LessonDraft: ["lesson", "lessons"],
+  QuizDraft: ["quiz", "quizzes"],
+  KeyCheck: ["answer-key check", "answer-key checks"],
+};
 
 const LANGUAGES: Record<string, string> = {
   English: "en",
@@ -107,6 +121,19 @@ const isFilePage = (url: string) => /^\/wiki\/File:/.test(URL.parse(url)?.pathna
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(join(ROOT, path), "utf8")) as T;
 const spdxUrl = (id: string) => `https://spdx.org/licenses/${id}.html`;
 const cell = (text: string) => text.replaceAll("|", "\\|");
+
+// The article a Wikimedia link points at, so that its permanent, http and encoded links compare equal.
+function wikiArticle(url: string): string {
+  const parsed = URL.parse(url.replace(/[.,;:]+$/, ""));
+  if (!parsed) return url;
+  const title = parsed.pathname === "/w/index.php" ? parsed.searchParams.get("title") : null;
+  const path = title ? `/wiki/${title.replaceAll(" ", "_")}` : parsed.pathname.replace(/\/$/, "");
+  try {
+    return `https://${parsed.hostname}${decodeURIComponent(path)}`;
+  } catch {
+    return `https://${parsed.hostname}${path}`;
+  }
+}
 
 // The form two spellings of one URL share, as the scout compares them.
 function normalUrl(url: string): string {
@@ -553,6 +580,97 @@ function modelSection(sources: Source[], carriers: Carrier[]): string[] {
   ];
 }
 
+// CC BY-SA reaches each recorded call that carries a source's text, so ATTRIBUTION.md credits every
+// CC BY-SA source the recordings name and lists the calls that adapt each one.
+function attributionFile(sources: Source[], carriers: Carrier[]): string[] {
+  const adapts = (c: Carrier, s: Source) => c.carried.includes(s);
+  const adapted = sources.filter((s) => carriers.some((c) => adapts(c, s)));
+  for (const s of adapted) {
+    if (SHARE_ALIKE.test(s.check.spdx) && !CC_BY_SA.test(s.check.spdx)) {
+      throw new Error(
+        `A recording adapts ${s.title} (${s.check.spdx}); credit it in ATTRIBUTION.md`,
+      );
+    }
+  }
+  const credited = sources.filter(
+    (s) => CC_BY_SA.test(s.check.spdx) && (s.named > 0 || adapted.includes(s)),
+  );
+  const adapting = carriers.filter((c) => credited.some((s) => adapts(c, s)));
+  for (const { kind } of adapting) {
+    if (!ADAPTATIONS[kind])
+      throw new Error(`Add what the model writes in a ${kind} call to ADAPTATIONS`);
+  }
+  const written = (calls: Carrier[]) =>
+    Object.entries(ADAPTATIONS).flatMap(([kind, [one, many]]) => {
+      const n = calls.filter((c) => c.kind === kind).length;
+      return n ? [`${n} ${n === 1 ? one : many}`] : [];
+    });
+  const languages = Object.fromEntries(
+    Object.entries(LANGUAGES).map(([name, code]) => [code, name]),
+  );
+  const list = (items: string[]) =>
+    items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items.at(-1)}` : (items[0] ?? "");
+  const creditedArticles = new Set(credited.map((s) => wikiArticle(s.page.url)));
+  const linkedOnly = [
+    ...new Set(
+      responseFiles().flatMap((file) =>
+        strings(readJson<unknown>(`${RESPONSES}/${file}`)).flatMap((text) =>
+          [...text.matchAll(WIKI_LINK)].map(([url]) => wikiArticle(url)),
+        ),
+      ),
+    ),
+  ]
+    .filter((article) => !creditedArticles.has(article))
+    .sort();
+  const entries = credited.flatMap((s) => {
+    const version = s.check.spdx.match(CC_BY_SA)?.[1];
+    const host = URL.parse(s.page.url)?.hostname ?? "";
+    if (!s.authors) throw new Error(`Add the authors of ${host} pages to AUTHORS`);
+    const calls = carriers.filter((c) => adapts(c, s));
+    return [
+      `### ${s.title}`,
+      "",
+      `- Authors: ${s.authors}`,
+      ...(s.lang ? [`- Language: ${languages[s.lang]}`] : []),
+      `- Source: ${decodeURI(s.page.url)}`,
+      `- Licence: CC BY-SA ${version}, https://creativecommons.org/licenses/by-sa/${version}/`,
+      calls.length
+        ? `- Adapted in ${calls.length} recorded ${calls.length === 1 ? "call" : "calls"}. Their requests quote its text, and the model wrote ${list(written(calls))} in Arabic from it.`
+        : `- Not adapted. ${s.named} recorded ${s.named === 1 ? "call names" : "calls name"} it, and none carries its text.`,
+      "",
+    ];
+  });
+  return [
+    "# Attribution",
+    "",
+    "Generated by `pnpm notices` (`scripts/notices.ts`) from the recordings in `demo/fixtures/`. Do not edit by hand.",
+    "",
+    `The recorded model calls in \`${RESPONSES}/\` name ${credited.length} sources licensed CC BY-SA. A call adapts a source when its request carries the source's text, and the model wrote its reply from that text. ${adapting.length} calls adapt one or more of these sources. They are shared under CC BY-SA 4.0, as [\`LICENSE-CONTENT.md\`](LICENSE-CONTENT.md) explains. A call that names a source only by its title and link, in a search reply or a course plan, does not adapt it. [\`THIRD_PARTY_NOTICES.md\`](THIRD_PARTY_NOTICES.md) gives each source's licence statement and credits the recorded sources under other licences.`,
+    "",
+    "## Sources",
+    "",
+    ...entries,
+    "## Recordings that adapt them",
+    "",
+    `Each of these files in \`${RESPONSES}/\` holds a request and the model's reply, and is shared under CC BY-SA 4.0. The sources it adapts follow its name.`,
+    "",
+    ...adapting.map(
+      (c) =>
+        `- \`${c.file}\` (${c.kind}): ${c.carried
+          .filter((s) => credited.includes(s))
+          .map((s) => s.title)
+          .join(", ")}.`,
+    ),
+    "",
+    "## Pages the recordings only link to",
+    "",
+    `The web-search replies, and the scout's calls that describe their results, also link to ${linkedOnly.length} more Wikipedia, Wikibooks and Wikiversity pages. The search opened or cited them, but the app never fetched them, and no recording carries their text. Those projects share their text under CC BY-SA 4.0. A link is not an adaptation, so these pages need no credit. They are listed so that this file accounts for every page of those projects that the recordings name. The search replies also link to pages on other sites, which the app never fetched either, so this file does not list them.`,
+    "",
+    ...linkedOnly.map((article) => `- ${article}`),
+    "",
+  ];
+}
+
 const installed = installedPackages();
 const platform = platformPackages();
 const pages = recordedPages();
@@ -574,6 +692,12 @@ const lines = [
   ...modelSection(sources, carriers),
 ];
 writeFileSync(join(ROOT, OUT), `${lines.join("\n").trimEnd()}\n`);
-const format = spawnSync("pnpm", ["exec", "biome", "format", "--write", OUT], { stdio: "inherit" });
+writeFileSync(
+  join(ROOT, ATTRIBUTION),
+  `${attributionFile(sources, carriers).join("\n").trimEnd()}\n`,
+);
+const format = spawnSync("pnpm", ["exec", "biome", "format", "--write", OUT, ATTRIBUTION], {
+  stdio: "inherit",
+});
 if (format.status !== 0) process.exit(format.status ?? 1);
-console.log(`Wrote ${OUT}`);
+console.log(`Wrote ${OUT} and ${ATTRIBUTION}`);

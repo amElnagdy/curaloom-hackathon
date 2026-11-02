@@ -22,7 +22,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm notices && git diff --exit-code THIRD_PARTY_NOTICES.md
+      - run: pnpm notices && git diff --exit-code THIRD_PARTY_NOTICES.md ATTRIBUTION.md
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
