@@ -115,35 +115,49 @@ describe("the coach's ladder on the seed's Omar", () => {
   });
 
   it.each(DAY_TABLE)(
-    "fires $id on day $day at 09:00 and holds it for quiet hours until 12:00",
+    "fires $id on a jump to day $day at 12:00, after his quiet hours",
     async ({ day, id, type, state, cta, text }) => {
       const { sim, phone } = setup();
 
-      const { events } = await sim().set(day);
-      const held = sim().outbox().at(-1);
+      const { now, events } = await sim().set(day);
       const ladder = sim().ladder();
-      await sim().advance({ minutes: 180 });
 
+      expect(now).toBe(`day ${day} 12:00`);
       expect(events.at(-1)).toEqual({
         id,
         sim_day: day,
         type,
         channel: "simulated",
         message_ar: text,
-        status: "queued",
+        status: "sent",
       });
-      expect(held).toMatchObject({ message: { id, cta }, status: "deferred" });
-      expect(held?.deliver_at).toBe(`day ${day} 12:00`);
       expect(ladder.state).toBe(state);
-      expect(
-        sim()
-          .coachEvents()
-          .find((e) => e.id === id)?.status,
-      ).toBe("sent");
-      expect(phone().at(-1)).toMatchObject({ id, direction: "out", text, cta });
-      expect(phone().at(-1)?.sim_ts).toBe(`day ${day} 12:00`);
+      expect(phone().at(-1)).toMatchObject({
+        id,
+        direction: "out",
+        text,
+        cta,
+        sim_ts: `day ${day} 12:00`,
+      });
     },
   );
+
+  it("holds a 09:00 rung for quiet hours until 12:00 when the clock advances into the morning", async () => {
+    const { sim, phone } = setup();
+
+    const { now, events } = await sim().advance({ days: 2 });
+    const held = sim().outbox().at(-1);
+    await sim().advance({ minutes: 180 });
+
+    expect(now).toBe("day 2 09:00");
+    expect(events.at(-1)).toMatchObject({ id: "nudge_a0_d2", status: "queued" });
+    expect(held).toMatchObject({
+      message: { id: "nudge_a0_d2" },
+      status: "deferred",
+      deliver_at: "day 2 12:00",
+    });
+    expect(phone().at(-1)).toMatchObject({ id: "nudge_a0_d2", sim_ts: "day 2 12:00" });
+  });
 
   it("fires the five messages in time order on a jump to day 24, each traced at its own time", async () => {
     const { sim, trace } = setup();
@@ -387,8 +401,7 @@ describe("activity", () => {
         seed,
         coach: noPlan(study),
       });
-    await sim().set(3);
-    await sim().advance({ minutes: 60 });
+    await sim().advance({ days: 3, minutes: 60 });
     study.attempt_days.push(3);
 
     const day4 = await sim().set(4);
@@ -459,7 +472,6 @@ const reply = (choice: CheckinReply["choice"], pause_days = 7): CheckinReply => 
 async function checkedIn() {
   const t = setup();
   await t.sim().set(10);
-  await t.sim().advance({ minutes: 180 });
   return t;
 }
 
@@ -529,13 +541,14 @@ describe("answers to the day-10 check-in", () => {
 
     const answer = await sim().answer(reply("pause", 10));
     const paused = sim().ladder();
+    const pausedPhone = phone().slice(-2);
     const day17 = await sim().set(17);
     const day20 = await sim().set(20);
     const state20 = sim().ladder().state;
     const day24 = await sim().set(24);
 
     expect(answer).toEqual({ choice: "pause", paused_until: "day 20 09:00" });
-    expect(phone().slice(-2)).toMatchObject([
+    expect(pausedPhone).toMatchObject([
       { direction: "in", text: "استراحة أسبوع", sim_ts: "day 10 12:00" },
       {
         id: `ack_${CHECKIN}`,
@@ -558,8 +571,8 @@ describe("answers to the day-10 check-in", () => {
     await sim().answer(reply("pause", 7));
     const day17 = await sim().set(17);
 
-    expect(phone().at(-1)?.text).toBe("حسنًا، لا رسائل مني حتى اليوم ١٧. خطتك ومكانك محفوظان.");
     expect(day17.events.map((e) => e.id)).toEqual(["weekly_a0_d17"]);
+    expect(phone().at(-1)?.text).toBe(WEEKLY_TEXT);
   });
 
   it("holds the acknowledgement of a reply at 23:00 until his quiet hours end", async () => {
@@ -667,7 +680,7 @@ describe("answers to the day-10 check-in", () => {
     [
       "a check-in still held for quiet hours",
       async (t: ReturnType<typeof setup>) => {
-        await t.sim().set(10);
+        await t.sim().advance({ days: 10 });
         return reply("pause");
       },
     ],
@@ -675,7 +688,6 @@ describe("answers to the day-10 check-in", () => {
       "a choice the message does not offer",
       async (t: ReturnType<typeof setup>) => {
         await t.sim().set(2);
-        await t.sim().advance({ minutes: 180 });
         return { ...reply("shrink"), event_id: "nudge_a0_d2" };
       },
     ],
@@ -683,7 +695,6 @@ describe("answers to the day-10 check-in", () => {
       "a check-in answered already",
       async (t: ReturnType<typeof setup>) => {
         await t.sim().set(10);
-        await t.sim().advance({ minutes: 180 });
         await t.sim().answer(reply("switch"));
         return reply("pause");
       },
@@ -692,7 +703,6 @@ describe("answers to the day-10 check-in", () => {
       "a learner who stopped the messages",
       async (t: ReturnType<typeof setup>) => {
         await t.sim().set(10);
-        await t.sim().advance({ minutes: 180 });
         t.sim().reply("توقف");
         return reply("pause");
       },

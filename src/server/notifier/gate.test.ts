@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Consent } from "../../../contracts/index.ts";
 import { loadOmarSeed } from "../../../demo/seed";
 import { formatSimTime, parseSimTime } from "../clock/time";
-import { gate, type MessageKind } from "./gate";
+import { gate, type MessageKind, sendAt } from "./gate";
 
 // The seed's consent: granted, quiet hours 22:00 to 12:00 (across midnight).
 const SEED = loadOmarSeed("x").consent;
@@ -51,5 +51,12 @@ describe("consent gate", () => {
     expect(decide(consent({ opted_out: true }), "day 2 23:00", "opt_out_confirmation")).toBe(
       "send",
     );
+  });
+
+  it("lands a day's send at noon when quiet hours cover 09:00, and at 09:00 otherwise", () => {
+    expect(formatSimTime(sendAt(5, { start: "22:00", end: "12:00" }))).toBe("day 5 12:00");
+    expect(formatSimTime(sendAt(5, { start: "22:00", end: "08:00" }))).toBe("day 5 09:00");
+    expect(formatSimTime(sendAt(5, { start: "13:00", end: "15:00" }))).toBe("day 5 09:00");
+    expect(formatSimTime(sendAt(5, null))).toBe("day 5 09:00");
   });
 });

@@ -22,7 +22,7 @@ How the rungs fire:
 - `rungsThrough(facts, upTo)` lists the rungs due by a time, oldest first. `ladderAt(facts, now)` says where the ladder stands.
 - Nothing about the ladder is stored. A quiz moves the anchor, so the next rungs have new ids and the ladder starts again. The `coach` document keeps only the learner's answers and the last anchor the coach saw. When the clock next moves, `observe()` traces the reset once. A finished comeback moves the anchor too (see Comeback).
 - The scheduler fires due rungs in time order, one at a time, and waits for each message's wording. A jump of the clock to day 24 fires all five rungs, each traced at its own time.
-- The notifier holds a rung for quiet hours as it holds any message.
+- The notifier holds a rung for quiet hours as it holds any message. A jump to that day lands when quiet hours end if 09:00 is inside them, so the demo clock shows the message at a sendable hour.
 - The demo bar's markers come from `ladderMarks()`: the rungs of a learner whose last quiz was on day 0, as for the seed's Omar and a learner just through the intake.
 
 ## States

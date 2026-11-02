@@ -3,7 +3,7 @@
 // the consent screen saves one, no coach events yet, so no coach message can reach them first, and
 // the quizzes of the plan built for them, which their comeback (#27) recaps and re-plans.
 
-import type { CoursePlan, Mastery, QuizAttempt } from "../../../contracts/index.ts";
+import type { Consent, CoursePlan, Mastery, QuizAttempt } from "../../../contracts/index.ts";
 import { SWITCH_RECAP_RIGHT } from "../../../demo/script.ts";
 import type { Seed } from "../../../demo/seed.ts";
 import { config } from "../../config.ts";
@@ -31,8 +31,15 @@ export type CoachSeed = SimSeed & Pick<Seed, "attempts" | "mastery" | "plans">;
 const COACH_DOCS = [CONSENT_DOC, OUTBOX_DOC, INBOX_DOC, EVENTS_DOC, LEDGER_DOC, COACH_DOC];
 const COACH_FOR_DOC = "coach_for";
 
-// The issue's default (#24): no messages from 22:00 to 08:00, the learner's local time.
+// The issue's default (#24): no messages from 22:00 to 08:00, the learner's local time. A note that
+// the learner wants no morning messages, as Omar's interview does, uses the seed's window instead,
+// 22:00 to 12:00, so a 09:00 rung waits until noon (#118).
 const DEFAULT_QUIET_HOURS = { start: "22:00", end: "08:00" };
+const NO_MORNING_QUIET_HOURS = { start: "22:00", end: "12:00" };
+
+function quietHoursFromNotes(notes: string): NonNullable<Consent["quiet_hours"]> {
+  return /صباح|الصبح/.test(notes) ? NO_MORNING_QUIET_HOURS : DEFAULT_QUIET_HOURS;
+}
 
 export function sessionSimSeed(store: Store, sessionId: string, seed: SimSeed): SimSeed {
   const learner = savedProfile(store, sessionId);
@@ -51,7 +58,7 @@ export function sessionSimSeed(store: Store, sessionId: string, seed: SimSeed): 
       channel: "simulated",
       granted: false,
       granted_sim_day: null,
-      quiet_hours: DEFAULT_QUIET_HOURS,
+      quiet_hours: quietHoursFromNotes(learner.history_notes),
       opted_out: false,
       opted_out_sim_day: null,
       intensity: "gentle",

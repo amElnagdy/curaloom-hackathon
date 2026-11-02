@@ -42,6 +42,9 @@ describe("sim clock", () => {
     open().set(5);
     expect(formatSimTime(open().now())).toBe("day 5 09:00");
 
+    open().set(5, 12 * 60);
+    expect(formatSimTime(open().now())).toBe("day 5 12:00");
+
     open().reset();
     expect(formatSimTime(open().now())).toBe("day 0 09:00");
   });

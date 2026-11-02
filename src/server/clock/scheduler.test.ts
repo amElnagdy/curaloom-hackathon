@@ -54,7 +54,7 @@ describe("coach scheduler", () => {
     const repeat = await sim().set(4);
     const after = await sim().advance({ minutes: 4 * 60 });
 
-    expect(jump.now).toBe("day 4 09:00");
+    expect(jump.now).toBe("day 4 12:00");
     expect(ids(jump.events)).toEqual(["early", "middle"]);
     expect(repeat.events).toEqual([]);
     expect(ids(after.events)).toEqual(["late"]);
@@ -122,12 +122,13 @@ describe("coach scheduler", () => {
     expect(
       trace().map((e) => [e.agent, e.sim_ts, e.agent === "scheduler" ? e.summary_en : null]),
     ).toEqual([
-      ["clock", "day 5 09:00", null],
+      ["clock", "day 5 12:00", null],
       ["scheduler", "day 2 09:00", "why a"],
       ["notifier", "day 2 09:00", null],
       ["notifier", "day 2 12:00", null],
       ["scheduler", "day 5 09:00", "why b"],
       ["notifier", "day 5 09:00", null],
+      ["notifier", "day 5 12:00", null],
     ]);
     expect(trace().find((e) => e.agent === "scheduler")?.summary_ar).toBe("سبب a");
   });

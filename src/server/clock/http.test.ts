@@ -58,9 +58,9 @@ describe("sim and inbox routes", () => {
     const advance = await (await post("advance", { days: 5, minutes: 30 })).json();
     const reset = await (await post("reset")).json();
 
-    expect(set.now).toBe("day 5 09:00");
+    expect(set.now).toBe("day 5 12:00");
     expect(set.events.map((e: { id: string }) => e.id)).toEqual(["nudge_a0_d2", "replan_a0_d5"]);
-    expect(advance.now).toBe("day 10 09:30");
+    expect(advance.now).toBe("day 10 12:30");
     expect(advance.events.map((e: { id: string }) => e.id)).toEqual(["checkin_a0_d10"]);
     expect(reset).toEqual({ now: "day 0 09:00", events: [] });
   });

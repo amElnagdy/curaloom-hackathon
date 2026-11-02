@@ -9,6 +9,7 @@ import type { Seed } from "../../../demo/seed.ts";
 import { config, type NotifierAdapterName } from "../../config.ts";
 import { type CoachDeps, createCoach, type RecapAnswers } from "../coach/coach.ts";
 import { createAdapter } from "../notifier/adapters.ts";
+import { sendAt } from "../notifier/gate.ts";
 import {
   type ConsentChoice,
   createNotifier,
@@ -94,9 +95,12 @@ export function createSim({
       const from = clock.now();
       return moved(from, clock.advance(by));
     },
+    // 09:00, or the end of quiet hours when that morning is quiet, so a jump shows the day's
+    // message at a sendable hour instead of holding it.
     set: async (day: number) => {
       const from = clock.now();
-      return moved(from, clock.set(day));
+      const to = sendAt(day, notifier.consent().quiet_hours);
+      return moved(from, clock.set(to.day, to.minute));
     },
     // The consent screen's save (#24), at the current sim time.
     setConsent(choice: ConsentChoice): Consent {

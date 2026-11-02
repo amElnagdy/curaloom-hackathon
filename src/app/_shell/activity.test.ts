@@ -196,7 +196,7 @@ describe("toActivityItem", () => {
     await createSim({ store, sessionId: "s_1", seed: loadOmarSeed("x") }).set(2);
     await orchestrator.runStep("s_1", scout([{ found: 3 }]), null);
 
-    expect(toActivityItem(trace().at(-1) as TraceEvent)?.simAt).toEqual({ day: 2, minute: 540 });
+    expect(toActivityItem(trace().at(-1) as TraceEvent)?.simAt).toEqual({ day: 2, minute: 720 });
   });
 
   it("leaves the clock, the coach scheduler, the notifier and a demo reset out of the feed", async () => {

@@ -32,7 +32,7 @@ describe("sessionSimSeed", () => {
       channel: "simulated",
       granted: false,
       granted_sim_day: null,
-      quiet_hours: { start: "22:00", end: "08:00" },
+      quiet_hours: { start: "22:00", end: "12:00" },
       opted_out: false,
       opted_out_sim_day: null,
       intensity: "gentle",
@@ -82,7 +82,8 @@ describe("sessionSimSeed", () => {
   it("marks a held coach event as not sent once the consent screen turns messages off", async () => {
     const s = store();
     const sim = createSim({ store: s, sessionId: "s1", seed: sessionSimSeed(s, "s1", seed) });
-    await sim.set(2);
+    // Stay at 09:00 of day 2, inside his quiet hours, so the nudge is still held.
+    await sim.advance({ days: 2 });
     expect(sim.coachEvents().find((e) => e.id === "nudge_a0_d2")?.status).toBe("queued");
 
     sim.setConsent({ messages: false, quiet_hours: null, intensity: "gentle" });
@@ -90,6 +91,54 @@ describe("sessionSimSeed", () => {
     expect(sim.coachEvents().find((e) => e.id === "nudge_a0_d2")?.status).toBe(
       "suppressed_opt_out",
     );
+  });
+});
+
+// Omar's interview (and the seed's notes) ask for no morning messages. After the intake that
+// preference is the consent form's default, and a jump to a coach day lands when quiet hours end,
+// so the phone shows the message at noon, not 09:00 (#118).
+describe("the interviewed learner's no-morning preference", () => {
+  const noMorning = {
+    ...learner,
+    history_notes: "ترك كورسات كورسيرا لأنها طويلة ويمل بسرعة، ويفضل عدم مراسلته في الصباح",
+  };
+
+  it("covers the morning in quiet hours and sends the day-5 message at 12:00", async () => {
+    const s = store();
+    s.writeDoc("s1", "profile", noMorning);
+    const sim = createSim({ store: s, sessionId: "s1", seed: sessionSimSeed(s, "s1", seed) });
+    sim.setConsent({
+      messages: true,
+      quiet_hours: sim.consent().quiet_hours,
+      intensity: "gentle",
+    });
+
+    const { now, events } = await sim.set(5);
+
+    expect(sim.consent().quiet_hours).toEqual({ start: "22:00", end: "12:00" });
+    expect(now).toBe("day 5 12:00");
+    expect(events.find((e) => e.id === "replan_a0_d5")?.status).toBe("sent");
+    expect(readInbox(s, "s1").find((m) => m.id === "replan_a0_d5")?.sim_ts).toBe("day 5 12:00");
+  });
+
+  it("keeps the usual 08:00 quiet end and a 09:00 send when the notes do not mention mornings", async () => {
+    const s = store();
+    s.writeDoc("s1", "profile", {
+      ...learner,
+      history_notes: "ترك دورات طويلة لأنها مملة",
+    });
+    const sim = createSim({ store: s, sessionId: "s1", seed: sessionSimSeed(s, "s1", seed) });
+    sim.setConsent({
+      messages: true,
+      quiet_hours: sim.consent().quiet_hours,
+      intensity: "gentle",
+    });
+
+    const { now, events } = await sim.set(5);
+
+    expect(sim.consent().quiet_hours).toEqual({ start: "22:00", end: "08:00" });
+    expect(now).toBe("day 5 09:00");
+    expect(events.find((e) => e.id === "replan_a0_d5")?.status).toBe("sent");
   });
 });
 

@@ -3,7 +3,7 @@
 // a decision out. The first rule that applies decides.
 
 import type { Consent } from "../../../contracts/index.ts";
-import { minuteOfDay, type SimTime } from "../clock/time.ts";
+import { minuteOfDay, type SimTime, startOfDay } from "../clock/time.ts";
 
 // A coach message, or the one reply the system sends to a stop word.
 export type MessageKind = "coach" | "opt_out_confirmation";
@@ -29,6 +29,14 @@ export function quietUntil(quiet: Consent["quiet_hours"], at: SimTime): SimTime 
     if (m < end) return { day: at.day, minute: end };
   }
   return null;
+}
+
+// The first minute of `day` a coach message may go: 09:00, or the end of quiet hours when that
+// morning is quiet, as the seed's 22:00 to 12:00 makes it. A jump to the day lands here so the
+// demo clock shows the message at a sendable hour.
+export function sendAt(day: number, quiet: Consent["quiet_hours"]): SimTime {
+  const at = startOfDay(day);
+  return quietUntil(quiet, at) ?? at;
 }
 
 const RULES: readonly GateRule[] = [

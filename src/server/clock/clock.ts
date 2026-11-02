@@ -6,13 +6,13 @@ import type { Store } from "../store/store.ts";
 import type { Tracer } from "../trace/trace.ts";
 import {
   compareSimTime,
+  DAY_START,
   DAY_ZERO,
   type Duration,
   formatSimTime,
   hhmm,
   later,
   type SimTime,
-  startOfDay,
 } from "./time.ts";
 
 // The one place that constructs the current wall time.
@@ -23,8 +23,8 @@ export function wallNow(): Date {
 export type SimClock = {
   now(): SimTime;
   advance(by: Duration): SimTime;
-  // Jumps to the start of `day`.
-  set(day: number): SimTime;
+  // Jumps to `minute` of `day`. Omit `minute` for 09:00, the start of the learner's day.
+  set(day: number, minute?: number): SimTime;
   reset(): SimTime;
 };
 
@@ -71,9 +71,9 @@ export function createSimClock(store: Store, sessionId: string, tracer: Tracer):
         `Clock advanced from ${formatSimTime(from)} to ${formatSimTime(to)}`,
       );
     },
-    set(day) {
+    set(day, minute = DAY_START) {
       const from = now();
-      const to = forward(from, startOfDay(day));
+      const to = forward(from, { day, minute });
       return moveTo(
         to,
         `قفزت الساعة المحاكاة إلى ${arabicSimTime(to)}`,
