@@ -6,17 +6,17 @@ The rules were checked in spike #10 with no blocker found, but the form's exact 
 
 ## Fields
 
-| Field             | Answer                                                       | Status                          |
-| ----------------- | ------------------------------------------------------------ | ------------------------------- |
-| Track             | Indie                                                        | Ready                           |
-| Theme             | Build for Your World                                         | Ready                           |
-| Project name      | CuraLoom (working name, set in `src/config.ts`)              | Ahmed to confirm the final name |
-| Team              | Ahmed Nagdy (solo)                                           | Ready                           |
-| Repository        | https://github.com/amElnagdy/curaloom-hackathon              | Ready                           |
-| Video             | Link after upload (≤ 3:00, script in `docs/video-script.md`) | Waiting on the Nov 4 recording  |
-| Short description | See below                                                    | Ready for review                |
-| Long description  | See below                                                    | Ready for review                |
-| Meta tools used   | See below                                                    | Ready for review                |
+| Field             | Answer                                          | Status                          |
+| ----------------- | ----------------------------------------------- | ------------------------------- |
+| Track             | Indie                                           | Ready                           |
+| Theme             | Build for Your World                            | Ready                           |
+| Project name      | CuraLoom (working name, set in `src/config.ts`) | Ahmed to confirm the final name |
+| Team              | Ahmed Nagdy (solo)                              | Ready                           |
+| Repository        | https://github.com/amElnagdy/curaloom-hackathon | Ready                           |
+| Video             | https://youtu.be/2gRrzSjkG_4 (2:27)             | Ready                           |
+| Short description | See below                                       | Ready for review                |
+| Long description  | See below                                       | Ready for review                |
+| Meta tools used   | See below                                       | Ready for review                |
 
 ## Short description
 
@@ -50,7 +50,7 @@ These figures are worked out from token counts and the prices in `config/models.
 
 ## Before submitting
 
-- [ ] The video is uploaded, and its link opens in a private window while signed out.
+- [x] The video is uploaded, and its link opens in a private window while signed out.
 - [x] The repository is public (#32), and its README opens with no sign-in.
 - [ ] Every field above is checked against the live form.
 - [ ] The confirmation page or email is saved as a screenshot in a private place, not in this repo.
