@@ -39,7 +39,10 @@
   flex-direction: column;
   overflow: hidden;
 }
+/* Positioned, so an absolute element inside, such as .sr-only text, stays in main's scroll area.
+   Placed by the document, it would stretch the page, and a scrollIntoView would move the window. */
 .main {
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;

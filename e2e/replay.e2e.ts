@@ -223,8 +223,13 @@ async function diagramsDone(page: Page, replay: Replay, lessonId: string, level:
   await expect(figure).toHaveCount(0);
 }
 
-// Step 13's «الأصل» and back to «بالعربية» on the relabelled diagram. The page scrolls inside
-// <main>, so the window must not move: a radio the window scrolls to leaves the screen blank.
+// The page scrolls inside <main>, so the window must not move: a window scrolled down hides the
+// top bar, and a radio the window scrolls to leaves the screen blank.
+async function windowStill(page: Page) {
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+}
+
+// Step 13's «الأصل» and back to «بالعربية» on the relabelled diagram.
 async function toggleVersions(page: Page) {
   const versions = page.getByRole("group", { name: "نسخة الرسم" });
   for (const [label, alt] of [
@@ -233,7 +238,7 @@ async function toggleVersions(page: Page) {
   ] as const) {
     await versions.getByText(label, { exact: true }).click();
     await expect(page.getByRole("img", { name: alt })).toBeVisible();
-    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    await windowStill(page);
   }
 }
 
@@ -285,10 +290,12 @@ async function passLessonOne(page: Page, replay: Replay, level: Level) {
   await takeQuiz(page, replay, "L1", { wrong: FIRST_MISSED[level] });
   await see(replay, page.getByRole("heading", { name: /^لم تجتز الاختبار بعد/ }));
   await expect(page.getByRole("img", { name: /^نتيجتك / })).toBeVisible();
+  await windowStill(page);
   await page.getByRole("button", { name: "ابدأ اختبارًا جديدًا" }).click();
   await takeQuiz(page, replay, "L1");
   await see(replay, page.getByRole("heading", { name: /^اجتزت الاختبار(?! في العرض)/ }));
   await expect(page.getByRole("img", { name: /^نتيجتك / })).toBeVisible();
+  await windowStill(page);
 }
 
 // Step 8, in the tone given, or the form's own.
@@ -404,6 +411,7 @@ for (const placement of PLACEMENTS) {
       await takeRecap(page, replay, 3);
       const accept = page.getByRole("button", { name: "اعتمد الخطة الجديدة" });
       await see(replay, accept);
+      await windowStill(page);
       await posted(page, /\/plan\/accept$/, () => accept.click());
     });
 
