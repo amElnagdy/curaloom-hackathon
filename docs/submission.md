@@ -52,5 +52,5 @@ These figures are worked out from token counts and the prices in `config/models.
 
 - [x] The video is uploaded, and its link opens in a private window while signed out.
 - [x] The repository is public (#32), and its README opens with no sign-in.
-- [ ] Every field above is checked against the live form.
-- [ ] The confirmation page or email is saved as a screenshot in a private place, not in this repo.
+- [x] Every field above is checked against the live form. The live form differed from this list: one Project Description field, "Describe your use of Meta products to build the submitted project", "Why are Meta's models important to your solution?", and survey questions on the Meta Model API.
+- [x] The confirmation page or email is saved as a screenshot in a private place, not in this repo. Submitted on 2026-11-04 at 22:51 Cairo time, team number 2932; the confirmation email came from Cerebral Valley.
