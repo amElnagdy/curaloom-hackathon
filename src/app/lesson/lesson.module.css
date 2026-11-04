@@ -530,7 +530,9 @@
   border-radius: var(--r-ctl);
   background: var(--fill);
 }
+/* Each label holds its radio, so the window never scrolls to a radio outside <main>. */
 .versions label {
+  position: relative;
   display: inline-flex;
   align-items: center;
   min-height: 2rem;

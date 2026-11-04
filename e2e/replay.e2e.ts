@@ -223,6 +223,20 @@ async function diagramsDone(page: Page, replay: Replay, lessonId: string, level:
   await expect(figure).toHaveCount(0);
 }
 
+// Step 13's «الأصل» and back to «بالعربية» on the relabelled diagram. The page scrolls inside
+// <main>, so the window must not move: a radio the window scrolls to leaves the screen blank.
+async function toggleVersions(page: Page) {
+  const versions = page.getByRole("group", { name: "نسخة الرسم" });
+  for (const [label, alt] of [
+    ["الأصل", /كما في مصدره$/],
+    ["بالعربية", /بتسميات عربية$/],
+  ] as const) {
+    await versions.getByText(label, { exact: true }).click();
+    await expect(page.getByRole("img", { name: alt })).toBeVisible();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  }
+}
+
 // Steps 1 to 3: the interview through its chips, then the quick check answered by `pick`.
 async function interview(page: Page, replay: Replay, pick: (q: Question, i: number) => string) {
   await page.goto(`${replay.url}/intake`);
@@ -399,6 +413,7 @@ for (const placement of PLACEMENTS) {
       await see(replay, lesson2);
       await lesson2.click();
       await diagramsDone(page, replay, "L2", level);
+      if (DIAGRAMS[level].L2) await toggleVersions(page);
     });
 
     const events = await noneMissing(page, replay);
