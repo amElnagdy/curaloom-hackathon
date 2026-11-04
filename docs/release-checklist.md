@@ -36,7 +36,7 @@ Replay finds each recording by a hash of the full request, the API path and the 
 
 ## Make the public copy from a fresh clone
 
-- [ ] **Choose how to publish. Owner: Ahmed.** Recommendation: create a new public repository and push a fresh `git clone` of this one to it. Keep this repository private.
+- [x] **Choose how to publish. Owner: Ahmed.** Done on 2026-11-04: a fresh clone of `main` at `9404d15` was pushed to the new public repository https://github.com/amElnagdy/curaloom-hackathon, and this one stays private. Recommendation was: create a new public repository and push a fresh `git clone` of this one to it. Keep this repository private.
   - Making this repository public also publishes its 37 issues with their comments, and the `prototype/*` branches. Every issue body carries the shared context block, which lists the judging weights and the line "No Dubai/market-specific work".
   - A copy of the working folder, instead of a clone, would carry `.env` with the live `MODEL_API_KEY`, plus `data/` and `.next/`. Push only from a clone or from `git archive`.
   - The full history passes the secret scan below, so it can go public as it is. The issue asks for a squashed copy only if the scan finds something. Squashing would also drop the commit messages that explain each change.
@@ -52,7 +52,7 @@ Replay finds each recording by a hash of the full request, the API path and the 
   - `.impeccable/questions/seeds/52b02d4b592ba511.json:1`, a design-tool question key, not a secret. `.impeccable/questions/.gitignore` ignores the folder.
 - [x] **Recorded responses.** No file in `demo/fixtures/responses/` holds the learner id `l_omar`, and no response body has a `user`, `organization` or `project` field. Bodies keep Meta response ids (`resp_…`), which are not credentials.
 - [x] **Commit authors.** All 112 commits on every branch use the GitHub noreply address `7650147+amElnagdy@users.noreply.github.com`.
-- [ ] **Scan again on the final commit, right before the push. Owner: whoever publishes.** In a fresh clone, run `gitleaks git . --redact` and `gitleaks dir . --redact`. Both must report `no leaks found`.
+- [x] **Scan again on the final commit, right before the push. Owner: whoever publishes.** On 2026-11-04, on a fresh clone at `9404d15`, both scans reported `no leaks found` (249 commits; 8.86 MB of files). In a fresh clone, run `gitleaks git . --redact` and `gitleaks dir . --redact`. Both must report `no leaks found`.
 
 ## A fresh clone runs the replay demo with no key
 
